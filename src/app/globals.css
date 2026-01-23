@@ -60,13 +60,6 @@
   }
   --animate-meteor-effect: meteor 5s linear infinite;
 
-  @keyframes border-beam {
-    100% {
-      offset-distance: 100%;
-    }
-  }
-  --animate-border-beam: border-beam linear infinite;
-
   @keyframes marquee {
     from {
       transform: translateX(0);

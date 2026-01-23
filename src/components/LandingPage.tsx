@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -12,8 +12,8 @@ import {
   LucideUsers, 
   LucideLock, 
   LucideUnlock, 
-  LucidePackage,
-  LucideArrowUpRight,
+  LucidePackage, 
+  LucideArrowUpRight 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -22,12 +22,13 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
+import Link from 'next/link';
 import { 
-  RetroGrid,
-  BorderBeam, 
+  RetroGrid, 
   Marquee, 
   TruCheqCoin, 
-  AnimatedBeam 
+  Spotlight,
+  BorderBeam
 } from "@/components/ui/code-graphics";
 
 export default function LandingPage() {
@@ -36,18 +37,7 @@ export default function LandingPage() {
   const [demoActive, setDemoActive] = React.useState(false);
   const [transactions, setTransactions] = useState<{ id: number; addr: string; amount: number }[]>([]);
 
-  // Scroll detection for Navbar
-  const { scrollY } = useScroll();
-  const navBg = useTransform(scrollY, [0, 100], ["rgba(10, 15, 20, 0)", "rgba(10, 15, 20, 0.8)"]);
-  const navBorder = useTransform(scrollY, [0, 100], ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.1)"]);
-
-  // Refs for AnimatedBeam
-  const containerRef = useRef<HTMLDivElement>(null);
-  const walletRef = useRef<HTMLDivElement>(null);
-  const trucheqRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    // Generate static-feeling random data on mount to avoid hydration mismatch
     const txs = Array.from({ length: 10 }).map((_, i) => ({
       id: i,
       addr: Math.random().toString(16).slice(2, 6).toUpperCase(),
@@ -75,31 +65,31 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
+      <Spotlight />
       
       {/* Sticky Navbar */}
-      <motion.nav 
-        style={{ backgroundColor: navBg, borderColor: navBorder }}
-        className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300"
-      >
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
               <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-2xl font-black tracking-tighter italic">TruCheq</span>
+            <span className="text-2xl font-black tracking-tighter italic text-white">TruCheq</span>
           </div>
-          
+
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Features</a>
-            <a href="#demo" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Live Demo</a>
+            <Link href="/app" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Live Demo</Link>
             <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Use Cases</a>
           </div>
 
-          <Button className="bg-primary text-primary-foreground font-bold rounded-xl shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
-            Launch App
-          </Button>
+          <Link href="/app">
+            <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl px-6 py-4 shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
+              Launch App
+            </Button>
+          </Link>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center pt-20">
@@ -120,7 +110,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-6xl md:text-[5.5rem] font-black tracking-tight mb-8 leading-[0.95]"
+            className="text-6xl md:text-[5.5rem] font-black tracking-tight mb-8 leading-[0.95] text-white"
           >
             The Missing <span className="text-primary italic">'Buy Now'</span> <br className="hidden md:block" /> Button for Your DMs.
           </motion.h1>
@@ -142,24 +132,32 @@ export default function LandingPage() {
           >
             <div className="relative group w-full sm:w-auto">
               <BorderBeam size={80} duration={4} borderWidth={2} />
-              <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl">
-                Create TruCheq <LucideArrowRight className="ml-2 w-6 h-6" />
-              </Button>
+              <Link href="/app" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)]">
+                    Create TruCheq <LucideArrowRight className="ml-2 w-6 h-6" />
+                </Button>
+              </Link>
             </div>
-            <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
-              View Demo <LucidePlayCircle className="ml-2 w-6 h-6" />
-            </Button>
+            <Link href="/app" className="w-full sm:w-auto">
+                <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm text-white">
+                    View Demo <LucidePlayCircle className="ml-2 w-6 h-6" />
+                </Button>
+            </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* Bento Grid */}
-      <section id="features" className="py-16 md:py-24 px-6 max-w-7xl mx-auto">
+      {/* Bento Grid (Features) */}
+      <section id="features" className="py-24 px-6 max-w-7xl mx-auto relative">
+        <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-white uppercase">Features</h2>
+            <p className="text-xl text-muted-foreground font-bold">Protocol-level trust for peer-to-peer trade.</p>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
           
           {/* Box 1 (Large) - The x402 Lock */}
           <Card className="md:col-span-2 md:row-span-2 relative overflow-hidden group border-white/5 bg-card/50 backdrop-blur-xl">
-            <BorderBeam duration={10} size={400} />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
             <CardHeader className="relative z-10 space-y-4">
               <div className="flex items-center justify-between">
@@ -174,8 +172,8 @@ export default function LandingPage() {
                  </div>
               </div>
               <div>
-                <CardTitle className="text-4xl font-black mb-3 tracking-tight">The x402 Protocol</CardTitle>
-                <CardDescription className="text-lg max-w-md leading-relaxed text-foreground/70">
+                <CardTitle className="text-4xl font-black mb-3 tracking-tight text-white uppercase">The x402 Protocol</CardTitle>
+                <CardDescription className="text-lg max-w-md leading-relaxed text-foreground/70 font-bold">
                     Smart-contract gates that secure the "Mexican Standoff" of P2P trade. 
                     Identity is provable, funds are provable.
                 </CardDescription>
@@ -186,7 +184,7 @@ export default function LandingPage() {
                     <div className="absolute inset-0 bg-primary/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
                     <TruCheqCoin active={!isLocked} />
                     <div className="flex-1 space-y-4">
-                        <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/30'}`} />
+                        <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/30 shadow-[0_0_10px_rgba(0,214,50,0.3)]'}`} />
                         <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-2/3 bg-white/5' : 'w-3/4 bg-primary/20'}`} />
                     </div>
                     <div className={cn(
@@ -205,7 +203,7 @@ export default function LandingPage() {
               <div className="p-3 w-fit rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-6">
                 <LucideZap className="w-8 h-8" />
               </div>
-              <CardTitle className="text-2xl font-black tracking-tight">Live Settlement</CardTitle>
+              <CardTitle className="text-2xl font-black tracking-tight text-white uppercase">Live Settlement</CardTitle>
               <CardDescription className="text-sm font-bold text-foreground/50">
                 CRONOS EVM • SUB-CENT FEES
               </CardDescription>
@@ -221,8 +219,8 @@ export default function LandingPage() {
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tx-${tx.id}`} />
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-sm font-black truncate tracking-tight">0x...{tx.addr}</p>
+                    <div className="flex-1 overflow-hidden text-left">
+                      <p className="text-sm font-black truncate tracking-tight text-white">0x...{tx.addr}</p>
                       <p className="text-xs text-primary font-black">{tx.amount} CRO</p>
                     </div>
                     <LucideArrowUpRight className="w-4 h-4 text-white/20 group-hover/tx:text-primary transition-colors" />
@@ -232,31 +230,23 @@ export default function LandingPage() {
             </CardContent>
           </Card>
 
-          {/* Box 3 (Small) - Animated Beam */}
-          <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between" ref={containerRef}>
+          {/* Box 3 (Small) - Trust Anchor */}
+          <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between">
             <CardHeader className="pb-2">
                <LucideShieldCheck className="w-6 h-6 text-primary mb-2" />
-               <CardTitle className="text-xl font-black tracking-tight">Trust Anchor</CardTitle>
-               <CardDescription className="text-sm text-foreground/60 leading-snug">
+               <CardTitle className="text-xl font-black tracking-tight text-white uppercase">Trust Anchor</CardTitle>
+               <CardDescription className="text-sm text-foreground/60 leading-snug font-bold">
                 Crypto.com DeFi Wallet Bridge.
                </CardDescription>
             </CardHeader>
             <CardContent className="pb-8">
                <div className="flex items-center justify-between px-6 relative h-20">
-                  <div ref={walletRef} className="z-10 p-3 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-md shadow-xl transition-transform hover:scale-110">
+                  <div className="z-10 p-3 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-md shadow-xl transition-transform hover:scale-110">
                      <img src="https://crypto.com/static/06000c0f8623631f4a9b561c20141b71/6a798/defi-wallet.png" alt="CDC" className="w-10 h-10 object-contain" />
                   </div>
-                  <div ref={trucheqRef} className="z-10 p-3 rounded-2xl bg-black/60 border border-primary/20 backdrop-blur-md shadow-[0_0_20px_rgba(0,214,50,0.2)] transition-transform hover:scale-110">
+                  <div className="z-10 p-3 rounded-2xl bg-black/60 border border-primary/20 backdrop-blur-md shadow-[0_0_20px_rgba(0,214,50,0.2)] transition-transform hover:scale-110">
                      <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-xl text-primary-foreground font-bold italic shadow-lg">T</div>
                   </div>
-                  
-                  <AnimatedBeam 
-                    containerRef={containerRef} 
-                    fromRef={walletRef} 
-                    toRef={trucheqRef} 
-                    curvature={-30}
-                    duration={4}
-                  />
                </div>
             </CardContent>
           </Card>
@@ -265,12 +255,12 @@ export default function LandingPage() {
           <Card className="border-white/5 bg-card/50 backdrop-blur-xl">
             <CardHeader className="pb-2">
                <LucideUsers className="w-6 h-6 text-primary mb-2" />
-               <CardTitle className="text-xl font-black tracking-tight">Zero Sale Fees</CardTitle>
-               <CardDescription className="text-sm text-foreground/60 leading-snug">
+               <CardTitle className="text-xl font-black tracking-tight text-white uppercase">Zero Sale Fees</CardTitle>
+               <CardDescription className="text-sm text-foreground/60 leading-snug font-bold">
                 The software is the service.
                </CardDescription>
             </CardHeader>
-            <CardContent className="mt-2">
+            <CardContent className="mt-2 text-left">
                <div className="flex flex-col gap-4">
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
@@ -296,12 +286,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Interactive Demo */}
-      <section id="demo" className="py-16 md:py-24 px-6 bg-black/20 relative">
+      {/* Interactive Demo (Live Demo) */}
+      <section id="demo" className="py-24 px-6 bg-black/20 relative">
         <RetroGrid className="opacity-20" />
         <div className="max-w-4xl mx-auto text-center mb-16 relative z-10">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">See it in Action</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">Experience the frictionless x402 settlement flow. Trust is hard-coded into the link.</p>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-white uppercase">Live Demo</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-bold">Experience the frictionless x402 settlement flow. Trust is hard-coded into the link.</p>
         </div>
 
         <div className="flex justify-center relative z-10">
@@ -312,14 +302,14 @@ export default function LandingPage() {
                 <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[120px] rounded-full group-hover/demo:bg-primary/20 transition-all duration-700" />
                 
                 <div className="flex justify-between items-start mb-10">
-                    <div>
+                    <div className="text-left">
                         <Badge variant="outline" className={cn(
                             "mb-5 border-primary/30 text-primary transition-all duration-700 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]",
                             demoActive && "bg-primary/20 border-primary shadow-[0_0_20px_rgba(0,214,50,0.3)]"
                         )}>
                             {demoActive ? "Funds Locked" : "Payment Required"}
                         </Badge>
-                        <h3 className="text-4xl font-black mb-2 tracking-tight">Rolex Submariner</h3>
+                        <h3 className="text-4xl font-black mb-2 tracking-tight text-white">Rolex Submariner</h3>
                         <p className="text-base text-muted-foreground font-bold italic">Seller: <span className="text-white">@watch_king_01</span></p>
                     </div>
                     <div className="p-5 rounded-[2rem] bg-black/40 border border-white/10 text-primary shadow-xl">
@@ -330,7 +320,7 @@ export default function LandingPage() {
                 <div className="space-y-6 mb-12">
                     <div className="flex justify-between items-center py-4 border-b border-white/5">
                         <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Deal ID</span>
-                        <span className="font-mono text-sm bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">#x402-8821</span>
+                        <span className="font-mono text-sm bg-white/5 px-4 py-1.5 rounded-xl border border-white/5 text-white">#x402-8821</span>
                     </div>
                     <div className="flex justify-between items-center py-4 border-b border-white/5">
                         <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Price</span>
@@ -339,7 +329,6 @@ export default function LandingPage() {
                 </div>
 
                 <div className="relative">
-                    {!demoActive && <BorderBeam duration={3} size={200} borderWidth={3} />}
                     <Button 
                         onClick={handlePledge}
                         disabled={pledging || demoActive}
@@ -353,7 +342,7 @@ export default function LandingPage() {
                         {pledging ? (
                             <div className="flex items-center gap-4">
                                 <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-6 h-6 border-3 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                                Signing Transaction...
+                                Signing...
                             </div>
                         ) : demoActive ? "Transaction Confirmed" : "Pledge 500 CRO"}
                     </Button>
@@ -366,12 +355,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Use Case Carousel */}
-      <section id="cases" className="py-16 md:py-24 px-6 max-w-7xl mx-auto">
+      {/* Use Case Carousel (Use Cases) */}
+      <section id="cases" className="py-24 px-6 max-w-7xl mx-auto">
         <Carousel className="w-full" opts={{ loop: true }}>
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 text-left">
               <div className="max-w-2xl">
-                  <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none">Global Trade</h2>
+                  <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none text-white uppercase whitespace-nowrap">Use Cases</h2>
                   <p className="text-xl text-muted-foreground leading-relaxed font-bold">The settlement layer for social commerce.</p>
               </div>
               <div className="flex gap-4">
@@ -388,7 +377,7 @@ export default function LandingPage() {
                 { title: "Instagram Sneakers", img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop", text: "Instant trust for high-demand limited drops." }
             ].map((item, index) => (
               <CarouselItem key={index} className="pl-6 md:basis-1/3">
-                <Card className="border-white/5 bg-card/50 overflow-hidden group rounded-[2.5rem] h-full transition-all hover:border-primary/20">
+                <Card className="border-white/5 bg-card/50 overflow-hidden group rounded-[2.5rem] h-full transition-all hover:border-primary/20 text-left">
                   <div className="aspect-[4/5] relative overflow-hidden">
                     <img src={item.img} alt={item.title} className="object-cover w-full h-full transition-transform duration-1000 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
@@ -414,13 +403,14 @@ export default function LandingPage() {
                 <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="object-cover w-full h-full" />
             </div>
 
-            <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none">Ready to Settle?</h3>
+            <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none text-white uppercase">Ready to Settle?</h3>
             
-            <div className="relative group mb-20">
-              <BorderBeam size={100} duration={6} borderWidth={4} />
-              <Button size="lg" className="px-16 py-10 text-3xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,214,50,0.3)] transition-all active:scale-95">
-                  Launch App
-              </Button>
+            <div className="relative group mb-20 scale-110">
+              <Link href="/app">
+                <Button size="lg" className="px-16 py-10 text-3xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,214,50,0.3)] transition-all active:scale-95">
+                    Launch App
+                </Button>
+              </Link>
             </div>
             
             <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 mb-24 max-w-4xl w-full">
@@ -431,7 +421,7 @@ export default function LandingPage() {
                     <a href="https://github.com/open-biz/truecheq" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
                 </Button>
                 <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-                    <a href="https://explorer.cronos.org/testnet/address/0x612F914109Fc24F3aAA200B27eE19c79a3426850" target="_blank" rel="noopener noreferrer">Cronos Contract</a>
+                    <a href="https://explorer.cronos.org/testnet/address/0x5216905cc7b7fF4738982837030921A22176c8C7" target="_blank" rel="noopener noreferrer">Cronos Contract</a>
                 </Button>
                 <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
                     <a href="https://dorahacks.io/hackathon/cronos-x402" target="_blank" rel="noopener noreferrer">Cronos x402 Hackathon</a>

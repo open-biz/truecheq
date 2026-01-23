@@ -9,7 +9,7 @@ export const RetroGrid = ({ className }: { className?: string }) => {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute h-full w-full overflow-hidden opacity-50 [perspective:200px]",
+        "pointer-events-none absolute h-full w-full overflow-hidden opacity-40 [perspective:200px]",
         className
       )}
     >
@@ -30,7 +30,7 @@ export const RetroGrid = ({ className }: { className?: string }) => {
   );
 };
 
-// --- BorderBeam (Fixed positioning) ---
+// --- BorderBeam (Fixed and Optimized) ---
 export const BorderBeam = ({
   size = 200,
   duration = 15,
@@ -73,7 +73,41 @@ export const BorderBeam = ({
   );
 };
 
-// --- Marquee (Fixed Overflow) ---
+// --- Spotlight (The "Cool Pointer") ---
+export const Spotlight = () => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+    };
+    const handleMouseEnter = () => setOpacity(1);
+    const handleMouseLeave = () => setOpacity(0);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    document.body.addEventListener("mouseenter", handleMouseEnter);
+    document.body.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      document.body.removeEventListener("mouseenter", handleMouseEnter);
+      document.body.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      className="pointer-events-none fixed inset-0 z-[100] transition-opacity duration-300"
+      animate={{
+        background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(0, 214, 50, 0.05), transparent 80%)`,
+        opacity: opacity,
+      }}
+    />
+  );
+};
+
+// --- Marquee ---
 export const Marquee = ({
   className,
   reverse,
@@ -97,7 +131,7 @@ export const Marquee = ({
         "group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [gap:var(--gap)]",
         {
           "flex-row": !vertical,
-          "flex-col h-full": vertical, // Ensure full height for vertical
+          "flex-col h-full": vertical,
         },
         className
       )}
@@ -143,7 +177,6 @@ export const TruCheqCoin = ({ active }: { active: boolean }) => {
         </div>
       </div>
       
-      {/* Animated Orbiting Ring */}
       <AnimatePresence>
         {active && (
             <motion.div 
@@ -170,7 +203,7 @@ export const TruCheqCoin = ({ active }: { active: boolean }) => {
   );
 };
 
-// --- AnimatedBeam (Stable Hydration & Layout) ---
+// --- AnimatedBeam ---
 export const AnimatedBeam = ({
   className,
   containerRef,
@@ -191,8 +224,8 @@ export const AnimatedBeam = ({
   delay?: number;
 }) => {
   const [path, setPath] = useState("M0 0");
-  const svgId = useId(); // Use stable ID for hydration
-  const [opacity, setOpacity] = useState(0); // Hide until path is calculated
+  const svgId = useId();
+  const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
     const updatePath = () => {
@@ -201,7 +234,6 @@ export const AnimatedBeam = ({
         const fromRect = fromRef.current.getBoundingClientRect();
         const toRect = toRef.current.getBoundingClientRect();
 
-        // Ensure we have valid dimensions
         if (containerRect.width === 0 || fromRect.width === 0 || toRect.width === 0) return;
 
         const startX = fromRect.left - containerRect.left + fromRect.width / 2;
@@ -217,10 +249,7 @@ export const AnimatedBeam = ({
       }
     };
 
-    // Initial check
     updatePath();
-
-    // Loop check for a short period to catch layout shifts (images loading etc)
     const interval = setInterval(updatePath, 100);
     setTimeout(() => clearInterval(interval), 2000);
 
@@ -251,8 +280,6 @@ export const AnimatedBeam = ({
           <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      
-      {/* Background Static Path */}
       <path
         d={path}
         stroke="var(--primary)"
@@ -260,8 +287,6 @@ export const AnimatedBeam = ({
         strokeWidth="2"
         strokeLinecap="round"
       />
-      
-      {/* Animated Flowing Gradient Beam */}
       <motion.path
         d={path}
         stroke={`url(#${svgId})`}
@@ -279,8 +304,6 @@ export const AnimatedBeam = ({
           ease: "easeInOut",
         }}
       />
-      
-      {/* Traveling Particle Light */}
       <motion.circle
         r="3"
         fill="var(--primary)"
