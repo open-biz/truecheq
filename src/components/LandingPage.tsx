@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useRef, useEffect, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -12,8 +12,8 @@ import {
   LucideUsers, 
   LucideLock, 
   LucideUnlock, 
-  LucidePackage, 
-  LucideArrowUpRight 
+  LucidePackage,
+  LucideArrowUpRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { 
-  BackgroundBeams, 
+  RetroGrid,
   BorderBeam, 
   Marquee, 
   TruCheqCoin, 
@@ -34,11 +34,27 @@ export default function LandingPage() {
   const [isLocked, setIsLocked] = React.useState(true);
   const [pledging, setPledging] = React.useState(false);
   const [demoActive, setDemoActive] = React.useState(false);
+  const [transactions, setTransactions] = useState<{ id: number; addr: string; amount: number }[]>([]);
+
+  // Scroll detection for Navbar
+  const { scrollY } = useScroll();
+  const navBg = useTransform(scrollY, [0, 100], ["rgba(10, 15, 20, 0)", "rgba(10, 15, 20, 0.8)"]);
+  const navBorder = useTransform(scrollY, [0, 100], ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.1)"]);
 
   // Refs for AnimatedBeam
   const containerRef = useRef<HTMLDivElement>(null);
   const walletRef = useRef<HTMLDivElement>(null);
   const trucheqRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Generate static-feeling random data on mount to avoid hydration mismatch
+    const txs = Array.from({ length: 10 }).map((_, i) => ({
+      id: i,
+      addr: Math.random().toString(16).slice(2, 6).toUpperCase(),
+      amount: Math.floor(Math.random() * 1000 + 100)
+    }));
+    setTransactions(txs);
+  }, []);
 
   const handlePledge = () => {
     setPledging(true);
@@ -58,19 +74,44 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
       
+      {/* Sticky Navbar */}
+      <motion.nav 
+        style={{ backgroundColor: navBg, borderColor: navBorder }}
+        className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300"
+      >
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
+              <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-2xl font-black tracking-tighter italic">TruCheq</span>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Features</a>
+            <a href="#demo" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Live Demo</a>
+            <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Use Cases</a>
+          </div>
+
+          <Button className="bg-primary text-primary-foreground font-bold rounded-xl shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
+            Launch App
+          </Button>
+        </div>
+      </motion.nav>
+
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden">
-        <BackgroundBeams className="opacity-40" />
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center pt-20">
+        <RetroGrid className="opacity-40" />
         
-        <div className="relative z-10 max-w-5xl mx-auto">
+        <div className="relative z-10 max-w-5xl mx-auto py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Badge variant="outline" className="mb-6 border-primary/50 text-primary bg-primary/5 backdrop-blur-sm">
+            <Badge variant="outline" className="mb-6 border-primary/50 text-primary bg-primary/5 backdrop-blur-sm px-4 py-1.5 rounded-full font-bold">
               🏆 Built for the Cronos Hackathon
             </Badge>
           </motion.div>
@@ -78,8 +119,8 @@ export default function LandingPage() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-6xl md:text-8xl font-bold tracking-tighter mb-8"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-6xl md:text-[5.5rem] font-black tracking-tight mb-8 leading-[0.95]"
           >
             The Missing <span className="text-primary italic">'Buy Now'</span> <br className="hidden md:block" /> Button for Your DMs.
           </motion.h1>
@@ -87,73 +128,70 @@ export default function LandingPage() {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-lg md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            Turn any chat thread into a secure point-of-sale with x402 settlement logic. 
-            The protocol that bonds identity to funds on the Cronos EVM.
+            TruCheq turns any chat thread into a secure point-of-sale with x402 settlement logic on Cronos.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-5"
           >
-            <div className="relative group">
-              <BorderBeam size={100} duration={4} borderWidth={2} />
-              <Button size="lg" className="px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-xl">
+            <div className="relative group w-full sm:w-auto">
+              <BorderBeam size={80} duration={4} borderWidth={2} />
+              <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl">
                 Create TruCheq <LucideArrowRight className="ml-2 w-6 h-6" />
               </Button>
             </div>
-            <Button size="lg" variant="ghost" className="px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-xl border border-white/5 backdrop-blur-sm">
+            <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
               View Demo <LucidePlayCircle className="ml-2 w-6 h-6" />
             </Button>
           </motion.div>
         </div>
-
-        {/* Floating Decoration */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
-          <div className="w-1 h-12 rounded-full bg-gradient-to-b from-primary to-transparent" />
-        </div>
       </section>
 
       {/* Bento Grid */}
-      <section className="py-32 px-6 max-w-7xl mx-auto">
+      <section id="features" className="py-16 md:py-24 px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
           
           {/* Box 1 (Large) - The x402 Lock */}
           <Card className="md:col-span-2 md:row-span-2 relative overflow-hidden group border-white/5 bg-card/50 backdrop-blur-xl">
             <BorderBeam duration={10} size={400} />
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-            <CardHeader className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20">
+            <CardHeader className="relative z-10 space-y-4">
+              <div className="flex items-center justify-between">
+                 <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-inner">
                     <LucideLock className="w-8 h-8" />
                  </div>
                  <div className="flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                    <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full transition-colors ${isLocked ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary'}`}>
-                        {isLocked ? "402 PAYMENT REQUIRED" : "200 OK"}
+                    <span className={`text-[10px] font-black tracking-widest px-3 py-1 rounded-full transition-colors ${isLocked ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary'}`}>
+                        {isLocked ? "X402 LOCKED" : "200 OPEN"}
                     </span>
                     <Switch checked={!isLocked} onCheckedChange={(v) => setIsLocked(!v)} />
                  </div>
               </div>
-              <CardTitle className="text-4xl font-bold mb-4">The x402 Protocol</CardTitle>
-              <CardDescription className="text-xl max-w-md leading-relaxed">
-                Identity and Deal Details are cryptographically locked until funds are pledged. 
-                No screenshots. No fakes.
-              </CardDescription>
+              <div>
+                <CardTitle className="text-4xl font-black mb-3 tracking-tight">The x402 Protocol</CardTitle>
+                <CardDescription className="text-lg max-w-md leading-relaxed text-foreground/70">
+                    Smart-contract gates that secure the "Mexican Standoff" of P2P trade. 
+                    Identity is provable, funds are provable.
+                </CardDescription>
+              </div>
             </CardHeader>
-            <CardContent className="flex justify-center items-center mt-4">
-                <div className="w-full max-w-sm p-6 rounded-2xl border border-white/5 bg-black/40 backdrop-blur-md flex items-center gap-6 shadow-2xl">
+            <CardContent className="flex justify-center items-center h-full pt-0">
+                <div className="w-full max-w-sm p-8 rounded-[2rem] border border-white/10 bg-black/60 backdrop-blur-md flex items-center gap-8 shadow-2xl relative">
+                    <div className="absolute inset-0 bg-primary/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
                     <TruCheqCoin active={!isLocked} />
-                    <div className="flex-1 space-y-3">
-                        <div className={`h-3 rounded-full transition-all duration-500 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/20'}`} />
-                        <div className={`h-3 rounded-full transition-all duration-500 ${isLocked ? 'w-2/3 bg-white/5' : 'w-3/4 bg-primary/10'}`} />
+                    <div className="flex-1 space-y-4">
+                        <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/30'}`} />
+                        <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-2/3 bg-white/5' : 'w-3/4 bg-primary/20'}`} />
                     </div>
                     <div className={cn(
-                        "p-3 rounded-xl transition-all duration-500",
-                        isLocked ? "bg-white/5 text-white/10" : "bg-primary/20 text-primary shadow-[0_0_15px_rgba(0,214,50,0.3)]"
+                        "p-3 rounded-xl transition-all duration-700",
+                        isLocked ? "bg-white/5 text-white/10" : "bg-primary/20 text-primary"
                     )}>
                         <LucideUnlock className="w-6 h-6" />
                     </div>
@@ -163,31 +201,31 @@ export default function LandingPage() {
 
           {/* Box 2 (Tall) - Settlement Stream */}
           <Card className="md:row-span-3 border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col">
-            <CardHeader className="relative z-10 bg-gradient-to-b from-card to-transparent pb-8">
+            <CardHeader className="relative z-10 bg-gradient-to-b from-card to-transparent pb-6">
               <div className="p-3 w-fit rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-6">
                 <LucideZap className="w-8 h-8" />
               </div>
-              <CardTitle className="text-2xl font-bold">Live Settlement</CardTitle>
-              <CardDescription className="text-base">
-                Instant finality on Cronos EVM.
+              <CardTitle className="text-2xl font-black tracking-tight">Live Settlement</CardTitle>
+              <CardDescription className="text-sm font-bold text-foreground/50">
+                CRONOS EVM • SUB-CENT FEES
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 p-0 relative overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-card to-transparent z-10" />
-              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent z-10" />
+              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-card to-transparent z-10" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent z-10" />
               
-              <Marquee vertical repeat={10} className="[--duration:20s]">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 mx-4 rounded-2xl border border-white/5 bg-black/40 backdrop-blur-sm">
-                    <Avatar className="w-10 h-10 border border-white/10">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tx-${i}`} />
+              <Marquee vertical repeat={10} className="[--duration:25s] h-full">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center gap-4 p-4 mx-4 rounded-2xl border border-white/5 bg-black/40 backdrop-blur-sm hover:border-primary/20 transition-all group/tx cursor-default">
+                    <Avatar className="w-10 h-10 border-2 border-white/5 group-hover/tx:border-primary/50 transition-all">
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=tx-${tx.id}`} />
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold">0x...{Math.random().toString(16).slice(2, 6)}</p>
-                      <p className="text-xs text-primary font-mono">{Math.floor(Math.random() * 1000 + 100)} CRO</p>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm font-black truncate tracking-tight">0x...{tx.addr}</p>
+                      <p className="text-xs text-primary font-black">{tx.amount} CRO</p>
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">Just now</div>
+                    <LucideArrowUpRight className="w-4 h-4 text-white/20 group-hover/tx:text-primary transition-colors" />
                   </div>
                 ))}
               </Marquee>
@@ -195,61 +233,61 @@ export default function LandingPage() {
           </Card>
 
           {/* Box 3 (Small) - Animated Beam */}
-          <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden" ref={containerRef}>
+          <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between" ref={containerRef}>
             <CardHeader className="pb-2">
                <LucideShieldCheck className="w-6 h-6 text-primary mb-2" />
-               <CardTitle className="text-xl">The Trust Anchor</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <CardDescription className="mb-4">
-                Bridges DeFi Wallets to active merchant terminals.
+               <CardTitle className="text-xl font-black tracking-tight">Trust Anchor</CardTitle>
+               <CardDescription className="text-sm text-foreground/60 leading-snug">
+                Crypto.com DeFi Wallet Bridge.
                </CardDescription>
-               
-               <div className="flex items-center justify-between px-4 mt-8 relative">
-                  <div ref={walletRef} className="z-10 p-3 rounded-xl bg-black/60 border border-white/10 backdrop-blur-md">
+            </CardHeader>
+            <CardContent className="pb-8">
+               <div className="flex items-center justify-between px-6 relative h-20">
+                  <div ref={walletRef} className="z-10 p-3 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-md shadow-xl transition-transform hover:scale-110">
                      <img src="https://crypto.com/static/06000c0f8623631f4a9b561c20141b71/6a798/defi-wallet.png" alt="CDC" className="w-10 h-10 object-contain" />
                   </div>
-                  <div ref={trucheqRef} className="z-10 p-3 rounded-xl bg-black/60 border border-primary/20 backdrop-blur-md">
-                     <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-lg text-primary-foreground font-bold italic">T</div>
+                  <div ref={trucheqRef} className="z-10 p-3 rounded-2xl bg-black/60 border border-primary/20 backdrop-blur-md shadow-[0_0_20px_rgba(0,214,50,0.2)] transition-transform hover:scale-110">
+                     <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-xl text-primary-foreground font-bold italic shadow-lg">T</div>
                   </div>
                   
                   <AnimatedBeam 
                     containerRef={containerRef} 
                     fromRef={walletRef} 
                     toRef={trucheqRef} 
-                    curvature={-40}
+                    curvature={-30}
+                    duration={4}
                   />
                </div>
             </CardContent>
           </Card>
 
-          {/* Box 4 (Small) - No Middlemen */}
+          {/* Box 4 (Small) - Zero Fees */}
           <Card className="border-white/5 bg-card/50 backdrop-blur-xl">
             <CardHeader className="pb-2">
                <LucideUsers className="w-6 h-6 text-primary mb-2" />
-               <CardTitle className="text-xl">Zero Sale Fees</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <CardDescription>
-                We charge for the software, not your hard-earned margins.
+               <CardTitle className="text-xl font-black tracking-tight">Zero Sale Fees</CardTitle>
+               <CardDescription className="text-sm text-foreground/60 leading-snug">
+                The software is the service.
                </CardDescription>
-               <div className="mt-6 flex flex-col gap-3">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
-                        <span>Legacy Platforms</span>
-                        <span>15% Fee</span>
+            </CardHeader>
+            <CardContent className="mt-2">
+               <div className="flex flex-col gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                        <span>Legacy</span>
+                        <span>15%</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} whileInView={{ width: "100%" }} transition={{ duration: 1 }} className="h-full bg-destructive/50" />
+                        <motion.div initial={{ width: 0 }} whileInView={{ width: "100%" }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full bg-destructive/40" />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] uppercase tracking-widest text-primary font-bold">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
                         <span>TruCheq</span>
-                        <span>0% Fee</span>
+                        <span>0%</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} whileInView={{ width: "2%" }} transition={{ duration: 1 }} className="h-full bg-primary" />
+                        <motion.div initial={{ width: 0 }} whileInView={{ width: "3%" }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full bg-primary shadow-[0_0_10px_rgba(0,214,50,0.5)]" />
                     </div>
                   </div>
                </div>
@@ -259,104 +297,104 @@ export default function LandingPage() {
       </section>
 
       {/* Interactive Demo */}
-      <section className="py-32 px-6 bg-black/20 relative">
-        <div className="absolute inset-0 grid-pattern opacity-10 pointer-events-none" />
-        <div className="max-w-4xl mx-auto text-center mb-20 relative z-10">
-            <h2 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">See it in Action</h2>
-            <p className="text-xl text-muted-foreground">Experience the frictionless x402 settlement flow.</p>
+      <section id="demo" className="py-16 md:py-24 px-6 bg-black/20 relative">
+        <RetroGrid className="opacity-20" />
+        <div className="max-w-4xl mx-auto text-center mb-16 relative z-10">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">See it in Action</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">Experience the frictionless x402 settlement flow. Trust is hard-coded into the link.</p>
         </div>
 
         <div className="flex justify-center relative z-10">
             <motion.div 
                 whileHover={{ y: -5 }}
-                className="w-full max-w-md p-8 rounded-[2.5rem] border border-white/10 bg-black/60 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                className="w-full max-w-lg p-8 md:p-12 rounded-[3rem] border border-white/10 bg-black/70 backdrop-blur-3xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group/demo"
             >
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 blur-[100px] rounded-full" />
+                <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[120px] rounded-full group-hover/demo:bg-primary/20 transition-all duration-700" />
                 
                 <div className="flex justify-between items-start mb-10">
                     <div>
                         <Badge variant="outline" className={cn(
-                            "mb-4 border-primary/30 text-primary transition-all duration-500 px-4 py-1",
-                            demoActive && "bg-primary/20 border-primary shadow-[0_0_15px_rgba(0,214,50,0.2)]"
+                            "mb-5 border-primary/30 text-primary transition-all duration-700 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]",
+                            demoActive && "bg-primary/20 border-primary shadow-[0_0_20px_rgba(0,214,50,0.3)]"
                         )}>
                             {demoActive ? "Funds Locked" : "Payment Required"}
                         </Badge>
-                        <h3 className="text-3xl font-bold mb-1">Rolex Submariner</h3>
-                        <p className="text-sm text-muted-foreground font-medium">Seller: <span className="text-white">@watch_king_01</span></p>
+                        <h3 className="text-4xl font-black mb-2 tracking-tight">Rolex Submariner</h3>
+                        <p className="text-base text-muted-foreground font-bold italic">Seller: <span className="text-white">@watch_king_01</span></p>
                     </div>
-                    <div className="p-4 rounded-3xl bg-black/40 border border-white/10 text-primary">
-                        <LucidePackage className="w-8 h-8" />
+                    <div className="p-5 rounded-[2rem] bg-black/40 border border-white/10 text-primary shadow-xl">
+                        <LucidePackage className="w-10 h-10" />
                     </div>
                 </div>
 
-                <div className="space-y-6 mb-10">
-                    <div className="flex justify-between items-center py-3 border-b border-white/5">
-                        <span className="text-muted-foreground font-medium">Deal ID</span>
-                        <span className="font-mono text-sm bg-white/5 px-3 py-1 rounded-lg">#x402-8821</span>
+                <div className="space-y-6 mb-12">
+                    <div className="flex justify-between items-center py-4 border-b border-white/5">
+                        <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Deal ID</span>
+                        <span className="font-mono text-sm bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">#x402-8821</span>
                     </div>
-                    <div className="flex justify-between items-center py-3 border-b border-white/5">
-                        <span className="text-muted-foreground font-medium">Contract Price</span>
-                        <span className="text-2xl font-bold text-primary tracking-tight">500 CRO</span>
+                    <div className="flex justify-between items-center py-4 border-b border-white/5">
+                        <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Price</span>
+                        <span className="text-3xl font-black text-primary tracking-tighter drop-shadow-2xl">500 CRO</span>
                     </div>
                 </div>
 
                 <div className="relative">
-                    {!demoActive && <BorderBeam duration={3} size={150} />}
+                    {!demoActive && <BorderBeam duration={3} size={200} borderWidth={3} />}
                     <Button 
                         onClick={handlePledge}
                         disabled={pledging || demoActive}
                         className={cn(
-                            "w-full py-8 text-xl font-bold transition-all duration-500 rounded-2xl",
+                            "w-full py-10 text-2xl font-black transition-all duration-500 rounded-3xl",
                             demoActive 
-                                ? "bg-white/5 text-primary cursor-default border border-primary/20" 
-                                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_10px_30px_rgba(0,214,50,0.3)]"
+                                ? "bg-white/5 text-primary cursor-default border-2 border-primary/20" 
+                                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_20px_40px_rgba(0,214,50,0.4)] active:scale-95"
                         )}
                     >
                         {pledging ? (
-                            <div className="flex items-center gap-3">
-                                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                                Signing...
+                            <div className="flex items-center gap-4">
+                                <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-6 h-6 border-3 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
+                                Signing Transaction...
                             </div>
                         ) : demoActive ? "Transaction Confirmed" : "Pledge 500 CRO"}
                     </Button>
                 </div>
                 
-                <p className="mt-6 text-center text-xs text-muted-foreground leading-relaxed">
-                    Powered by Cronos x402 Gateway. <br />
-                    Funds held in trust until manual release.
+                <p className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-relaxed">
+                    Powered by Cronos x402 Protocol.
                 </p>
             </motion.div>
         </div>
       </section>
 
       {/* Use Case Carousel */}
-      <section className="py-32 px-6 max-w-7xl mx-auto">
+      <section id="cases" className="py-16 md:py-24 px-6 max-w-7xl mx-auto">
         <Carousel className="w-full" opts={{ loop: true }}>
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
               <div className="max-w-2xl">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Global P2P Settlements</h2>
-                  <p className="text-lg text-muted-foreground">The protocol that works wherever you do business.</p>
+                  <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none">Global Trade</h2>
+                  <p className="text-xl text-muted-foreground leading-relaxed font-bold">The settlement layer for social commerce.</p>
               </div>
-              <div className="flex gap-2">
-                  <CarouselPrevious className="static translate-y-0 h-12 w-12 border-white/10 bg-white/5 hover:bg-white/10" />
-                  <CarouselNext className="static translate-y-0 h-12 w-12 border-white/10 bg-white/5 hover:bg-white/10" />
+              <div className="flex gap-4">
+                  <CarouselPrevious className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
+                  <CarouselNext className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
               </div>
           </div>
           
-          <CarouselContent className="-ml-4">
+          <CarouselContent className="-ml-6">
             {[
-                { title: "r/Watchexchange", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop", text: "Buy with confidence. Verify funds before shipping." },
-                { title: "Taylor Swift Eras Tour", img: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=800&auto=format&fit=crop", text: "Stop ticket scams. No ticket transfer until CRO is locked." },
-                { title: "Discord Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Sell your GPU safely. No chargeback risk." }
+                { title: "r/Watchexchange", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop", text: "Verify funds before shipping high-value watches." },
+                { title: "Taylor Swift Eras Tour", img: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=800&auto=format&fit=crop", text: "End ticket scams with proof-of-pledge transfers." },
+                { title: "Discord Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Secure GPU trades with zero chargeback risk." },
+                { title: "Instagram Sneakers", img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop", text: "Instant trust for high-demand limited drops." }
             ].map((item, index) => (
-              <CarouselItem key={index} className="pl-4 md:basis-1/3">
-                <Card className="border-white/5 bg-card/50 overflow-hidden group rounded-3xl h-full">
+              <CarouselItem key={index} className="pl-6 md:basis-1/3">
+                <Card className="border-white/5 bg-card/50 overflow-hidden group rounded-[2.5rem] h-full transition-all hover:border-primary/20">
                   <div className="aspect-[4/5] relative overflow-hidden">
-                    <img src={item.img} alt={item.title} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                    <div className="absolute bottom-6 left-6 right-6">
-                        <Badge className="bg-primary/20 text-primary border-primary/30 backdrop-blur-md mb-3 px-3 py-1">{item.title}</Badge>
-                        <p className="text-white font-medium leading-snug">{item.text}</p>
+                    <img src={item.img} alt={item.title} className="object-cover w-full h-full transition-transform duration-1000 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+                    <div className="absolute bottom-8 left-8 right-8">
+                        <Badge className="bg-primary/20 text-primary border-primary/30 backdrop-blur-md mb-4 px-4 py-1.5 rounded-xl uppercase tracking-widest text-[10px] font-black">{item.title}</Badge>
+                        <p className="text-white text-xl font-black leading-tight tracking-tight">{item.text}</p>
                     </div>
                   </div>
                 </Card>
@@ -367,34 +405,42 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="pt-32 pb-16 px-6 border-t border-white/5 relative">
+      <footer className="pt-24 pb-16 px-6 border-t border-white/5 relative bg-[#0A0F14]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-            <div className="flex items-center gap-3 mb-10 text-3xl font-bold tracking-tighter italic">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground not-italic shadow-[0_0_20px_rgba(0,214,50,0.4)]">T</div>
-                TruCheq
+            {/* Footer Logo */}
+            <div className="relative w-24 h-24 mb-12 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+                <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="object-cover w-full h-full" />
             </div>
-            
-            <h3 className="text-5xl md:text-7xl font-bold mb-12 tracking-tight">Ready to Settle?</h3>
+
+            <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none">Ready to Settle?</h3>
             
             <div className="relative group mb-20">
-              <BorderBeam size={120} duration={6} />
-              <Button size="lg" className="px-12 py-9 text-2xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl">
+              <BorderBeam size={100} duration={6} borderWidth={4} />
+              <Button size="lg" className="px-16 py-10 text-3xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,214,50,0.3)] transition-all active:scale-95">
                   Launch App
               </Button>
             </div>
             
-            <div className="flex flex-wrap justify-center gap-10 mb-20">
-                <Button variant="link" className="text-muted-foreground hover:text-primary text-base">View Contract</Button>
-                <Button variant="link" className="text-muted-foreground hover:text-primary text-base">GitHub Repo</Button>
-                <Button variant="link" className="text-muted-foreground hover:text-primary text-base">Documentation</Button>
-                <Button variant="link" className="text-muted-foreground hover:text-primary text-base">Hackathon Submission</Button>
+            <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 mb-24 max-w-4xl w-full">
+                <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
+                    <a href="https://dorahacks.io/buidl/38487" target="_blank" rel="noopener noreferrer">Hackathon Submission</a>
+                </Button>
+                <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
+                    <a href="https://github.com/open-biz/truecheq" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
+                </Button>
+                <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
+                    <a href="https://explorer.cronos.org/testnet/address/0x612F914109Fc24F3aAA200B27eE19c79a3426850" target="_blank" rel="noopener noreferrer">Cronos Contract</a>
+                </Button>
+                <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
+                    <a href="https://dorahacks.io/hackathon/cronos-x402" target="_blank" rel="noopener noreferrer">Cronos x402 Hackathon</a>
+                </Button>
             </div>
             
-            <div className="flex flex-col items-center gap-4 text-sm text-muted-foreground">
-                <p className="font-medium">Built with ❤️ for the Cronos x402 Hackathon.</p>
-                <p>© 2026 TruCheq Protocol. All rights reserved.</p>
+            <div className="flex flex-col items-center gap-6 text-sm text-muted-foreground font-black">
+                <p className="tracking-[0.2em] uppercase">Built for <span className="text-white">Cronos x402 Hackathon</span>.</p>
+                <p className="opacity-50 tracking-tighter">© 2026 TruCheq Protocol.</p>
             </div>
         </div>
       </footer>
