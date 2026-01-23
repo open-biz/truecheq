@@ -6,14 +6,15 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { DealCreator } from '@/components/DealCreator';
 import { DealGate } from '@/components/DealGate';
+import { DealDashboard } from '@/components/DealDashboard';
 import { Button } from '@/components/ui/button';
-import { LucideLayoutDashboard, LucidePlusCircle, LucideGlobe, LucideArrowLeft } from 'lucide-react';
+import { LucideLayoutDashboard, LucidePlusCircle, LucideGlobe, LucideArrowLeft, LucideList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
 export default function AppPage() {
   const { isConnected } = useAccount();
-  const [appSubView, setAppSubView] = useState<'create' | 'browse'>('create');
+  const [appSubView, setAppSubView] = useState<'create' | 'browse' | 'dashboard'>('create');
 
   return (
     <main className="min-h-screen bg-[#0A0F14] text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -29,20 +30,33 @@ export default function AppPage() {
                 <span className="text-2xl font-black tracking-tighter italic">TruCheq</span>
             </Link>
 
-            <div className="hidden md:flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-1 md:gap-2 p-1 bg-white/5 rounded-2xl border border-white/5">
                 <Button 
                     variant={appSubView === 'create' ? 'secondary' : 'ghost'} 
                     onClick={() => setAppSubView('create')}
-                    className="rounded-xl font-black text-xs uppercase tracking-widest"
+                    className="rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest px-2 md:px-4"
+                    aria-label="Create new deal"
+                    aria-pressed={appSubView === 'create'}
                 >
-                    <LucidePlusCircle className="mr-2 w-4 h-4" /> Create
+                    <LucidePlusCircle className="md:mr-2 w-4 h-4" /> <span className="hidden sm:inline">Create</span>
+                </Button>
+                <Button 
+                    variant={appSubView === 'dashboard' ? 'secondary' : 'ghost'} 
+                    onClick={() => setAppSubView('dashboard')}
+                    className="rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest px-2 md:px-4"
+                    aria-label="View my deals"
+                    aria-pressed={appSubView === 'dashboard'}
+                >
+                    <LucideList className="md:mr-2 w-4 h-4" /> <span className="hidden sm:inline">My Deals</span>
                 </Button>
                 <Button 
                     variant={appSubView === 'browse' ? 'secondary' : 'ghost'} 
                     onClick={() => setAppSubView('browse')}
-                    className="rounded-xl font-black text-xs uppercase tracking-widest"
+                    className="rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest px-2 md:px-4"
+                    aria-label="Browse demo deal"
+                    aria-pressed={appSubView === 'browse'}
                 >
-                    <LucideLayoutDashboard className="mr-2 w-4 h-4" /> Demo Deal
+                    <LucideLayoutDashboard className="md:mr-2 w-4 h-4" /> <span className="hidden sm:inline">Demo</span>
                 </Button>
             </div>
 
@@ -77,7 +91,7 @@ export default function AppPage() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {appSubView === 'create' ? <DealCreator /> : <DealGate id={0} />}
+                    {appSubView === 'create' ? <DealCreator /> : appSubView === 'dashboard' ? <DealDashboard /> : <DealGate id={0} />}
                 </motion.div>
             </AnimatePresence>
         )}

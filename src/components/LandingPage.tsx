@@ -65,10 +65,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:p-4 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:m-4">
+        Skip to main content
+      </a>
       <Spotlight />
       
       {/* Sticky Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md" role="navigation" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
@@ -78,13 +81,13 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Features</a>
-            <Link href="/app" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Live Demo</Link>
-            <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Use Cases</a>
+            <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black rounded-lg px-2 py-1">Features</a>
+            <Link href="/app" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black rounded-lg px-2 py-1">Live Demo</Link>
+            <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black rounded-lg px-2 py-1">Use Cases</a>
           </div>
 
           <Link href="/app">
-            <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl px-6 py-4 shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
+            <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl px-6 py-4 shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black" aria-label="Launch TruCheq application">
               Launch App
             </Button>
           </Link>
@@ -92,7 +95,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center pt-20">
+      <section id="main-content" className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center pt-20" role="banner" aria-label="Hero section">
         <RetroGrid className="opacity-40" />
         
         <div className="relative z-10 max-w-5xl mx-auto py-12">
@@ -133,14 +136,14 @@ export default function LandingPage() {
             <div className="relative group w-full sm:w-auto">
               <BorderBeam size={80} duration={4} borderWidth={2} />
               <Link href="/app" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)]">
-                    Create TruCheq <LucideArrowRight className="ml-2 w-6 h-6" />
+                <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)] focus:outline-none focus:ring-4 focus:ring-primary/50" aria-label="Create a new TruCheq deal">
+                    Create TruCheq <LucideArrowRight className="ml-2 w-6 h-6" aria-hidden="true" />
                 </Button>
               </Link>
             </div>
             <Link href="/app" className="w-full sm:w-auto">
-                <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm text-white">
-                    View Demo <LucidePlayCircle className="ml-2 w-6 h-6" />
+                <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm text-white focus:outline-none focus:ring-4 focus:ring-primary/50" aria-label="View demo of TruCheq">
+                    View Demo <LucidePlayCircle className="ml-2 w-6 h-6" aria-hidden="true" />
                 </Button>
             </Link>
           </motion.div>
@@ -148,9 +151,9 @@ export default function LandingPage() {
       </section>
 
       {/* Bento Grid (Features) */}
-      <section id="features" className="py-24 px-6 max-w-7xl mx-auto relative">
+      <section id="features" className="py-24 px-6 max-w-7xl mx-auto relative" role="region" aria-labelledby="features-heading">
         <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-white uppercase">Features</h2>
+            <h2 id="features-heading" className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-white uppercase">Features</h2>
             <p className="text-xl text-muted-foreground font-bold">Protocol-level trust for peer-to-peer trade.</p>
         </div>
         
@@ -287,10 +290,10 @@ export default function LandingPage() {
       </section>
 
       {/* Interactive Demo (Live Demo) */}
-      <section id="demo" className="py-24 px-6 bg-black/20 relative">
+      <section id="demo" className="py-24 px-6 bg-black/20 relative" role="region" aria-labelledby="demo-heading">
         <RetroGrid className="opacity-20" />
         <div className="max-w-4xl mx-auto text-center mb-16 relative z-10">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-white uppercase">Live Demo</h2>
+            <h2 id="demo-heading" className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-white uppercase">Live Demo</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-bold">Experience the frictionless x402 settlement flow. Trust is hard-coded into the link.</p>
         </div>
 
@@ -333,11 +336,13 @@ export default function LandingPage() {
                         onClick={handlePledge}
                         disabled={pledging || demoActive}
                         className={cn(
-                            "w-full py-10 text-2xl font-black transition-all duration-500 rounded-3xl",
+                            "w-full py-10 text-2xl font-black transition-all duration-500 rounded-3xl focus:outline-none focus:ring-4 focus:ring-primary/50",
                             demoActive 
                                 ? "bg-white/5 text-primary cursor-default border-2 border-primary/20" 
                                 : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_20px_40px_rgba(0,214,50,0.4)] active:scale-95"
                         )}
+                        aria-label={demoActive ? "Transaction confirmed" : "Pledge 500 CRO to unlock content"}
+                        aria-disabled={pledging || demoActive}
                     >
                         {pledging ? (
                             <div className="flex items-center gap-4">
@@ -356,16 +361,16 @@ export default function LandingPage() {
       </section>
 
       {/* Use Case Carousel (Use Cases) */}
-      <section id="cases" className="py-24 px-6 max-w-7xl mx-auto">
+      <section id="cases" className="py-24 px-6 max-w-7xl mx-auto" role="region" aria-labelledby="cases-heading">
         <Carousel className="w-full" opts={{ loop: true }}>
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 text-left">
               <div className="max-w-2xl">
-                  <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none text-white uppercase whitespace-nowrap">Use Cases</h2>
+                  <h2 id="cases-heading" className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none text-white uppercase whitespace-nowrap">Use Cases</h2>
                   <p className="text-xl text-muted-foreground leading-relaxed font-bold">The settlement layer for social commerce.</p>
               </div>
               <div className="flex gap-4">
-                  <CarouselPrevious className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
-                  <CarouselNext className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
+                  <CarouselPrevious className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Previous use case" />
+                  <CarouselNext className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Next use case" />
               </div>
           </div>
           
@@ -394,7 +399,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="pt-24 pb-16 px-6 border-t border-white/5 relative bg-[#0A0F14]">
+      <footer className="pt-24 pb-16 px-6 border-t border-white/5 relative bg-[#0A0F14]" role="contentinfo" aria-label="Site footer">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center">

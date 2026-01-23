@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { LucideLock, LucideUnlock, LucideShieldCheck, LucideEye, LucideEyeOff } from 'lucide-react';
+import { LucideLock, LucideUnlock, LucideShieldCheck, LucideEye, LucideEyeOff, LucideAlertCircle, LucideRefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const CONTRACT_ADDRESS = '0x5216905cc7b7fF4738982837030921A22176c8C7';
 const ABI = [
@@ -18,46 +19,129 @@ const ABI = [
 export function DealGate({ id }: { id: number }) {
   const { isConnected } = useAccount();
   const [mounted, setMounted] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
-  const { data: deal, refetch } = useReadContract({
+  const { data: deal, refetch, isLoading: isDealLoading, isError: isDealError } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: ABI,
     functionName: 'deals',
     args: [BigInt(id)],
   });
 
-  const { data: hash, writeContract, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess, isError: isTxError } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (isSuccess) {
         refetch();
-        toast.success("Transaction Confirmed!");
+        toast.success("Transaction Confirmed!", {
+          description: "Your transaction has been processed successfully."
+        });
     }
-  }, [isSuccess]);
+  }, [isSuccess, refetch]);
 
-  if (!mounted || !deal) return null;
+  useEffect(() => {
+    if (isTxError) {
+      toast.error("Transaction Failed", {
+        description: "The transaction could not be completed. Please try again."
+      });
+    }
+  }, [isTxError]);
+
+  useEffect(() => {
+    if (writeError) {
+      const errorMessage = writeError.message || '';
+      if (errorMessage.includes('User rejected')) {
+        toast.error("Transaction Cancelled", {
+          description: "You declined the transaction in your wallet."
+        });
+      } else if (errorMessage.includes('insufficient funds')) {
+        toast.error("Insufficient Funds", {
+          description: "You don't have enough CRO to complete this transaction."
+        });
+      } else {
+        toast.error("Transaction Error", {
+          description: "An error occurred. Please check your wallet and try again."
+        });
+      }
+    }
+  }, [writeError]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 5000);
+    setPollingInterval(interval);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [refetch]);
+
+  if (!mounted) return null;
+
+  if (isDealLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <Card className="border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem]">
+          <CardContent className="p-12 flex flex-col items-center justify-center space-y-4">
+            <LucideRefreshCw className="w-12 h-12 text-primary animate-spin" />
+            <p className="text-lg font-bold text-muted-foreground">Loading deal...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isDealError || !deal) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <Card className="border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem]">
+          <CardContent className="p-12 flex flex-col items-center justify-center space-y-4">
+            <LucideAlertCircle className="w-12 h-12 text-destructive" />
+            <p className="text-lg font-bold text-white">Deal Not Found</p>
+            <p className="text-sm text-muted-foreground text-center">This deal doesn't exist or hasn't been created yet.</p>
+            <Button onClick={() => refetch()} variant="outline" className="mt-4">
+              <LucideRefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const [seller, buyer, price, isFunded, isCompleted] = deal;
 
   const handlePledge = () => {
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: ABI,
-      functionName: 'pledge',
-      args: [BigInt(id)],
-      value: price,
-    });
+    try {
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: ABI,
+        functionName: 'pledge',
+        args: [BigInt(id)],
+        value: price,
+      });
+    } catch (error) {
+      console.error('Pledge error:', error);
+    }
   };
 
   const handleRelease = () => {
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: ABI,
-      functionName: 'release',
-      args: [BigInt(id)],
-    });
+    try {
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: ABI,
+        functionName: 'release',
+        args: [BigInt(id)],
+      });
+    } catch (error) {
+      console.error('Release error:', error);
+    }
   };
 
   return (
@@ -66,15 +150,26 @@ export function DealGate({ id }: { id: number }) {
         
         <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-6">
-                <div className={`p-4 rounded-3xl bg-black/40 border transition-colors duration-500 ${isFunded ? 'border-primary/50 text-primary' : 'border-white/10 text-muted-foreground'}`}>
+                <div 
+                    className={cn(
+                        "p-4 rounded-3xl bg-black/40 border transition-colors duration-500",
+                        isFunded ? 'border-primary/50 text-primary' : 'border-white/10 text-muted-foreground'
+                    )}
+                    role="status"
+                    aria-live="polite"
+                    aria-label={isFunded ? "Deal funded and unlocked" : "Deal locked, payment required"}
+                >
                     {isFunded ? <LucideUnlock className="w-12 h-12" /> : <LucideLock className="w-12 h-12" />}
                 </div>
             </div>
-            <Badge variant="outline" className={`mx-auto mb-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${isFunded ? 'bg-primary/20 text-primary border-primary/40' : 'bg-white/5 text-muted-foreground border-white/10'}`}>
+            <Badge variant="outline" className={cn(
+                "mx-auto mb-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                isFunded ? 'bg-primary/20 text-primary border-primary/40' : 'bg-white/5 text-muted-foreground border-white/10'
+            )}>
                 {isFunded ? "HTTP 200 OK" : "HTTP 402 PAYMENT REQUIRED"}
             </Badge>
             <CardTitle className="text-4xl font-black italic tracking-tighter">TruCheq x402 Gate</CardTitle>
-            <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">Deal Identifier: {id}</CardDescription>
+            <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">Deal Identifier: #{id}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
@@ -118,9 +213,20 @@ export function DealGate({ id }: { id: number }) {
                     <Button 
                         onClick={handlePledge}
                         disabled={isPending || isConfirming || !isConnected}
-                        className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
+                        className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Pledge CRO to unlock hidden content"
                     >
-                        {isPending || isConfirming ? "Broadcasting..." : "Pledge CRO to Unlock"}
+                        {isPending ? (
+                          <span className="flex items-center gap-3">
+                            <LucideRefreshCw className="w-5 h-5 animate-spin" />
+                            Confirming in Wallet...
+                          </span>
+                        ) : isConfirming ? (
+                          <span className="flex items-center gap-3">
+                            <LucideRefreshCw className="w-5 h-5 animate-spin" />
+                            Processing Transaction...
+                          </span>
+                        ) : "Pledge CRO to Unlock"}
                     </Button>
                 ) : !isCompleted ? (
                     <div className="space-y-6">
@@ -136,9 +242,20 @@ export function DealGate({ id }: { id: number }) {
                         <Button 
                             onClick={handleRelease}
                             disabled={isPending || isConfirming || !isConnected}
-                            className="w-full py-10 text-2xl font-black bg-white text-black hover:bg-white/90 rounded-3xl transition-all active:scale-[0.98]"
+                            className="w-full py-10 text-2xl font-black bg-white text-black hover:bg-white/90 rounded-3xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Release escrowed funds to seller"
                         >
-                            {isPending || isConfirming ? "Finalizing..." : "Release Funds to Seller"}
+                            {isPending ? (
+                              <span className="flex items-center gap-3">
+                                <LucideRefreshCw className="w-5 h-5 animate-spin" />
+                                Confirming in Wallet...
+                              </span>
+                            ) : isConfirming ? (
+                              <span className="flex items-center gap-3">
+                                <LucideRefreshCw className="w-5 h-5 animate-spin" />
+                                Processing Release...
+                              </span>
+                            ) : "Release Funds to Seller"}
                         </Button>
                     </div>
                 ) : (
