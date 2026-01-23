@@ -7,7 +7,7 @@
 
 ## 1. Project Overview (The Pitch)
 
-TruCheq is "eBay in a link" for the Cronos ecosystem.
+TruCheQ is "eBay in a link" for the Cronos ecosystem.
 
 **The Missing "Buy Button" for Reddit and Social Commerce**
 
