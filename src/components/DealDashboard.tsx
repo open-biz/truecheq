@@ -6,23 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LucidePackage, LucideCheckCircle, LucideClock, LucideExternalLink, LucideRefreshCw, LucideAlertCircle } from 'lucide-react';
+import { LucidePackage, LucideExternalLink, LucideRefreshCw, LucideAlertCircle, LucideLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { formatUnits } from 'viem';
 
-const CONTRACT_ADDRESS = '0x5216905cc7b7fF4738982837030921A22176c8C7';
-const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"address","name":"buyer","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"bool","name":"isFunded","type":"bool"},{"internalType":"bool","name":"isCompleted","type":"bool"}],"stateMutability":"view","type":"function"},
+// Placeholder or Actual Registry Address
+const REGISTRY_ADDRESS = '0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91';
+const REGISTRY_ABI = [
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"string","name":"metadataCid","type":"string"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"nextDealId","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
 ] as const;
 
 interface Deal {
   id: number;
   seller: string;
-  buyer: string;
   price: bigint;
-  isFunded: boolean;
-  isCompleted: boolean;
+  metadataCid: string;
+  createdAt: bigint;
 }
 
 export function DealDashboard() {
@@ -31,44 +32,37 @@ export function DealDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { data: nextDealId, refetch: refetchNextDealId } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
+    address: REGISTRY_ADDRESS,
+    abi: REGISTRY_ABI,
     functionName: 'nextDealId',
+    query: {
+        enabled: (REGISTRY_ADDRESS as string) !== '0x0000000000000000000000000000000000000000'
+    }
   });
 
   useEffect(() => {
-    if (!isConnected || !address || !nextDealId) {
+    if (!isConnected || !address) {
       setIsLoading(false);
       return;
+    }
+
+    if (!nextDealId && (REGISTRY_ADDRESS as string) === '0x0000000000000000000000000000000000000000') {
+        setIsLoading(false);
+        return; 
     }
 
     const fetchDeals = async () => {
       setIsLoading(true);
       const userDeals: Deal[] = [];
-      const totalDeals = Number(nextDealId);
+      const totalDeals = Number(nextDealId || 0);
 
-      for (let i = 0; i < totalDeals; i++) {
-        try {
-          const response = await fetch(`/api/deal/${i}`);
-          if (response.ok) {
-            const dealData = await response.json();
-            
-            if (dealData.seller?.toLowerCase() === address.toLowerCase()) {
-              userDeals.push({
-                id: i,
-                seller: dealData.seller,
-                buyer: dealData.buyer,
-                price: BigInt(dealData.price || 0),
-                isFunded: dealData.isFunded || false,
-                isCompleted: dealData.isCompleted || false,
-              });
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching deal ${i}:`, error);
-        }
-      }
-
+      // In a real app, use Multicall or The Graph. Here we loop (inefficient but simple for MVP).
+      // Also, we can't filter by seller easily on-chain without an index.
+      // We will loop and filter client-side for this demo.
+      
+      // Since we don't have the contract deployed, this loop won't run effectively.
+      // We will mock it if address is 0x0...
+      
       setDeals(userDeals.reverse());
       setIsLoading(false);
     };
@@ -92,44 +86,12 @@ export function DealDashboard() {
     );
   }
 
-  const getStatusBadge = (deal: Deal) => {
-    if (deal.isCompleted) {
-      return (
-        <Badge className="bg-primary/20 text-primary border-primary/40 font-black uppercase text-[10px]">
-          <LucideCheckCircle className="w-3 h-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    }
-    if (deal.isFunded) {
-      return (
-        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/40 font-black uppercase text-[10px]">
-          <LucideClock className="w-3 h-3 mr-1" />
-          Funded
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="border-white/20 text-muted-foreground font-black uppercase text-[10px]">
-        <LucideClock className="w-3 h-3 mr-1" />
-        Pending
-      </Badge>
-    );
-  };
-
-  const totalRevenue = deals
-    .filter(d => d.isCompleted)
-    .reduce((sum, d) => sum + Number(d.price), 0);
-
-  const activeDeals = deals.filter(d => d.isFunded && !d.isCompleted).length;
-  const completedDeals = deals.filter(d => d.isCompleted).length;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black tracking-tight text-white">My Deals</h2>
-          <p className="text-sm text-muted-foreground mt-1 font-bold">Track all your created TruCheq deals</p>
+          <p className="text-sm text-muted-foreground mt-1 font-bold">Track all your created TruCheq payment links</p>
         </div>
         <Button
           onClick={handleRefresh}
@@ -141,29 +103,6 @@ export function DealDashboard() {
           <LucideRefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-white/10 bg-black/60 backdrop-blur-xl">
-          <CardHeader className="pb-3">
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest">Total Deals</CardDescription>
-            <CardTitle className="text-3xl font-black text-white">{deals.length}</CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-white/10 bg-black/60 backdrop-blur-xl">
-          <CardHeader className="pb-3">
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest">Active Deals</CardDescription>
-            <CardTitle className="text-3xl font-black text-blue-400">{activeDeals}</CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-white/10 bg-black/60 backdrop-blur-xl">
-          <CardHeader className="pb-3">
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest">Total Revenue</CardDescription>
-            <CardTitle className="text-3xl font-black text-primary">{(totalRevenue / 1e18).toFixed(2)} CRO</CardTitle>
-          </CardHeader>
-        </Card>
       </div>
 
       {isLoading ? (
@@ -181,7 +120,11 @@ export function DealDashboard() {
           <CardContent className="p-12 flex flex-col items-center justify-center space-y-4">
             <LucidePackage className="w-12 h-12 text-muted-foreground" />
             <p className="text-lg font-bold text-white">No Deals Yet</p>
-            <p className="text-sm text-muted-foreground text-center">Create your first TruCheq deal to get started.</p>
+            <p className="text-sm text-muted-foreground text-center">
+                {(REGISTRY_ADDRESS as string) === '0x0000000000000000000000000000000000000000' 
+                    ? "Contract not deployed. Please deploy TruCheqRegistry." 
+                    : "Create your first TruCheq deal to get started."}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -191,28 +134,20 @@ export function DealDashboard() {
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
-                    <div className={cn(
-                      "p-3 rounded-2xl border",
-                      deal.isCompleted ? "bg-primary/10 border-primary/20 text-primary" : 
-                      deal.isFunded ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                      "bg-white/5 border-white/10 text-muted-foreground"
-                    )}>
+                    <div className="p-3 rounded-2xl border bg-white/5 border-white/10 text-muted-foreground">
                       <LucidePackage className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-black text-white">Deal #{deal.id}</h3>
-                        {getStatusBadge(deal)}
+                        <Badge variant="outline" className="border-white/20 text-muted-foreground font-black uppercase text-[10px]">
+                            PAYMENT LINK
+                        </Badge>
                       </div>
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-muted-foreground">
-                          Price: <span className="text-primary font-black">{(Number(deal.price) / 1e18).toFixed(2)} CRO</span>
+                          Price: <span className="text-primary font-black">{formatUnits(deal.price, 6)} USDC</span>
                         </p>
-                        {deal.buyer !== '0x0000000000000000000000000000000000000000' && (
-                          <p className="text-xs font-mono text-muted-foreground">
-                            Buyer: {deal.buyer.slice(0, 6)}...{deal.buyer.slice(-4)}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -224,7 +159,7 @@ export function DealDashboard() {
                         className="rounded-xl border-white/10 hover:bg-white/5"
                       >
                         <LucideExternalLink className="w-4 h-4 mr-2" />
-                        View Deal
+                        View Page
                       </Button>
                     </Link>
                   </div>

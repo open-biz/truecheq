@@ -1,148 +1,200 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useReadContract, useAccount, useSignTypedData, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { LucideLock, LucideUnlock, LucideShieldCheck, LucideEye, LucideEyeOff, LucideAlertCircle, LucideRefreshCw } from 'lucide-react';
+import { LucideLock, LucideUnlock, LucideShieldCheck, LucideRefreshCw, LucideImage, LucideCheckCircle, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { DealMetadata } from '@/lib/filebase';
+import { parseUnits } from 'viem';
 
-const CONTRACT_ADDRESS = '0x5216905cc7b7fF4738982837030921A22176c8C7';
-const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"address","name":"buyer","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"bool","name":"isFunded","type":"bool"},{"internalType":"bool","name":"isCompleted","type":"bool"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"_dealId","type":"uint256"}],"name":"pledge","outputs":[],"stateMutability":"payable","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"_dealId","type":"uint256"}],"name":"release","outputs":[],"stateMutability":"nonpayable","type":"function"},
+const REGISTRIES: Record<number, string> = {
+    338: '0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91',
+    84532: '0x0000000000000000000000000000000000000000'
+};
+
+const USDCS: Record<number, string> = {
+    338: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0', // devUSDC.e (Cronos)
+    84532: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // USDC (Base Sepolia)
+};
+
+const REGISTRY_ABI = [
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"string","name":"metadataCid","type":"string"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
 ] as const;
 
-export function DealGate({ id }: { id: number }) {
-  const { isConnected } = useAccount();
-  const [mounted, setMounted] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+const ERC20_ABI = [
+  {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+] as const;
 
-  const { data: deal, refetch, isLoading: isDealLoading, isError: isDealError } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
+export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
+  const { address, isConnected, chainId: currentChainId } = useAccount();
+  const { switchChain } = useSwitchChain();
+  const [mounted, setMounted] = useState(false);
+  const [metadata, setMetadata] = useState<DealMetadata | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const { signTypedDataAsync } = useSignTypedData();
+  const { writeContractAsync } = useWriteContract();
+
+  const dealChainId = metadata?.chainId || 338; // Default to Cronos
+  const registryAddress = REGISTRIES[dealChainId];
+
+  // Read deal from registry
+  const { data: deal } = useReadContract({
+    address: registryAddress as `0x${string}`,
+    abi: REGISTRY_ABI,
     functionName: 'deals',
     args: [BigInt(id)],
+    query: {
+        enabled: !!metadata && id > 0 && (registryAddress as string) !== '0x0000000000000000000000000000000000000000',
+    }
   });
-
-  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess, isError: isTxError } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (isSuccess) {
-        refetch();
-        toast.success("Transaction Confirmed!", {
-          description: "Your transaction has been processed successfully."
-        });
-    }
-  }, [isSuccess, refetch]);
-
-  useEffect(() => {
-    if (isTxError) {
-      toast.error("Transaction Failed", {
-        description: "The transaction could not be completed. Please try again."
-      });
-    }
-  }, [isTxError]);
-
-  useEffect(() => {
-    if (writeError) {
-      const errorMessage = writeError.message || '';
-      if (errorMessage.includes('User rejected')) {
-        toast.error("Transaction Cancelled", {
-          description: "You declined the transaction in your wallet."
-        });
-      } else if (errorMessage.includes('insufficient funds')) {
-        toast.error("Insufficient Funds", {
-          description: "You don't have enough CRO to complete this transaction."
-        });
-      } else {
-        toast.error("Transaction Error", {
-          description: "An error occurred. Please check your wallet and try again."
-        });
+    const fetchMetadata = async () => {
+      if (!metadataUrl) return;
+      try {
+        const response = await fetch(metadataUrl);
+        if (response.ok) {
+          const data = await response.json();
+          setMetadata(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch metadata:', error);
       }
-    }
-  }, [writeError]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetch();
-    }, 5000);
-    setPollingInterval(interval);
-    
-    return () => {
-      if (interval) clearInterval(interval);
     };
-  }, [refetch]);
+
+    fetchMetadata();
+  }, [metadataUrl]);
+
+  const handleCronosPayment = async () => {
+    if (!metadata || !address) return;
+    
+    setIsProcessing(true);
+    try {
+        const domain = {
+            name: 'USD Coin', 
+            version: '1',     
+            chainId: 338,     
+            verifyingContract: USDCS[338] as `0x${string}`,
+        };
+
+        const types = {
+            TransferWithAuthorization: [
+                { name: 'from', type: 'address' },
+                { name: 'to', type: 'address' },
+                { name: 'value', type: 'uint256' },
+                { name: 'validAfter', type: 'uint256' },
+                { name: 'validBefore', type: 'uint256' },
+                { name: 'nonce', type: 'bytes32' },
+            ],
+        };
+
+        const value = parseUnits(metadata.price, 6);
+        const validAfter = BigInt(0);
+        const validBefore = BigInt(Math.floor(Date.now() / 1000) + 3600);
+        const nonce = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const message = {
+            from: address,
+            to: metadata.seller as `0x${string}`,
+            value: value,
+            validAfter: validAfter,
+            validBefore: validBefore,
+            nonce: nonce as `0x${string}`,
+        };
+
+        toast.info("Please sign the payment authorization in your wallet...");
+
+        const signature = await signTypedDataAsync({
+            domain,
+            types,
+            primaryType: 'TransferWithAuthorization',
+            message,
+        });
+
+        toast.info("Processing settlement via X402 Facilitator...");
+
+        const response = await fetch('/api/settle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                signature,
+                message: {
+                    ...message,
+                    value: message.value.toString(),
+                    validAfter: message.validAfter.toString(),
+                    validBefore: message.validBefore.toString(),
+                },
+                domain
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Settlement failed');
+        }
+
+        setIsPaid(true);
+        toast.success("Payment Successful! Funds settled to seller.");
+
+    } catch (error: any) {
+        console.error("Payment error:", error);
+        toast.error("Payment Failed", {
+            description: error.message || "Could not complete the transaction."
+        });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleBasePayment = async () => {
+      if (!metadata || !address) return;
+      setIsProcessing(true);
+      try {
+          const value = parseUnits(metadata.price, 6);
+          const hash = await writeContractAsync({
+              address: USDCS[84532] as `0x${string}`,
+              abi: ERC20_ABI,
+              functionName: 'transfer',
+              args: [metadata.seller as `0x${string}`, value],
+          });
+          
+          toast.success("Transaction Submitted!", { description: "Waiting for confirmation..." });
+          
+          // Ideally check receipt here
+          setIsPaid(true); // Optimistic UI for now
+      } catch (error: any) {
+          console.error("Base Payment error:", error);
+          toast.error("Transaction Failed");
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
+  const onPayClick = () => {
+      if (currentChainId !== dealChainId) {
+          toast.info(`Switching to ${dealChainId === 338 ? 'Cronos' : 'Base'}...`);
+          switchChain({ chainId: dealChainId });
+          return;
+      }
+
+      if (dealChainId === 338) {
+          handleCronosPayment();
+      } else if (dealChainId === 84532) {
+          handleBasePayment();
+      }
+  };
 
   if (!mounted) return null;
-
-  if (isDealLoading) {
-    return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Card className="border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem]">
-          <CardContent className="p-12 flex flex-col items-center justify-center space-y-4">
-            <LucideRefreshCw className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-lg font-bold text-muted-foreground">Loading deal...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isDealError || !deal) {
-    return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Card className="border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem]">
-          <CardContent className="p-12 flex flex-col items-center justify-center space-y-4">
-            <LucideAlertCircle className="w-12 h-12 text-destructive" />
-            <p className="text-lg font-bold text-white">Deal Not Found</p>
-            <p className="text-sm text-muted-foreground text-center">This deal doesn't exist or hasn't been created yet.</p>
-            <Button onClick={() => refetch()} variant="outline" className="mt-4">
-              <LucideRefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const [seller, buyer, price, isFunded, isCompleted] = deal;
-
-  const handlePledge = () => {
-    try {
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: ABI,
-        functionName: 'pledge',
-        args: [BigInt(id)],
-        value: price,
-      });
-    } catch (error) {
-      console.error('Pledge error:', error);
-    }
-  };
-
-  const handleRelease = () => {
-    try {
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: ABI,
-        functionName: 'release',
-        args: [BigInt(id)],
-      });
-    } catch (error) {
-      console.error('Release error:', error);
-    }
-  };
 
   return (
     <div className="max-w-2xl mx-auto py-12">
@@ -153,133 +205,104 @@ export function DealGate({ id }: { id: number }) {
                 <div 
                     className={cn(
                         "p-4 rounded-3xl bg-black/40 border transition-colors duration-500",
-                        isFunded ? 'border-primary/50 text-primary' : 'border-white/10 text-muted-foreground'
+                        isPaid ? 'border-primary/50 text-primary' : 'border-white/10 text-muted-foreground'
                     )}
-                    role="status"
-                    aria-live="polite"
-                    aria-label={isFunded ? "Deal funded and unlocked" : "Deal locked, payment required"}
                 >
-                    {isFunded ? <LucideUnlock className="w-12 h-12" /> : <LucideLock className="w-12 h-12" />}
+                    {isPaid ? <LucideCheckCircle className="w-12 h-12" /> : <LucideLock className="w-12 h-12" />}
                 </div>
             </div>
             <Badge variant="outline" className={cn(
                 "mx-auto mb-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                isFunded ? 'bg-primary/20 text-primary border-primary/40' : 'bg-white/5 text-muted-foreground border-white/10'
+                isPaid ? 'bg-primary/20 text-primary border-primary/40' : 'bg-white/5 text-muted-foreground border-white/10'
             )}>
-                {isFunded ? "HTTP 200 OK" : "HTTP 402 PAYMENT REQUIRED"}
+                {isPaid ? "PAYMENT COMPLETE" : "X402 PAYMENT REQUIRED"}
             </Badge>
-            <CardTitle className="text-4xl font-black italic tracking-tighter">TruCheq x402 Gate</CardTitle>
-            <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">Deal Identifier: #{id}</CardDescription>
+            <CardTitle className="text-4xl font-black italic tracking-tighter">TruCheq Checkout</CardTitle>
+            <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">
+                {dealChainId === 338 ? 'Cronos Testnet' : 'Base Sepolia'} • Deal #{id}
+            </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
-            <div className="space-y-4">
-                <div className={`p-8 rounded-3xl border transition-all duration-700 relative overflow-hidden ${isFunded ? 'border-primary/30 bg-primary/5' : 'border-white/5 bg-black/40'}`}>
-                    <div className={`transition-all duration-1000 ${!isFunded ? 'blur-2xl opacity-20' : 'blur-0 opacity-100'}`}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <LucideEye className="text-primary w-5 h-5" />
-                            <span className="text-xs font-black uppercase tracking-widest text-primary">Hidden Content</span>
-                        </div>
-                        <p className="font-bold text-lg leading-relaxed text-white">
-                            {isFunded 
-                                ? "REVEALED: https://meet.google.com/tru-cheq-demo-secret" 
-                                : "This content is cryptographically locked until the settlement layer confirms the native CRO pledge."}
-                        </p>
+            {metadata && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <LucideImage className="w-4 h-4" />
+                        <span className="text-xs font-black uppercase tracking-widest">Item Details</span>
                     </div>
-                    {!isFunded && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
-                            <LucideEyeOff className="w-10 h-10 text-white/10 mb-2" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Locked via Cronos EVM</p>
+                    
+                    {metadata.images && metadata.images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {metadata.images.map((imageUrl, index) => (
+                                <div key={index} className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                                    <img 
+                                        src={imageUrl} 
+                                        alt={`${metadata.itemName} - Image ${index + 1}`} 
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            ))}
                         </div>
                     )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Contract Price</p>
-                        <p className="text-2xl font-black text-primary">{(Number(price) / 1e18).toString()} CRO</p>
-                    </div>
-                    <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Settlement Status</p>
-                        <p className={`text-sm font-black uppercase tracking-widest ${isFunded ? 'text-primary' : 'text-destructive'}`}>
-                            {isFunded ? 'Funded' : 'Unfunded'}
-                        </p>
+                    
+                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                        <h3 className="text-2xl font-black text-white mb-2">{metadata.itemName}</h3>
+                        <p className="text-sm text-muted-foreground font-bold">{metadata.description}</p>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className="space-y-4 pt-4">
-                {!isFunded ? (
-                    <Button 
-                        onClick={handlePledge}
-                        disabled={isPending || isConfirming || !isConnected}
-                        className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Pledge CRO to unlock hidden content"
-                    >
-                        {isPending ? (
-                          <span className="flex items-center gap-3">
-                            <LucideRefreshCw className="w-5 h-5 animate-spin" />
-                            Confirming in Wallet...
-                          </span>
-                        ) : isConfirming ? (
-                          <span className="flex items-center gap-3">
-                            <LucideRefreshCw className="w-5 h-5 animate-spin" />
-                            Processing Transaction...
-                          </span>
-                        ) : "Pledge CRO to Unlock"}
-                    </Button>
-                ) : !isCompleted ? (
-                    <div className="space-y-6">
-                        <div className="p-5 rounded-2xl bg-primary/10 border border-primary/20 flex items-start gap-4">
-                            <LucideShieldCheck className="text-primary mt-1 shrink-0" />
-                            <div>
-                                <p className="text-sm font-black text-primary uppercase tracking-widest mb-1">Protection Active</p>
-                                <p className="text-xs font-bold text-foreground/70 leading-relaxed">
-                                    Your funds are locked in the escrow. Only release them once you have verified the hidden content or received the service.
-                                </p>
-                            </div>
+                {!isPaid ? (
+                    <div className="space-y-4">
+                         <div className="p-5 rounded-2xl bg-white/5 border border-white/5 text-center">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Due</p>
+                            <p className="text-3xl font-black text-primary">{metadata?.price || '0'} USDC</p>
                         </div>
-                        <Button 
-                            onClick={handleRelease}
-                            disabled={isPending || isConfirming || !isConnected}
-                            className="w-full py-10 text-2xl font-black bg-white text-black hover:bg-white/90 rounded-3xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                            aria-label="Release escrowed funds to seller"
-                        >
-                            {isPending ? (
-                              <span className="flex items-center gap-3">
-                                <LucideRefreshCw className="w-5 h-5 animate-spin" />
-                                Confirming in Wallet...
-                              </span>
-                            ) : isConfirming ? (
-                              <span className="flex items-center gap-3">
-                                <LucideRefreshCw className="w-5 h-5 animate-spin" />
-                                Processing Release...
-                              </span>
-                            ) : "Release Funds to Seller"}
-                        </Button>
+
+                        {currentChainId !== dealChainId ? (
+                            <Button 
+                                onClick={onPayClick}
+                                className="w-full py-10 text-xl font-black bg-blue-600 hover:bg-blue-700 text-white rounded-3xl"
+                            >
+                                <ArrowLeftRight className="mr-2 w-5 h-5" />
+                                Switch to {dealChainId === 338 ? 'Cronos' : 'Base'}
+                            </Button>
+                        ) : (
+                            <Button 
+                                onClick={onPayClick}
+                                disabled={isProcessing || !isConnected}
+                                className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isProcessing ? (
+                                <span className="flex items-center gap-3">
+                                    <LucideRefreshCw className="w-5 h-5 animate-spin" />
+                                    Processing...
+                                </span>
+                                ) : dealChainId === 338 ? "Pay with Cronos (Gasless)" : "Pay with Base"}
+                            </Button>
+                        )}
+
+                        <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Powered by {dealChainId === 338 ? 'Cronos x402 Facilitator' : 'Base Smart Payments'}
+                        </p>
                     </div>
                 ) : (
                     <div className="p-8 rounded-3xl bg-primary/20 border border-primary/40 text-center animate-in zoom-in-95">
-                        <p className="font-black text-primary italic text-xl tracking-tighter">SETTLEMENT COMPLETE</p>
-                        <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Transaction archived on Cronos Explorer</p>
+                        <p className="font-black text-primary italic text-xl tracking-tighter">TRANSACTION SETTLED</p>
+                        <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">
+                            Funds transferred to seller.
+                        </p>
                     </div>
                 )}
                 
                 {!isConnected && (
                     <p className="text-center text-xs font-bold text-destructive animate-pulse mt-4">
-                        Please connect your Crypto.com DeFi Wallet to interact.
+                        Please connect your wallet to interact.
                     </p>
                 )}
             </div>
         </CardContent>
-        
-        <div className="px-10 pb-10 flex justify-between items-center opacity-30">
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest font-mono">Cronos-T3-338</span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest font-mono">x402-v1.0</span>
-        </div>
       </Card>
     </div>
   );

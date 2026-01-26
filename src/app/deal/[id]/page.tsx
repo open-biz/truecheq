@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { LucideGlobe, LucideArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-export default function DealPage({ params }: { params: Promise<{ id: string }> }) {
+export default function DealPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ meta?: string }> }) {
   const { isConnected } = useAccount();
   const resolvedParams = React.use(params);
+  const resolvedSearchParams = React.use(searchParams);
 
   return (
     <main className="min-h-screen bg-[#0A0F14] text-foreground selection:bg-primary selection:text-primary-foreground">
@@ -40,7 +41,10 @@ export default function DealPage({ params }: { params: Promise<{ id: string }> }
 
       {/* App Content */}
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        <DealGate id={parseInt(resolvedParams.id) || 0} />
+        <DealGate 
+          id={parseInt(resolvedParams.id) || 0} 
+          metadataUrl={resolvedSearchParams.meta ? decodeURIComponent(resolvedSearchParams.meta) : undefined}
+        />
       </div>
 
       <Toaster position="bottom-right" theme="dark" richColors />

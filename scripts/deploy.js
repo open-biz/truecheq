@@ -1,12 +1,14 @@
 const hre = require("hardhat");
 
 async function main() {
-  const TruCheq = await hre.ethers.getContractFactory("TruCheqNative");
-  const trucheq = await TruCheq.deploy();
+  console.log("Deploying TruCheqRegistry...");
+  
+  const TruCheqRegistry = await hre.ethers.getContractFactory("TruCheqRegistry");
+  const registry = await TruCheqRegistry.deploy();
 
-  await trucheq.waitForDeployment();
+  await registry.waitForDeployment();
 
-  console.log("TruCheqNative deployed to:", await trucheq.getAddress());
+  console.log("TruCheqRegistry deployed to:", await registry.getAddress());
 }
 
 main().catch((error) => {

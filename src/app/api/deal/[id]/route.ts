@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
 import { cronosTestnet } from '@/lib/chains';
 
-const CONTRACT_ADDRESS = '0x5216905cc7b7fF4738982837030921A22176c8C7';
+const REGISTRY_ADDRESS = '0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91';
 const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"address","name":"buyer","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"bool","name":"isFunded","type":"bool"},{"internalType":"bool","name":"isCompleted","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"string","name":"metadataCid","type":"string"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
 ] as const;
 
 export async function GET(
@@ -20,29 +20,25 @@ export async function GET(
 
   try {
     const deal = await client.readContract({
-      address: CONTRACT_ADDRESS,
+      address: REGISTRY_ADDRESS,
       abi: ABI,
       functionName: 'deals',
       args: [BigInt(id)],
     });
 
-    const isFunded = deal[3];
+    const [seller, price, metadataCid, createdAt] = deal;
 
-    if (isFunded) {
-      return NextResponse.json({
+    return NextResponse.json({
         id,
-        content: "REVEALED: This is the secret content gated by x402 on Cronos.",
-        status: 200
-      });
-    } else {
-      return NextResponse.json(
-        { error: "Payment Required", status: 402 },
-        { status: 402 }
-      );
-    }
+        seller,
+        price: price.toString(),
+        metadataCid,
+        createdAt: createdAt.toString(),
+    });
   } catch (error) {
+    console.error("API Error:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Deal not found or internal error" },
       { status: 500 }
     );
   }

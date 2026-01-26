@@ -21,6 +21,11 @@ Built on the x402 (Payment Required) protocol, TruCheq creates an atomic bond be
 
 We use the Crypto.com DeFi Wallet as the primary Trust Anchor. TruCheq gives every Crypto.com Wallet user the power to become a merchant instantly. We turn the wallet from a passive storage device into an active merchant terminal.
 
+## Smart Contracts
+
+- **Cronos Testnet (Chain ID 338):** `0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91`
+- **Contract Name:** `TruCheqRegistry`
+
 ## 🛠 Tech Stack
 
 - **Network:** Cronos EVM (Testnet: 338, Mainnet: 25).
