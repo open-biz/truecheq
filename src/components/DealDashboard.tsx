@@ -55,14 +55,35 @@ export function DealDashboard() {
       setIsLoading(true);
       const userDeals: Deal[] = [];
       const totalDeals = Number(nextDealId || 0);
+      console.log("Fetching deals. Total:", totalDeals, "NextDealId:", nextDealId);
 
-      // In a real app, use Multicall or The Graph. Here we loop (inefficient but simple for MVP).
-      // Also, we can't filter by seller easily on-chain without an index.
-      // We will loop and filter client-side for this demo.
-      
-      // Since we don't have the contract deployed, this loop won't run effectively.
-      // We will mock it if address is 0x0...
-      
+      for (let i = 0; i < totalDeals; i++) {
+        try {
+          const response = await fetch(`/api/deal/${i}`);
+          if (response.ok) {
+            const dealData = await response.json();
+            console.log(`Deal ${i} data:`, dealData);
+            
+            if (dealData.seller?.toLowerCase() === address.toLowerCase()) {
+              userDeals.push({
+                id: i,
+                seller: dealData.seller,
+                price: BigInt(dealData.price || 0),
+                metadataCid: dealData.metadataCid,
+                createdAt: BigInt(dealData.createdAt || 0),
+              });
+            } else {
+                console.log(`Deal ${i} skipped. Seller ${dealData.seller} != ${address}`);
+            }
+          } else {
+              console.error(`Failed to fetch deal ${i}:`, response.status);
+          }
+        } catch (error) {
+          console.error(`Error fetching deal ${i}:`, error);
+        }
+      }
+
+      console.log("User deals found:", userDeals);
       setDeals(userDeals.reverse());
       setIsLoading(false);
     };
