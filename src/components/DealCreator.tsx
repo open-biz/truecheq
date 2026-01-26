@@ -396,6 +396,21 @@ export function DealCreator() {
                             variant="outline"
                             onClick={() => {
                                 const link = typeof window !== 'undefined' && dealId !== null ? `${window.location.origin}/deal/${dealId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
+                                if (!link) return;
+                                const codeSnippet = `✅ TruCheq Verified: #${dealId}\nSecure Link: ${link}`;
+                                navigator.clipboard.writeText(codeSnippet);
+                                toast.success('Verified Code copied!');
+                            }}
+                            className="flex-1 rounded-xl border-white/10 hover:bg-green-500/10 hover:border-green-500/30 hover:text-green-400 transition-colors"
+                        >
+                            <LucideCheck className="w-4 h-4 mr-2" />
+                            Copy Code
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                const link = typeof window !== 'undefined' && dealId !== null ? `${window.location.origin}/deal/${dealId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
                                 const text = `Check out this ${itemName} on TruCheq! Secure P2P payment with escrow.`;
                                 window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank');
                             }}
