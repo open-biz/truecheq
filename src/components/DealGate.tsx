@@ -59,6 +59,19 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
   }, []);
 
   useEffect(() => {
+    if (id === 0 && !metadataUrl) {
+        setMetadata({
+            itemName: 'Rolex Submariner Date',
+            description: 'Ref. 126610LN - 2023 - Full Set - Unworn. This is a demo transaction.',
+            price: '500',
+            images: ['https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=800&auto=format&fit=crop'],
+            seller: '0x0000000000000000000000000000000000000000',
+            createdAt: Date.now(),
+            chainId: 338,
+        });
+        return;
+    }
+
     const fetchMetadata = async () => {
       if (!metadataUrl) return;
       try {
@@ -73,7 +86,7 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
     };
 
     fetchMetadata();
-  }, [metadataUrl]);
+  }, [metadataUrl, id]);
 
   const handleCronosPayment = async () => {
     if (!metadata || !address) return;

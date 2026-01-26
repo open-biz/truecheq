@@ -18,6 +18,7 @@ const REGISTRIES: Record<number, string> = {
 
 const ABI = [
   {"inputs":[{"internalType":"uint256","name":"_price","type":"uint256"},{"internalType":"string","name":"_metadataCid","type":"string"}],"name":"createDeal","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},
+  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"dealId","type":"uint256"},{"indexed":true,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"uint256","name":"price","type":"uint256"},{"indexed":false,"internalType":"string","name":"metadataCid","type":"string"}],"name":"DealCreated","type":"event"}
 ] as const;
 
 export function DealCreator() {
