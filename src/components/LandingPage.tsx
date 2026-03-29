@@ -83,6 +83,7 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Features</a>
+            <Link href="/marketplace" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Marketplace</Link>
             <a href="#demo" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Demo</a>
             <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Use Cases</a>
           </div>

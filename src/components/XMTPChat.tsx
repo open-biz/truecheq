@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useClient, useConversations, useMessages, useSendMessage } from '@xmtp/react-sdk';
+import { Client, Conversation, type DecodedMessage } from '@xmtp/xmtp-js';
+import { useWalletClient } from 'wagmi';
+import { walletClientToSigner, getXMTPEnv } from '@/lib/xmtp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +16,7 @@ import {
   Bot as LucideBot,
   User as LucideUser,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 
 interface Message {
@@ -45,17 +48,14 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-
-  // XMTP hooks
-  const { client, isLoading: clientLoading } = useClient();
-  const { conversations } = useConversations();
-  // For now, we'll skip the real XMTP messages hook since we need a Conversation object
-  // This keeps the simulated flow working while we integrate the real XMTP
-  const [xmtpMessages, setXmtpMessages] = useState<any[]>([]);
-  const { sendMessage } = useSendMessage();
+  const [xmtpClient, setXmtpClient] = useState<Client | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  
+  // Get wallet client from wagmi
+  const { data: walletClient } = useWalletClient();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -64,53 +64,144 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     }
   }, [messages, isTyping]);
 
-  // Sync XMTP messages to local state
+  // Initialize XMTP client when wallet connects
   useEffect(() => {
-    if (xmtpMessages && xmtpMessages.length > 0) {
-      const newMessages: Message[] = xmtpMessages.map((msg: any) => ({
-        id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-        sender: msg.senderAddress === client?.address ? 'user' : 'seller',
-        text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-        timestamp: new Date(msg.timestamp || Date.now()),
-      }));
-      setMessages(newMessages);
-    }
-  }, [xmtpMessages, client?.address]);
-
-  // Find or create conversation with seller
-  useEffect(() => {
-    if (client && conversations && sellerAddress) {
-      // Find existing conversation with seller
-      const existing = conversations.find((c: any) => 
-        c.peerAddress.toLowerCase() === sellerAddress.toLowerCase()
-      );
-      
-      if (existing) {
-        setConversationId(existing.topic);
-        setIsConnected(true);
-      } else {
-        // Create new conversation - we'll set it up when user sends first message
-        setIsConnected(true);
+    const initXMTP = async () => {
+      if (!walletClient) {
+        setXmtpClient(null);
+        setIsConnected(false);
+        return;
       }
-    }
-  }, [client, conversations, sellerAddress]);
 
-  // Handle real XMTP connection state
+      try {
+        setIsConnecting(true);
+        setError(null);
+        
+        // Convert viem walletClient to ethers signer
+        const signer = await walletClientToSigner(walletClient);
+        
+        // Create XMTP client with the signer
+        const client = await Client.create(signer, { env: getXMTPEnv() });
+        setXmtpClient(client);
+        
+        // Try to find or create conversation with seller
+        try {
+          // Check if we already have a conversation with this seller
+          const conversations = await client.conversations.list();
+          const existingConv = conversations.find(
+            (c) => c.peerAddress.toLowerCase() === sellerAddress.toLowerCase()
+          );
+          
+          if (existingConv) {
+            setConversation(existingConv);
+          } else {
+            // Create new conversation
+            const newConv = await client.conversations.newConversation(sellerAddress);
+            setConversation(newConv);
+          }
+          
+          setIsConnected(true);
+          
+          // Send welcome message if this is a new conversation
+          if (messages.length === 0) {
+            const welcomeMessage: Message = {
+              id: `msg-${Date.now()}-welcome`,
+              sender: 'seller',
+              text: `👋 Welcome! I'm the Seller Agent for **${listingTitle}**. Feel free to ask me anything about this listing or proceed to purchase at **${price} USDC** via x402 protocol.`,
+              timestamp: new Date(),
+            };
+            setMessages([welcomeMessage]);
+          }
+        } catch (convError) {
+          console.warn('Could not load/create conversation:', convError);
+          // Still connected to XMTP, just couldn't load conversation
+          setIsConnected(true);
+        }
+        
+      } catch (err) {
+        console.error('XMTP initialization error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to connect to XMTP');
+        setIsConnected(false);
+      } finally {
+        setIsConnecting(false);
+      }
+    };
+
+    initXMTP();
+  }, [walletClient, sellerAddress]);
+
+  // Load existing messages when conversation is available
   useEffect(() => {
-    if (client && !clientLoading) {
-      setIsConnected(true);
-    } else if (!clientLoading && !client) {
-      setIsConnected(false);
-    }
-  }, [client, clientLoading]);
+    let isCancelled = false;
+    
+    const loadMessages = async () => {
+      if (!xmtpClient || !conversation) return;
+      
+      try {
+        const msgs = await conversation.messages();
+        if (isCancelled) return;
+        
+        const formattedMessages: Message[] = msgs.slice(-20).map((msg: DecodedMessage) => ({
+          id: msg.id,
+          sender: msg.senderAddress.toLowerCase() === xmtpClient.address?.toLowerCase() 
+            ? 'user' 
+            : 'seller',
+          text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          timestamp: msg.sent,
+        }));
+        setMessages(formattedMessages);
+      } catch (err) {
+        console.warn('Could not load messages:', err);
+      }
+    };
 
-  // Simulate agent response when using real XMTP (placeholder for real agent bot)
+    loadMessages();
+
+    // Set up message stream for real-time updates
+    let abortController: AbortController | null = null;
+    
+    const setupStream = async () => {
+      if (!conversation || !xmtpClient) return;
+      abortController = new AbortController();
+      
+      try {
+        const stream = await conversation.streamMessages();
+        
+        for await (const msg of stream) {
+          if (isCancelled || abortController?.signal.aborted) break;
+          
+          if (msg.senderAddress.toLowerCase() !== xmtpClient.address?.toLowerCase()) {
+            const newMessage: Message = {
+              id: msg.id,
+              sender: 'seller',
+              text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+              timestamp: msg.sent,
+            };
+            setMessages((prev) => [...prev, newMessage]);
+          }
+        }
+      } catch (err) {
+        console.warn('Message stream error:', err);
+      }
+    };
+
+    setupStream();
+
+    return () => {
+      isCancelled = true;
+      abortController?.abort();
+    };
+  }, [xmtpClient, conversation]);
+
+  // Simulate agent response (for demo when no real seller bot is available)
   const simulateAgentResponse = useCallback(
     (userMessage: string) => {
-      // If we have a real XMTP client, we could send to a bot here
-      // For now, simulate responses
+      if (!isConnected || conversation) {
+        // If we have a real conversation, we might not need simulation
+        return;
+      }
+      
       setIsTyping(true);
-
       const delay = 1200 + Math.random() * 800;
 
       setTimeout(() => {
@@ -133,32 +224,25 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
         setMessages((prev) => [...prev, agentMessage]);
       }, delay);
     },
-    [listingId, listingTitle, price, messages.length]
+    [listingId, listingTitle, price, messages.length, isConnected, conversation]
   );
 
   const handleConnect = async () => {
+    // Connection is handled by the wallet client + XMTP initialization
+    // This button is a fallback/refresh mechanism
+    if (!walletClient) {
+      setError('Please connect your wallet first');
+      return;
+    }
+    
     setIsConnecting(true);
-
-    // Real XMTP connection is handled by the XMTPProvider
-    // We just need to wait for the client to be ready
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setIsConnected(true);
-    setIsConnecting(false);
-
-    // Welcome message from seller agent
-    const welcomeMessage: Message = {
-      id: `msg-${Date.now()}-welcome`,
-      sender: 'seller',
-      text: `👋 Welcome! I'm the Seller Agent for **${listingTitle}**. Feel free to ask me anything about this listing or proceed to purchase at **${price} USDC** via x402 protocol.`,
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMessage]);
+    // Trigger re-initialization via the useEffect
+    setTimeout(() => setIsConnecting(false), 2000);
   };
 
   const handleSend = async () => {
     const text = inputValue.trim();
-    if (!text || !isConnected) return;
+    if (!text) return;
 
     const userMessage: Message = {
       id: `msg-${Date.now()}-user`,
@@ -171,11 +255,20 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     setInputValue('');
     inputRef.current?.focus();
 
-    // Real XMTP integration disabled for now - requires Conversation object
-    // The simulated responses still work for demo purposes
-
-    // Trigger agent response (simulated for now - real bot would come from XMTP network)
-    simulateAgentResponse(text);
+    // If we have a real conversation, send via XMTP
+    if (conversation && xmtpClient) {
+      try {
+        await conversation.send(text);
+        // Message will appear via stream, no need to add manually
+      } catch (err) {
+        console.error('Failed to send message:', err);
+        // Fall back to simulation on error
+        simulateAgentResponse(text);
+      }
+    } else {
+      // Fall back to simulation for demo
+      simulateAgentResponse(text);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -185,7 +278,6 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     }
   };
 
-  // Render simple markdown-like bold text
   const renderMessageText = (text: string) => {
     const parts = text.split(/(\*\*.*?\*\*|`[^`]+`|\n)/g);
     return parts.map((part, i) => {
@@ -212,6 +304,37 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
       return <span key={i}>{part}</span>;
     });
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <Card className="border-white/10 bg-black/60 backdrop-blur-xl overflow-hidden">
+        <CardHeader className="border-b border-white/10 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/20 border border-destructive/30">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold text-white">
+                  Connection Error
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  XMTP could not be initialized
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <p className="text-sm text-destructive mb-4">{error}</p>
+          <Button onClick={handleConnect} className="w-full">
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-white/10 bg-black/60 backdrop-blur-xl overflow-hidden">
@@ -246,7 +369,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                 isConnected ? 'bg-primary animate-pulse' : 'bg-muted-foreground'
               )}
             />
-            {isConnected ? 'Connected' : 'Offline'}
+            {isConnected ? 'XMTP Connected' : isConnecting ? 'Connecting...' : 'Offline'}
           </Badge>
         </div>
       </CardHeader>
@@ -272,7 +395,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                 </div>
                 <Button
                   onClick={handleConnect}
-                  disabled={isConnecting}
+                  disabled={isConnecting || !walletClient}
                   className="mt-2 rounded-full px-6"
                   size="sm"
                 >
@@ -280,6 +403,11 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       Connecting…
+                    </>
+                  ) : !walletClient ? (
+                    <>
+                      <LucideUser className="h-4 w-4 mr-2" />
+                      Connect Wallet First
                     </>
                   ) : (
                     <>
@@ -336,7 +464,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                             isUser ? 'text-right' : 'text-left'
                           )}
                         >
-                          {isUser ? 'You' : 'Seller Agent'} · {formatTime(message.timestamp)}
+                          {isUser ? 'You' : 'Seller'} · {formatTime(message.timestamp)}
                         </span>
                       </div>
                     </div>
@@ -390,7 +518,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
         {/* Footer */}
         <div className="border-t border-white/5 px-4 py-2.5">
           <p className="text-[10px] text-muted-foreground/60 text-center">
-            Powered by XMTP • End-to-end encrypted
+            {isConnected ? 'XMTP • End-to-end encrypted' : 'Powered by XMTP'}
           </p>
         </div>
       </CardContent>

@@ -7,8 +7,9 @@ import { useAccount } from 'wagmi';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { WorldIDAuth, type WorldIDUser } from '@/components/WorldIDAuth';
+import { WorldIDOnboarding } from '@/components/WorldIDOnboarding';
 import { Button } from '@/components/ui/button';
-import { LucidePlusCircle, LucideArrowLeft, LucideList, LucideShieldCheck } from 'lucide-react';
+import { LucidePlusCircle, LucideArrowLeft, LucideList, LucideShieldCheck, LucideHelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -86,9 +87,12 @@ export default function AppPage() {
             <ConnectButton />
           </div>
         ) : !worldUser ? (
-          <div className="flex flex-col items-center justify-center py-16">
+          <div className="flex flex-col items-center justify-center py-16 gap-8">
             <div className="max-w-md w-full">
               <WorldIDAuth onSuccess={setWorldUser} />
+            </div>
+            <div className="max-w-lg w-full">
+              <WorldIDOnboarding />
             </div>
           </div>
         ) : (

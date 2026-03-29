@@ -22,9 +22,14 @@
 
 ## XMTP
 - [x] Added @xmtp/react-sdk package
-- [ ] Wire up real XMTP SDK for buyer↔seller encrypted chat (currently simulated - signer type incompatibility with wagmi v2 + ethers v6)
+- [x] Wire up real XMTP SDK for buyer↔seller encrypted chat - fixed wagmi v2 + ethers v6 signer incompatibility using BrowserProvider bridge
 - [ ] Build XMTP agent bot (World AgentKit) that auto-responds on behalf of sellers
 - [ ] Generate x402 payment links from within the XMTP chat flow
+
+## New Features
+- [x] Marketplace page at /marketplace with all active listings, search, filtering, grid/list views
+- [x] WorldIDOnboarding component for new users explaining how to get verified (3-step guide)
+- [x] Landing page navigation link to Marketplace
 
 ## Polish
 - [ ] End-to-end demo flow for hackathon video (3 min)

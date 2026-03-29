@@ -65,6 +65,7 @@ bun x hardhat run scripts/deploy.js --network baseSepolia  # Deploy contract
 NEXT_PUBLIC_WLD_APP_ID       # World ID app ID (from developer.worldcoin.org)
 NEXT_PUBLIC_REGISTRY_ADDRESS # Deployed TruCheqRegistry address on Base Sepolia
 NEXT_PUBLIC_X402_PAY_TO      # Wallet address to receive x402 payments
+NEXT_PUBLIC_XMTP_ENV         # XMTP environment: 'dev' (default) or 'production'
 FILEBASE_ACCESS_KEY          # Filebase IPFS access
 FILEBASE_SECRET_KEY          # Filebase IPFS secret
 NEXT_PUBLIC_FILEBASE_BUCKET  # Filebase bucket name
