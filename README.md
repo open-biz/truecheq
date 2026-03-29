@@ -148,4 +148,14 @@ Seller                              Buyer / Agent
 
 ---
 
+## 📸 Demo Screenshots
+
+### Screenshot 1: Deal Page with World ID Verification
+![Deal Page](screenshot-1.png)
+
+### Screenshot 2: Payment via x402
+![Payment](screenshot-2.png)
+
+---
+
 <p align="center"><b>TruCheq</b> — Trust in a link.</p>
