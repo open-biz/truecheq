@@ -8,14 +8,22 @@ import { LucideLock, LucideShieldCheck, LucideSmartphone, LucideImage, LucideXCi
 import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
+
+// Hardcoded XMTP agent address for chat
+const XMTP_AGENT_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
 
 export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
   const [metadata, setMetadata] = useState<DealMetadata | null>(null);
+  
+  const { isConnected } = useAccount();
 
   const isOrbVerified = metadata?.isOrbVerified ?? false;
-  const sellerAddress = metadata?.seller ?? '0x0000000000000000000000000000000000000000';
+  // Use hardcoded XMTP agent address for chat
+  const sellerAddress = XMTP_AGENT_ADDRESS;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -128,11 +136,37 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
         </CardContent>
       </Card>
 
-      {/* XMTP Chat */}
-      {metadata && (
+      {/* XMTP Chat - only show if wallet connected */}
+      {metadata && isConnected && (
         <XMTPChat
           sellerAddress={sellerAddress}
         />
+      )}
+      
+      {/* Chat prompt when wallet not connected */}
+      {metadata && !isConnected && (
+        <Card className="w-full max-w-md mx-auto border-white/10 bg-black/60 backdrop-blur-xl">
+          <CardHeader className="pb-3 border-b border-white/5">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <LucideBot className="w-5 h-5 text-primary" />
+                Chat with Seller
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            <div className="text-center py-4">
+              <LucideBot className="w-12 h-12 mx-auto mb-3 text-primary/60" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Connect your wallet to chat with the seller's AI agent
+              </p>
+              <ConnectButton 
+                showBalance={false}
+                accountStatus="address"
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

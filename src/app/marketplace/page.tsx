@@ -26,41 +26,48 @@ import { cn } from '@/lib/utils';
 import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
-// Seed listings from IPFS (all from seller 0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2)
+// Seed listings from IPFS (all using XMTP agent address for chat)
+const XMTP_AGENT_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
+
 const SEED_LISTINGS: Listing[] = [
   {
     cid: 'QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
-    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
+    seller: XMTP_AGENT_ADDRESS,
     price: '1',
-    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
+    // Updated IPFS metadata with correct seller address
+    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmXCc58tWay4zcf6kMRo2vingZYwRWMm6r9XMZrzx45AqW',
     isOrbVerified: true,
   },
   {
     cid: 'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
-    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
+    seller: XMTP_AGENT_ADDRESS,
     price: '1',
-    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
+    // Updated IPFS metadata with correct seller address
+    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmRZKCR9WsxiwiktWxJph72xHAzjuU45KVM2TDr25XB7ip',
     isOrbVerified: true,
   },
   {
     cid: 'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
-    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
+    seller: XMTP_AGENT_ADDRESS,
     price: '1',
-    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
+    // Updated IPFS metadata with correct seller address
+    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmYG7GWttxyJbCD6PN5t11p4EQiDQHwcjd21rVsfU5eAyw',
     isOrbVerified: true,
   },
   {
     cid: 'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
-    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
+    seller: XMTP_AGENT_ADDRESS,
     price: '1',
-    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
+    // Updated IPFS metadata with correct seller address
+    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmcRmSitcNmNpcvjSKDdCAYPcMgvVMVrHk9zKMaAAtatjo',
     isOrbVerified: false,
   },
   {
     cid: 'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
-    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
+    seller: XMTP_AGENT_ADDRESS,
     price: '1',
-    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
+    // Updated IPFS metadata with correct seller address
+    metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmYMieEdbq1MJ3AWMM1GLRmHjqjHrjfVe3mJNim1VoG4mp',
     isOrbVerified: false,
   },
 ];

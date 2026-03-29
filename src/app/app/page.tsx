@@ -290,7 +290,7 @@ const handleTruCheqLookup = async () => {
                   </Button>
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Get the code from the seller - it's their World ID nullifier
+                  Get the code from the seller - it is their World ID nullifier
                 </p>
               </CardContent>
             </Card>

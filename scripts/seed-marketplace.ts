@@ -4,13 +4,17 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 const FILEBASE_BUCKET = 'trucheq';
 
-// Fake seller addresses for demo (in prod these would be real)
+// XMTP agent address for demo listings (on dev network)
+// This is the address of the XMTP agent that responds to buyer messages
+const SELLER_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
+
+// Re-use the same seller address for all demo listings
 const SELLERS = [
-  '0x1234567890abcdef1234567890abcdef12345678',
-  '0xabcdef1234567890abcdef1234567890abcdef12',
-  '0xdeadbeef12345678deadbeef12345678deadbeef',
-  '0xcafebabe12345678cafebabe12345678cafebabe',
-  '0xfeedface12345678feedface12345678feedface',
+  SELLER_ADDRESS,
+  SELLER_ADDRESS,
+  SELLER_ADDRESS,
+  SELLER_ADDRESS,
+  SELLER_ADDRESS,
 ];
 
 // Watch listings data - using free watch images

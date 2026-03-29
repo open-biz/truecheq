@@ -343,7 +343,7 @@ export default function PaymentPage() {
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
                   <p className="text-xs text-blue-400 font-bold">
-                    ⚠️ You are about to send <span className="font-black">{metadata.price} USDC</span> directly to the seller's wallet address. This transaction cannot be reversed.
+                    ⚠️ You are about to send <span className="font-black">{metadata.price} USDC</span> directly to the seller wallet address. This transaction cannot be reversed.
                   </p>
                 </div>
 

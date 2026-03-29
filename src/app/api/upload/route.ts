@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-  } catch (error: any) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload failed';
+    console.error('Upload error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

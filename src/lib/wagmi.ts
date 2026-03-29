@@ -1,5 +1,5 @@
 import { http, createConfig, createStorage } from 'wagmi';
-import { baseSepolia } from './chains';
+import { baseSepolia, base } from './chains';
 import { injected } from 'wagmi/connectors';
 import { metaMask } from 'wagmi/connectors';
 
@@ -10,7 +10,7 @@ const noopStorage = {
 };
 
 if (typeof window === 'undefined') {
-  (global as any).indexedDB = {
+  (global as unknown as { indexedDB: { open: () => unknown } }).indexedDB = {
     open: () => ({}),
   };
 }
@@ -18,9 +18,10 @@ if (typeof window === 'undefined') {
 // Use createConfig instead of getDefaultConfig to avoid WalletConnect
 // Include MetaMask and other injected wallets
 export const config = createConfig({
-  chains: [baseSepolia],
+  chains: [base, baseSepolia],
   ssr: true,
   transports: {
+    [base.id]: http(),
     [baseSepolia.id]: http(),
   },
   storage: createStorage({
