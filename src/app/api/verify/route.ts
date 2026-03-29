@@ -1,33 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const APP_ID = process.env.NEXT_PUBLIC_WLD_APP_ID || 'app_staging_...';
-const ACTION = 'trucheq_auth';
+const RP_ID = APP_ID.replace('app_', 'rp_');
 
 export async function POST(request: NextRequest) {
   try {
-    const proof = await request.json();
+    // World ID v4 - forward the full payload to the v4 verify endpoint
+    const idkitResponse = await request.json();
 
-    const { merkle_root, nullifier_hash, proof: zkProof, verification_level } = proof;
-
-    if (!merkle_root || !nullifier_hash || !zkProof) {
-      return NextResponse.json(
-        { error: 'Missing proof fields' },
-        { status: 400 }
-      );
-    }
-
+    // Forward the proof to World ID v4 verify endpoint
     const verifyRes = await fetch(
-      `https://developer.worldcoin.org/api/v2/verify/${APP_ID}`,
+      `https://developer.world.org/api/v4/verify/${RP_ID}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          merkle_root,
-          nullifier_hash,
-          proof: zkProof,
-          action: ACTION,
-          signal: '',
-        }),
+        body: JSON.stringify(idkitResponse),
       }
     );
 
@@ -35,17 +22,21 @@ export async function POST(request: NextRequest) {
       const errorData = await verifyRes.json().catch(() => ({}));
       console.error('World ID verification failed:', errorData);
       return NextResponse.json(
-        { error: errorData?.detail || 'Verification failed' },
+        { error: errorData?.message || errorData?.detail || 'Verification failed' },
         { status: 400 }
       );
     }
 
     const result = await verifyRes.json();
 
+    // Extract verification info from response
+    const nullifier = idkitResponse.responses?.[0]?.nullifier ?? idkitResponse.nullifier;
+    const verificationLevel = idkitResponse.responses?.[0]?.identifier === 'orb' ? 'orb' : 'device';
+
     return NextResponse.json({
       success: true,
-      nullifier_hash,
-      verification_level,
+      nullifier_hash: nullifier,
+      verification_level: verificationLevel,
       verified: result.success !== false,
     });
   } catch (error: unknown) {

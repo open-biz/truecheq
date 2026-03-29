@@ -50,23 +50,42 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
     action: ACTION,
     action_description: 'Authenticate with TruCheq',
     // @ts-expect-error - onSuccess callback not in current types but works at runtime
-    onSuccess: (result: unknown) => {
-      // IDKit v4 result structure - extract info from responses
-      const r = result as { responses?: Array<{ credential_type?: string }>; nonce?: string; session_id?: string };
-      const responses = r?.responses;
-      const hasOrb = !!(responses?.some(r => r.credential_type === 'orb') || 
-                     responses?.some(r => r.credential_type === '生物識別'));
-      
-      const userData: WorldIDUser = {
-        nullifierHash: r?.nonce ?? 'unknown',
-        isOrbVerified: hasOrb,
-        verificationLevel: hasOrb ? 'orb' : 'device',
-        sessionId: r?.session_id,
-      };
-      setUser(userData);
-      setIsVerifying(false);
-      setError(null);
-      onSuccess(userData);
+    onSuccess: async (result: unknown) => {
+      try {
+        // IDKit v4 result structure - extract info from responses
+        const r = result as { responses?: Array<{ credential_type?: string; nullifier?: string }>; nonce?: string; session_id?: string };
+        const responses = r?.responses;
+        const hasOrb = !!(responses?.some(res => res.credential_type === 'orb') || 
+                       responses?.some(res => res.credential_type === '生物識別'));
+        
+        // Verify the proof with our backend
+        const verifyResponse = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result),
+        });
+        
+        if (!verifyResponse.ok) {
+          const err = await verifyResponse.json().catch(() => ({ error: 'Verification failed' }));
+          throw new Error(err.error || 'Verification failed');
+        }
+        
+        const verifyResult = await verifyResponse.json();
+        
+        const userData: WorldIDUser = {
+          nullifierHash: verifyResult.nullifier_hash || r?.nonce || 'unknown',
+          isOrbVerified: verifyResult.verification_level === 'orb' || hasOrb,
+          verificationLevel: verifyResult.verification_level || (hasOrb ? 'orb' : 'device'),
+          sessionId: r?.session_id,
+        };
+        setUser(userData);
+        setIsVerifying(false);
+        setError(null);
+        onSuccess(userData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Verification failed');
+        setIsVerifying(false);
+      }
     },
     onVerify: () => {
       setIsVerifying(true);
