@@ -2,6 +2,7 @@
 // This runs as a standalone process to handle buyer messages
 import 'dotenv-defaults/config';
 import { Agent } from '@xmtp/agent-sdk';
+import OpenAI from 'openai';
 
 // Required environment variables:
 // - XMTP_WALLET_KEY: Private key of the seller wallet
@@ -10,6 +11,56 @@ import { Agent } from '@xmtp/agent-sdk';
 // Note: Seller address will be obtained from the agent after initialization
 
 const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'dev';
+
+// NVIDIA OpenAI client for DeepSeek AI
+const openai = new OpenAI({
+  apiKey: process.env.NVIDIA_API_KEY || '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',
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+});
+
+// Build context from listings for AI
+function buildListingsContext(): string {
+  let context = 'Available listings:\n';
+  for (const [cid, listing] of Object.entries(LISTINGS)) {
+    context += `- ${listing.name}: ${listing.price} USDC. ${listing.description}\n`;
+  }
+  return context;
+}
+
+// AI response function using DeepSeek
+async function getAIResponse(userMessage: string): Promise<string> {
+  const listingsContext = buildListingsContext();
+  const systemPrompt = `You are a helpful seller assistant for TruCheq, a Web3 P2P marketplace on Base Sepolia. 
+Sellers are verified via World ID (sybil resistance). Payments are handled via x402 protocol.
+
+${listingsContext}
+
+Instructions:
+- Be helpful, friendly, and concise
+- When users ask about products, provide details and offer purchase links
+- When users want to buy, give them the proper command or link
+- If they ask about verification, explain World ID
+- If they ask about payment, explain x402 on Base Sepolia
+- Always offer to show the list with \`list\` command
+- Format responses with emoji and be conversational`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "deepseek-ai/deepseek-v3.1",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage }
+      ],
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
+    
+    return completion.choices[0]?.message?.content || 'Sorry, I could not process your request.';
+  } catch (error) {
+    console.error('[Agent] AI error:', error);
+    return 'Sorry, I encountered an error. Try using `list` to see available items or `help` for commands.';
+  }
+}
 
 interface ListingInfo {
   cid: string;
@@ -156,11 +207,9 @@ export async function startSellerAgent() {
       return;
     }
 
-    // Default response
-    await ctx.conversation.sendText(
-      `👋 Hi! I'm the TruCheq seller assistant.\n\n` +
-      `Send \`help\` to see available commands or \`list\` to view listings.`
-    );
+    // Default response - use AI for natural conversation
+    const aiResponse = await getAIResponse(ctx.message.content);
+    await ctx.conversation.sendText(aiResponse);
   });
 
   // Handle DMs (new conversations)
