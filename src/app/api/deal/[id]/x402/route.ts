@@ -1,156 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withX402 } from 'x402-next';
+import { createPublicClient, http } from 'viem';
+import { baseSepolia } from '@/lib/chains';
 
-const FACILITATOR_URL = 'https://facilitator.cronoslabs.org/v2/x402';
-const SELLER_WALLET = process.env.NEXT_PUBLIC_SELLER_WALLET || '';
-const USDCE_CONTRACT = '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0';
-const NETWORK = process.env.NEXT_PUBLIC_CRONOS_NETWORK || 'cronos-testnet';
+const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const PAY_TO = (process.env.NEXT_PUBLIC_X402_PAY_TO || '0x0000000000000000000000000000000000000001') as `0x${string}`;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const { searchParams } = new URL(request.url);
-  const metadataUrl = searchParams.get('meta');
-  
-  const paymentHeader = request.headers.get('x-payment') || request.headers.get('X-PAYMENT');
+const ABI = [
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"},
+] as const;
 
-  if (!metadataUrl) {
-    return NextResponse.json(
-      { error: 'Metadata URL required' },
-      { status: 400 }
-    );
-  }
+type HandlerResponse = {
+  success: true;
+  paidVia: string;
+  listingId: string;
+  seller: string;
+  metadataURI: string;
+  price: string;
+  isOrbVerified: boolean;
+  isActive: boolean;
+  settledAt: number;
+};
 
-  if (!paymentHeader) {
-    return NextResponse.json(
-      {
-        error: 'Payment Required',
-        x402Version: 1,
-        paymentRequirements: {
-          scheme: 'exact',
-          network: NETWORK,
-          payTo: SELLER_WALLET,
-          asset: USDCE_CONTRACT,
-          description: `TruCheq Deal #${id} - Secret Content Access`,
-          mimeType: 'application/json',
-          maxAmountRequired: '1000000',
-          maxTimeoutSeconds: 300,
-        },
-      },
-      { 
-        status: 402,
-        headers: {
-          'X402-Version': '1',
-        }
-      }
-    );
-  }
+const handler = async (request: NextRequest): Promise<NextResponse<HandlerResponse>> => {
+  const url = new URL(request.url);
+  const segments = url.pathname.split('/');
+  const id = segments[3];
+
+  const client = createPublicClient({
+    chain: baseSepolia,
+    transport: http(),
+  });
 
   try {
-    const metadata = await fetch(metadataUrl);
-    if (!metadata.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch metadata' },
-        { status: 500 }
-      );
-    }
-
-    const dealMetadata = await metadata.json();
-    const priceInUSDC = Math.floor(parseFloat(dealMetadata.price) * 1000000);
-
-    const requestBody = {
-      x402Version: 1,
-      paymentHeader: paymentHeader,
-      paymentRequirements: {
-        scheme: 'exact',
-        network: NETWORK,
-        payTo: SELLER_WALLET,
-        asset: USDCE_CONTRACT,
-        description: `TruCheq Deal #${id} - ${dealMetadata.itemName}`,
-        mimeType: 'application/json',
-        maxAmountRequired: priceInUSDC.toString(),
-        maxTimeoutSeconds: 300,
-      },
-    };
-
-    const verifyRes = await fetch(`${FACILITATOR_URL}/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X402-Version': '1',
-      },
-      body: JSON.stringify(requestBody),
+    const listing = await client.readContract({
+      address: REGISTRY_ADDRESS,
+      abi: ABI,
+      functionName: 'listings',
+      args: [BigInt(id)],
     });
 
-    if (!verifyRes.ok) {
-      return NextResponse.json(
-        { error: 'Payment verification failed' },
-        { status: 402 }
-      );
-    }
+    const [sellerWallet, metadataURI, priceUSDC, isOrbVerified, isActive] = listing;
 
-    const verifyData = await verifyRes.json();
-
-    if (!verifyData.isValid) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid payment',
-          reason: verifyData.invalidReason 
-        },
-        { status: 402 }
-      );
-    }
-
-    const settleRes = await fetch(`${FACILITATOR_URL}/settle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X402-Version': '1',
-      },
-      body: JSON.stringify(requestBody),
+    return NextResponse.json({
+      success: true,
+      paidVia: 'x402',
+      listingId: id,
+      seller: sellerWallet,
+      metadataURI,
+      price: priceUSDC.toString(),
+      isOrbVerified,
+      isActive,
+      settledAt: Date.now(),
     });
-
-    if (!settleRes.ok) {
-      return NextResponse.json(
-        { error: 'Payment settlement failed' },
-        { status: 402 }
-      );
-    }
-
-    const settleData = await settleRes.json();
-
-    if (settleData.event === 'payment.settled') {
-      return NextResponse.json({
-        success: true,
-        secret: dealMetadata.secret,
-        metadata: dealMetadata,
-        payment: {
-          txHash: settleData.txHash,
-          from: settleData.from,
-          to: settleData.to,
-          value: settleData.value,
-          blockNumber: settleData.blockNumber,
-          timestamp: settleData.timestamp,
-        },
-      });
-    } else {
-      return NextResponse.json(
-        { 
-          error: 'Payment settlement failed',
-          reason: settleData.error 
-        },
-        { status: 402 }
-      );
-    }
-  } catch (error: any) {
-    console.error('x402 payment error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Server error processing payment',
-        details: error.message 
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('x402 API error:', error);
+    // Throw error instead of returning error response for x402 compatibility
+    throw new Error('Listing not found or contract error');
   }
-}
+};
+
+export const GET = withX402(
+  handler,
+  PAY_TO,
+  {
+    price: '$0.01',
+    network: 'base-sepolia',
+    config: {
+      description: 'TruCheq listing purchase — paid via x402 protocol',
+    },
+  }
+);

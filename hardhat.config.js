@@ -10,22 +10,13 @@ module.exports = {
     sources: "./src/contracts",
     tests: "./test",
     cache: "./cache",
-    artifacts: "./artifacts"
+    artifacts: "./artifacts",
   },
   networks: {
-    cronosTestnet: {
-      url: "https://evm-t3.cronos.org",
-      chainId: 338,
-      accounts: mnemonic ? {
-        mnemonic: mnemonic,
-      } : [],
-    },
     baseSepolia: {
       url: "https://sepolia.base.org",
       chainId: 84532,
-      accounts: mnemonic ? {
-        mnemonic: mnemonic,
-      } : [],
+      accounts: mnemonic ? { mnemonic } : [],
     },
   },
 };

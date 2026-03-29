@@ -20,7 +20,7 @@ export interface DealMetadata {
   images: string[];
   seller: string;
   createdAt: number;
-  chainId: number;
+  isOrbVerified: boolean;
 }
 
 async function getCIDWithRetry(fileName: string, retries = 5): Promise<string> {

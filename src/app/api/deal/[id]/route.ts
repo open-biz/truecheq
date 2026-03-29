@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
-import { cronosTestnet } from '@/lib/chains';
+import { baseSepolia } from '@/lib/chains';
 
-const REGISTRY_ADDRESS = '0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91';
+const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000';
 const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"deals","outputs":[{"internalType":"address","name":"seller","type":"address"},{"internalType":"uint256","name":"price","type":"uint256"},{"internalType":"string","name":"metadataCid","type":"string"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"},
 ] as const;
 
 export async function GET(
@@ -14,31 +14,32 @@ export async function GET(
   const { id } = await params;
 
   const client = createPublicClient({
-    chain: cronosTestnet,
+    chain: baseSepolia,
     transport: http(),
   });
 
   try {
-    const deal = await client.readContract({
-      address: REGISTRY_ADDRESS,
+    const listing = await client.readContract({
+      address: REGISTRY_ADDRESS as `0x${string}`,
       abi: ABI,
-      functionName: 'deals',
+      functionName: 'listings',
       args: [BigInt(id)],
     });
 
-    const [seller, price, metadataCid, createdAt] = deal;
+    const [sellerWallet, metadataURI, priceUSDC, isOrbVerified, isActive] = listing;
 
     return NextResponse.json({
-        id,
-        seller,
-        price: price.toString(),
-        metadataCid,
-        createdAt: createdAt.toString(),
+      id,
+      seller: sellerWallet,
+      metadataURI,
+      price: priceUSDC.toString(),
+      isOrbVerified,
+      isActive,
     });
   } catch (error) {
     console.error("API Error:", error);
     return NextResponse.json(
-      { error: "Deal not found or internal error" },
+      { error: "Listing not found or internal error" },
       { status: 500 }
     );
   }

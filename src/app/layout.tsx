@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TruCheq | x402 Settlement on Cronos",
-  description: "The Missing 'Buy Now' Button for Social Commerce",
+  title: "TruCheq | Headless Web3 Commerce Protocol",
+  description: "Sybil-resistant P2P commerce powered by World ID, XMTP, and Coinbase x402",
 };
 
 export default function RootLayout({

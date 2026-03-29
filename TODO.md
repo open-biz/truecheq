@@ -1,15 +1,38 @@
-# TruCheq - Future Roadmap & TODOs
+# TruCheq — World Chain × XMTP × Coinbase Hackathon TODO
 
-## Base Support Integration
-The application is multi-chain ready but needs final deployment on Base Sepolia.
+## ✅ Completed
+- [x] World ID (IDKit) — Orb & Device verification with backend proof check
+- [x] Smart Contract — `TruCheqRegistry.sol` for on-chain listings (Base Sepolia)
+- [x] Listing creation flow — IPFS metadata upload + on-chain registration
+- [x] Seller dashboard — View & cancel listings
+- [x] Buyer listing page — View details, verification badge, price
+- [x] XMTP chat component — Encrypted buyer↔seller chat UI
+- [x] Coinbase x402 — Payment-gated API endpoint + paywall middleware
+- [x] Landing page — Full marketing page with demo
+- [x] Hardhat deploy script for Base Sepolia
+- [x] Cleaned up old Cronos/Crypto.com references
 
-- [ ] **Fund Deployer Wallet:** Fund `0xc7F9a40209C612d2F9dE09Ba68870dc1586033E3` with Base Sepolia ETH.
-- [ ] **Deploy Registry:** Run `bun x hardhat run scripts/deploy.js --network baseSepolia`.
-- [ ] **Update Frontend Map:** Replace the `0x000...` placeholder for Base Sepolia (Chain ID `84532`) in `REGISTRIES` map within:
-    - `src/components/DealCreator.tsx`
-    - `src/components/DealGate.tsx`
-- [ ] **Base Gasless Flow:** Integrate Base Smart Wallet / Paymaster capabilities if a gasless flow similar to Cronos is desired for Base.
+## Deployment
+- [ ] Fund deployer wallet with Base Sepolia ETH
+- [ ] Deploy `TruCheqRegistry.sol`: `bun x hardhat run scripts/deploy.js --network baseSepolia`
+- [ ] Set `NEXT_PUBLIC_REGISTRY_ADDRESS` in `.env.local`
+- [ ] Register World ID app at developer.worldcoin.org → set `NEXT_PUBLIC_WLD_APP_ID`
+- [ ] Set `NEXT_PUBLIC_X402_PAY_TO` to a valid receiving wallet address
+- [ ] Deploy to Vercel
 
-## Technical Debt
-- [ ] **Backend Dispatcher:** Extend `/api/settle` to handle other EIP-3009 tokens if expanded.
-- [ ] **Indexing:** Implement a subgraph or backend event listener to track settlement status for the Dashboard.
+## XMTP
+- [x] Added @xmtp/react-sdk package
+- [ ] Wire up real XMTP SDK for buyer↔seller encrypted chat (currently simulated - signer type incompatibility with wagmi v2 + ethers v6)
+- [ ] Build XMTP agent bot (World AgentKit) that auto-responds on behalf of sellers
+- [ ] Generate x402 payment links from within the XMTP chat flow
+
+## Polish
+- [ ] End-to-end demo flow for hackathon video (3 min)
+- [ ] Add CDP API keys for mainnet x402 (optional for demo)
+- [ ] Coinbase Onramp integration in x402 paywall (optional)
+
+## Fixed
+- [x] World ID v4 migration from IDKitWidget to useIDKitRequest hook
+- [x] XMTP SDK package added (simulation kept due to signer incompatibility)
+- [x] Fixed x402 route TypeScript error
+- [x] Fixed middleware config for build

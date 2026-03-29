@@ -1,65 +1,136 @@
-# 🚀 TruCheq: The x402 Settlement Layer for Social Commerce
+# 🛡️ TruCheq: Headless Web3 Commerce Protocol
 
-## 🏆 Hackathon Tracks
+**Built for the World Chain × XMTP × Coinbase Hackathon**
 
-- **Main Track:** x402 Applications (Social Commerce).
-- **Ecosystem Integration:** Crypto.com DeFi Wallet + Native CRO Utility.
+---
 
-## 1. Project Overview (The Pitch)
+## 🧭 Overview
 
-TruCheQ is "eBay in a link" for the Cronos ecosystem.
+TruCheq is a **sybil-resistant P2P commerce protocol** for social platforms like Reddit, Discord, and Twitter. It turns any chat thread into a verifiable storefront — no marketplace, no database, no middlemen.
 
-**The Missing "Buy Button" for Reddit and Social Commerce**
+It combines three hackathon primitives into one seamless flow:
 
-TruCheq is a P2P settlement protocol that uses HTTP 402 (Payment Required) logic to secure transactions using Native CRO. We utilize the low fees and speed of the Cronos EVM to create an escrow-lite experience that replaces Venmo.
+- **World ID (IDKit)** — Seller identity verification. Orb-verified = trusted human. Device-verified = basic trust.
+- **XMTP** — End-to-end encrypted buyer↔seller chat embedded directly on listing pages.
+- **Coinbase x402** — Payment settlement on Base.
+- **Smart Contract on Base Sepolia** — On-chain listing registry. No database needed.
 
-Today, billions of dollars in P2P trade happen on Reddit, Discord, and Telegram, but settlement is broken. Users are forced to choose between blind trust (sending funds and hoping the seller ships) or high-friction middlemen. TruCheq solves this by unbundling the marketplace checkout. We provide a decentralized "Buy Now" button that turns any chat thread into a secure point-of-sale.
+---
 
-Built on the x402 (Payment Required) protocol, TruCheq creates an atomic bond between Identity and Funds. When a buyer clicks a TruCheq link, they encounter an x402 Gate. The deal details and seller identity are cryptographically locked until the buyer pledges CRO or USDC into a smart contract on Cronos. This solves the "Mexican Standoff" of P2P trading: Sellers see funds are secured before they ship, and Buyers know their money is safe until they release it.
+## ⚙️ How It Works
 
-## The "Trust Anchor" Strategy
+1. **Verify** — Seller signs in with World ID → receives an Orb or Device verification badge.
+2. **List** — Seller creates a listing → images & metadata upload to IPFS (Filebase), listing registers on-chain.
+3. **Share** — A unique link is generated → seller posts it on Reddit / Discord / Twitter.
+4. **Browse** — Buyer clicks the link → sees the listing with the seller's verification status and trust level.
+5. **Chat** — Buyer negotiates with the seller's AI agent via XMTP (encrypted).
+6. **Pay** — Payment settles via Coinbase x402 on Base.
 
-We use the Crypto.com DeFi Wallet as the primary Trust Anchor. TruCheq gives every Crypto.com Wallet user the power to become a merchant instantly. We turn the wallet from a passive storage device into an active merchant terminal.
+---
 
-## Smart Contracts
+## 🏗️ Tech Stack
 
-- **Cronos Testnet (Chain ID 338):** `0xAC50c91ced2122EE2E2c7310b279387e0cA1cF91`
-- **Contract Name:** `TruCheqRegistry`
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15, React 19, TypeScript |
+| Identity | World ID (IDKit) — Orb & Device verification |
+| Messaging | XMTP — encrypted buyer↔seller chat |
+| Payments | Coinbase x402 protocol on Base |
+| On-chain State | Base Sepolia (Chain ID `84532`) |
+| Storage | Filebase (IPFS) for metadata & images |
+| Wallet | RainbowKit + wagmi + viem |
+| UI | Tailwind CSS, shadcn/ui, Framer Motion |
 
-## 🛠 Tech Stack
+---
 
-- **Network:** Cronos EVM (Testnet: 338, Mainnet: 25).
-- **Asset:** Native CRO.
-- **Middleware:** Node.js x402 Gateway.
-- **Contract:** Solidity payable Escrow.
+## 📜 Smart Contract
 
-## 7. Developer Cheat Sheet (Native CRO Edition)
-
-### 1. The "Payable" Logic:
-
-Your Solidity code is much simpler now.
+- **Network:** Base Sepolia (Chain ID `84532`)
+- **Contract:** `TruCheqRegistry.sol`
+- **Stores:** `Listing` struct with:
+  - `sellerWallet` — seller's wallet address
+  - `metadataURI` — IPFS link to listing metadata
+  - `priceUSDC` — listing price
+  - `isOrbVerified` — stamped from World ID orb verification
+  - `isActive` — listing status
 
 ```solidity
-// Example Pledge Function
-function pledge(uint256 dealId) external payable {
-    Deal storage deal = deals[dealId];
-    require(deal.state == State.Created, "Deal not active");
-    require(msg.value == deal.price, "Incorrect CRO amount");
-    
-    deal.state = State.Locked;
-    emit FundsLocked(dealId, msg.value);
+struct Listing {
+    address sellerWallet;
+    string  metadataURI;
+    uint256 priceUSDC;
+    bool    isOrbVerified;
+    bool    isActive;
 }
 ```
 
-### 2. The Release Logic:
+---
 
-```solidity
-function release(uint256 dealId) external {
-    Deal storage deal = deals[dealId];
-    require(msg.sender == deal.buyer, "Only buyer can release");
-    require(deal.state == State.Locked, "No funds to release");
-    
-    deal.state = State.Released;
-    payable(deal.seller).transfer(deal.price); // Instant CRO transfer
-}
+## 🚀 Getting Started
+
+```bash
+# Install dependencies
+bun install
+
+# Run development server
+bun dev
 ```
+
+---
+
+## 🔑 Environment Variables
+
+Create a `.env.local` file in the project root:
+
+```env
+# World ID
+NEXT_PUBLIC_WLD_APP_ID=app_staging_...
+
+# Smart Contract (Base Sepolia)
+NEXT_PUBLIC_REGISTRY_ADDRESS=0x...
+
+# Coinbase x402 — wallet to receive payments
+NEXT_PUBLIC_X402_PAY_TO=0x...
+
+# Filebase (IPFS)
+FILEBASE_ACCESS_KEY=your_access_key
+FILEBASE_SECRET_KEY=your_secret_key
+NEXT_PUBLIC_FILEBASE_BUCKET=trucheq
+NEXT_PUBLIC_FILEBASE_GATEWAY=your_gateway.myfilebase.com
+```
+
+---
+
+## ✅ Hackathon Qualification
+
+| Track | Integration | Status |
+|---|---|---|
+| **World ID** | IDKit — Orb & Device seller verification | ✅ |
+| **XMTP** | Encrypted buyer↔seller chat on listing pages | ✅ |
+| **Coinbase x402** | Payment settlement on Base | ✅ |
+
+---
+
+## 📐 Architecture
+
+```
+Seller                              Buyer / Agent
+  │                                   │
+  ├─ World ID verify ──────────┐      │
+  ├─ Upload to IPFS (Filebase) │      │
+  ├─ Register on-chain ────────┤      │
+  │                             ▼      │
+  │                      TruCheq Link  │
+  │                             │      │
+  │                             ├──────┤
+  │                             │  View listing + trust badge
+  │                             │  Chat via XMTP
+  │                             │  Pay via x402 paywall (human)
+  │                             │  Pay via x402 API (agent)
+  │                             ▼
+  └──────────── Settlement on Base ────┘
+```
+
+---
+
+<p align="center"><b>TruCheq</b> — Trust in a link.</p>
