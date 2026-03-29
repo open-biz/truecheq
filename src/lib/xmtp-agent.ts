@@ -4,6 +4,9 @@ import 'dotenv-defaults/config';
 import { Agent } from '@xmtp/agent-sdk';
 import OpenAI from 'openai';
 
+// Conversation history storage (in production, use Redis/Postgres)
+const conversationHistories: Map<string, Array<{role: string, content: string}>> = new Map();
+
 // Required environment variables:
 // - XMTP_WALLET_KEY: Private key of the seller wallet
 // - XMTP_DB_ENCRYPTION_KEY: 32-byte hex key for DB encryption
@@ -27,9 +30,27 @@ function buildListingsContext(): string {
   return context;
 }
 
-// AI response function using DeepSeek
-async function getAIResponse(userMessage: string): Promise<string> {
+// Get conversation history for context
+function getConversationHistory(conversationId: string): Array<{role: string, content: string}> {
+  return conversationHistories.get(conversationId) || [];
+}
+
+// Add message to history
+function addToHistory(conversationId: string, role: string, content: string) {
+  const history = conversationHistories.get(conversationId) || [];
+  history.push({ role, content });
+  // Keep only last 10 messages to stay within token limits
+  if (history.length > 10) {
+    history.shift();
+  }
+  conversationHistories.set(conversationId, history);
+}
+
+// AI response function using DeepSeek with conversation history
+async function getAIResponse(userMessage: string, conversationId: string): Promise<string> {
   const listingsContext = buildListingsContext();
+  const history = getConversationHistory(conversationId);
+  
   const systemPrompt = `You are a helpful seller assistant for TruCheq, a Web3 P2P marketplace on Base Sepolia. 
 Sellers are verified via World ID (sybil resistance). Payments are handled via x402 protocol.
 
@@ -38,24 +59,37 @@ ${listingsContext}
 Instructions:
 - Be helpful, friendly, and concise
 - When users ask about products, provide details and offer purchase links
-- When users want to buy, give them the proper command or link
+- When users want to buy, give them the proper command or link  
 - If they ask about verification, explain World ID
 - If they ask about payment, explain x402 on Base Sepolia
 - Always offer to show the list with \`list\` command
-- Format responses with emoji and be conversational`;
+- Format responses with emoji and be conversational
+- Use markdown for formatting (bold, bullet points, etc.)
+- Include direct purchase links when relevant
+- Remember context from previous messages in this conversation`;
 
   try {
+    // Build messages including history - cast to any to avoid strict OpenAI type issues
+    const messages: any = [
+      { role: 'system', content: systemPrompt },
+      ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+      { role: 'user', content: userMessage }
+    ];
+    
     const completion = await openai.chat.completions.create({
       model: "deepseek-ai/deepseek-v3.1",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
+      messages,
       temperature: 0.7,
       max_tokens: 1024,
     });
     
-    return completion.choices[0]?.message?.content || 'Sorry, I could not process your request.';
+    const response = completion.choices[0]?.message?.content || 'Sorry, I could not process your request.';
+    
+    // Add to history
+    addToHistory(conversationId, 'user', userMessage);
+    addToHistory(conversationId, 'assistant', response);
+    
+    return response;
   } catch (error) {
     console.error('[Agent] AI error:', error);
     return 'Sorry, I encountered an error. Try using `list` to see available items or `help` for commands.';
@@ -207,20 +241,36 @@ export async function startSellerAgent() {
       return;
     }
 
-    // Default response - use AI for natural conversation
-    const aiResponse = await getAIResponse(ctx.message.content);
+    // Get conversation ID for history
+    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
+    
+    // Default response - use AI for natural conversation with history
+    const aiResponse = await getAIResponse(ctx.message.content, conversationId);
     await ctx.conversation.sendText(aiResponse);
   });
 
-  // Handle DMs (new conversations)
+  // Handle DMs (new conversations) - clear history and send welcome
   agent.on('dm', async (ctx) => {
     const dmCtx = ctx as any;
-    console.log(`[Agent] New DM from ${dmCtx.message?.senderAddress || 'unknown'}`);
+    const sender = dmCtx.message?.senderAddress || 'unknown';
+    console.log(`[Agent] New DM from ${sender}`);
+    
+    // Clear old history for new conversation
+    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
+    conversationHistories.delete(conversationId);
+    
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     
     await ctx.conversation.sendText(
-      `👋 Welcome to TruCheq!\n\n` +
-      `I'm the automated seller assistant. Use \`list\` to see available items or \`help\` for all commands.\n\n` +
-      `🔒 All transactions are protected via x402 payment protocol on Base Sepolia.`
+      `👋 **Welcome to TruCheq!**\n\n` +
+      `I'm your automated seller assistant. Here's what I can do:\n\n` +
+      `📋 **Commands:**\n` +
+      `• \`list\` - View all available watches\n` +
+      `• \`help\` - See all commands\n` +
+      `• \`status\` - Check seller verification\n\n` +
+      `💬 Just chat naturally - I can help you find the perfect watch and guide you through purchase!\n\n` +
+      `🔒 **Payment:** All transactions protected via x402 on **Base Sepolia**\n\n` +
+      `[View Listings](${baseUrl}/marketplace)`
     );
   });
 
