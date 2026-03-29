@@ -13,14 +13,13 @@ It combines three hackathon primitives into one seamless flow:
 - **World ID (IDKit)** — Seller identity verification. Orb-verified = trusted human. Device-verified = basic trust.
 - **XMTP** — End-to-end encrypted buyer↔seller chat embedded directly on listing pages.
 - **Coinbase x402** — Payment settlement on Base.
-- **Smart Contract on Base Sepolia** — On-chain listing registry. No database needed.
 
 ---
 
 ## ⚙️ How It Works
 
 1. **Verify** — Seller signs in with World ID → receives an Orb or Device verification badge.
-2. **List** — Seller creates a listing → images & metadata upload to IPFS (Filebase), listing registers on-chain.
+2. **List** — Seller creates a listing → images & metadata upload to IPFS (Filebase).
 3. **Share** — A unique link is generated → seller posts it on Reddit / Discord / Twitter.
 4. **Browse** — Buyer clicks the link → sees the listing with the seller's verification status and trust level.
 5. **Chat** — Buyer negotiates with the seller's AI agent via XMTP (encrypted).
@@ -36,7 +35,6 @@ It combines three hackathon primitives into one seamless flow:
 | Identity | World ID (IDKit) — Orb & Device verification |
 | Messaging | XMTP — encrypted buyer↔seller chat |
 | Payments | Coinbase x402 protocol on Base |
-| On-chain State | Base Sepolia (Chain ID `84532`) |
 | Storage | Filebase (IPFS) for metadata & images |
 | Wallet | RainbowKit + wagmi + viem |
 | UI | Tailwind CSS, shadcn/ui, Framer Motion |
