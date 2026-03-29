@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { IDKitRequestWidget, orbLegacy, type IDKitResult } from '@worldcoin/idkit';
+import { IDKitRequestWidget, orbLegacy, type IDKitResult, type RpContext } from '@worldcoin/idkit';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LucideShieldCheck, LucideSmartphone } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LucideShieldCheck, LucideSmartphone, LucideCopy, LucideCheck, LucideWallet, LucideQrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
-// Public types
+// Types
 // ---------------------------------------------------------------------------
 
 export interface WorldIDUser {
@@ -17,11 +19,9 @@ export interface WorldIDUser {
   isOrbVerified: boolean;
   verificationLevel: string;
   sessionId?: string;
+  // Wallet info (optional - for receiving payments)
+  walletAddress?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
 
 interface WorldIDAuthProps {
   onSuccess: (user: WorldIDUser) => void;
@@ -29,12 +29,43 @@ interface WorldIDAuthProps {
 }
 
 // ---------------------------------------------------------------------------
-// Constants
+// Config
 // ---------------------------------------------------------------------------
 
-const APP_ID = (process.env.NEXT_PUBLIC_WLD_APP_ID ?? 'app_staging_...') as `app_${string}`;
-const RP_ID = APP_ID.replace('app_', 'rp_');
+const APP_ID = process.env.NEXT_PUBLIC_APP_ID as `app_${string}` | undefined;
+const RP_ID = process.env.NEXT_PUBLIC_RP_ID;
 const ACTION = 'trucheq_auth';
+
+// Generate short TruCheq code from nullifier (first 8 chars)
+function generateTruCheqCode(nullifier: string): string {
+  return nullifier.slice(0, 8).toUpperCase();
+}
+
+// ---------------------------------------------------------------------------
+// Helper: Fetch RP context
+// ---------------------------------------------------------------------------
+
+async function fetchRpContext(action: string): Promise<RpContext> {
+  const response = await fetch('/api/rp-signature', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch RP context: ${response.statusText}`);
+  }
+
+  const { sig, nonce, created_at, expires_at } = await response.json();
+
+  return {
+    rp_id: RP_ID!,
+    nonce,
+    created_at,
+    expires_at,
+    signature: sig,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -44,77 +75,132 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
   const [user, setUser] = useState<WorldIDUser | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [widgetOpen, setWidgetOpen] = useState(false);
+  const [widgetError, setWidgetError] = useState<string | null>(null);
+  const [rpContext, setRpContext] = useState<RpContext | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
+  // Wallet input
+  const [walletInput, setWalletInput] = useState('');
+  const [showWalletInput, setShowWalletInput] = useState(false);
 
-  // State for RP signature - fetch when user clicks sign in
-  const [rpSig, setRpSig] = useState<{ sig: string; nonce: string; created_at: string; expires_at: string } | null>(null);
-  const [isLoadingSig, setIsLoadingSig] = useState(false);
+  // Start widget flow
+  const startWidgetFlow = async () => {
+    console.log('[WorldID] Starting widget flow...');
+    setWidgetError(null);
 
-  // Fetch RP signature when user clicks the sign-in button
-  const handleSignInClick = useCallback(async () => {
-    setIsLoadingSig(true);
-    setError(null);
+    if (!RP_ID) {
+      console.error('[WorldID] RP_ID not configured!');
+      setWidgetError('RP_ID not configured');
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
-      const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
-      if (!rpSigResponse.ok) {
-        throw new Error('Failed to get RP signature');
-      }
-      const sigData = await rpSigResponse.json();
-      setRpSig(sigData);
-      setIsLoadingSig(false);
-      setIsOpen(true);
+      console.log('[WorldID] Fetching rp-context...');
+      const context = await fetchRpContext(ACTION);
+      console.log('[WorldID] Got rp-context:', context);
+      setRpContext(context);
+      setWidgetOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get RP signature');
-      setIsLoadingSig(false);
+      console.error('[WorldID] Widget error:', err);
+      setWidgetError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
 
-  // Handle widget open/close
   const handleOpenChange = useCallback((open: boolean) => {
-    setIsOpen(open);
+    console.log('[WorldID] Widget open changed:', open);
+    setWidgetOpen(open);
     if (!open) {
-      setIsLoadingSig(false);
+      setIsLoading(false);
     }
   }, []);
 
-  // Handle verification - send proof to backend
   const handleVerify = useCallback(async (result: IDKitResult) => {
-    const verifyResponse = await fetch('/api/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(result),
-    });
+    console.log('[WorldID] handleVerify called with result:', result);
+    setIsVerifying(true);
+    
+    try {
+      const verifyResponse = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ devPortalPayload: result }),
+      });
 
-    if (!verifyResponse.ok) {
-      const err = await verifyResponse.json().catch(() => ({ error: 'Verification failed' }));
-      throw new Error(err.error || 'Backend verification failed');
+      if (!verifyResponse.ok) {
+        const err = await verifyResponse.json().catch(() => ({ error: 'Verification failed' }));
+        console.error('[WorldID] Verification failed:', err);
+        throw new Error(err.error || 'Backend verification failed');
+      }
+
+      const verifyResult = await verifyResponse.json();
+      console.log('[WorldID] Verification success:', verifyResult);
+      return verifyResult;
+    } finally {
+      setIsVerifying(false);
     }
-
-    return await verifyResponse.json();
   }, []);
 
-  // Handle successful verification
   const handleSuccess = useCallback((result: IDKitResult) => {
-    const r = result as { responses?: Array<{ credential_type?: string; nullifier?: string }>; nonce?: string; session_id?: string };
+    console.log('[WorldID] handleSuccess called with:', result);
+    
+    const r = result as { responses?: Array<{ identifier?: string; nullifier?: string }>; nullifier?: string; session_id?: string };
     const responses = r?.responses;
-    const hasOrb = !!(responses?.some(res => res.credential_type === 'orb') || 
-                   responses?.some(res => res.credential_type === '生物識別'));
+    const hasOrb = responses?.some(res => res.identifier === 'orb') ?? false;
+    const nullifier = r?.responses?.[0]?.nullifier || r?.nullifier || 'unknown';
 
     const userData: WorldIDUser = {
-      nullifierHash: r?.responses?.[0]?.nullifier || r?.nonce || 'unknown',
+      nullifierHash: nullifier,
       isOrbVerified: hasOrb,
       verificationLevel: hasOrb ? 'orb' : 'device',
       sessionId: r?.session_id,
     };
+    
+    console.log('[WorldID] User data:', userData);
     setUser(userData);
-    setIsVerifying(false);
-    setIsOpen(false);
+    setWidgetOpen(false);
     setError(null);
     onSuccess(userData);
   }, [onSuccess]);
 
-  // ---- already authenticated state ----------------------------------------
+  const handleCopyCode = () => {
+    if (user) {
+      const code = generateTruCheqCode(user.nullifierHash);
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success('TruCheq code copied!');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleAddWallet = () => {
+    // Validate Ethereum address
+    const addr = walletInput.trim();
+    if (addr.length === 42 && addr.startsWith('0x')) {
+      setUser(prev => prev ? { ...prev, walletAddress: addr } : null);
+      setWalletInput('');
+      setShowWalletInput(false);
+      toast.success('Wallet address added!');
+    } else {
+      toast.error('Invalid Ethereum address');
+    }
+  };
+
+  const handleConnectWallet = () => {
+    // TODO: Implement proper WalletConnect with World App
+    // For now, show the manual input option
+    toast.info('WalletConnect coming soon! Enter address manually for now.');
+    setShowWalletInput(true);
+  };
+
+  // ---- already authenticated state ----
   if (user) {
+    const truCheqCode = generateTruCheqCode(user.nullifierHash);
+    
     return (
       <Card
         className={cn(
@@ -163,13 +249,93 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+        <CardContent className="space-y-4">
+          {/* TruCheq Code */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <LucideQrCode className="w-3 h-3" /> Your TruCheq Code
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 p-3 bg-black/40 rounded-xl border border-white/5 font-mono text-xl font-black text-primary tracking-widest text-center">
+                {truCheqCode}
+              </div>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={handleCopyCode}
+                className="h-12 w-12 rounded-xl border-white/10 hover:bg-primary/10"
+              >
+                {copied ? <LucideCheck className="w-4 h-4 text-primary" /> : <LucideCopy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center">
+              Share this code so buyers can find your listings
+            </p>
+          </div>
+
+          {/* Wallet Address */}
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <LucideWallet className="w-3 h-3" /> Payment Wallet
+            </p>
+            {user.walletAddress ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 p-3 bg-black/40 rounded-xl border border-white/5 font-mono text-xs text-white/70 truncate">
+                  {user.walletAddress}
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowWalletInput(true)}
+                  className="text-xs text-muted-foreground hover:text-white"
+                >
+                  Change
+                </Button>
+              </div>
+            ) : showWalletInput ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="0x..."
+                    value={walletInput}
+                    onChange={(e) => setWalletInput(e.target.value)}
+                    className="bg-black/40 border-white/10 text-xs font-mono"
+                  />
+                  <Button onClick={handleAddWallet} size="sm" className="rounded-xl">
+                    Add
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleConnectWallet}
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-xl border-white/10 hover:bg-white/5"
+                >
+                  <LucideWallet className="w-4 h-4 mr-2" />
+                  Connect Wallet (World App)
+                </Button>
+                <Button
+                  onClick={() => setShowWalletInput(true)}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground hover:text-white"
+                >
+                  Or enter address manually
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Nullifier Hash */}
+          <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Nullifier Hash
             </p>
-            <p className="text-xs font-mono text-white/70 break-all leading-relaxed">
-              {user.nullifierHash}
+            <p className="text-xs font-mono text-white/50 break-all leading-relaxed">
+              {user.nullifierHash.slice(0, 20)}...
             </p>
           </div>
         </CardContent>
@@ -177,7 +343,7 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
     );
   }
 
-  // ---- sign‑in state ------------------------------------------------------
+  // ---- sign-in state ----
   return (
     <Card
       className={cn(
@@ -186,7 +352,6 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
       )}
     >
       <CardHeader className="text-center pb-2">
-        {/* Icon */}
         <div className="flex justify-center mb-4">
           <div className="p-4 rounded-3xl bg-black/40 border border-white/10 text-muted-foreground">
             <LucideShieldCheck className="w-10 h-10" />
@@ -239,41 +404,26 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
           </div>
         </div>
 
-        {/* Error */}
-        {error && (
+        {/* Widget Error */}
+        {(error || widgetError) && (
           <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-center">
-            <p className="text-xs font-bold text-destructive">{error}</p>
+            <p className="text-xs font-bold text-destructive">{error || widgetError}</p>
           </div>
         )}
 
-        {/* IDKit v4 Widget */}
+        {/* IDKit Widget */}
         <Button
-          onClick={handleSignInClick}
-          disabled={isVerifying || isLoadingSig}
+          onClick={startWidgetFlow}
+          disabled={isVerifying || isLoading}
           className="w-full py-8 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_16px_32px_rgba(0,214,50,0.25)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isVerifying || isLoadingSig ? (
+          {isVerifying || isLoading ? (
             <span className="flex items-center gap-2">
-              <svg
-                className="w-4 h-4 animate-spin"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {isLoadingSig ? 'Preparing...' : 'Verifying…'}
+              {isLoading ? 'Preparing...' : 'Verifying…'}
             </span>
           ) : (
             <span className="flex items-center gap-2">
@@ -283,23 +433,18 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
           )}
         </Button>
 
-        {/* IDKit Widget Modal - only show after signature is loaded */}
-        {rpSig && (
+        {/* IDKit Widget - show when rpContext is loaded */}
+        {rpContext && (
           <IDKitRequestWidget
-            open={isOpen}
+            open={widgetOpen}
             onOpenChange={handleOpenChange}
-            app_id={APP_ID}
+            app_id={APP_ID!}
             action={ACTION}
             action_description="Authenticate with TruCheq"
             allow_legacy_proofs={true}
+            environment="staging"
             preset={orbLegacy()}
-            rp_context={{
-              rp_id: RP_ID,
-              nonce: rpSig.nonce,
-              created_at: new Date(rpSig.created_at).getTime() / 1000,
-              expires_at: new Date(rpSig.expires_at).getTime() / 1000,
-              signature: rpSig.sig,
-            }}
+            rp_context={rpContext}
             handleVerify={handleVerify}
             onSuccess={handleSuccess}
           />

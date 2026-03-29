@@ -2,8 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Client, Conversation, type DecodedMessage } from '@xmtp/xmtp-js';
-import { useWalletClient } from 'wagmi';
-import { walletClientToSigner, getXMTPEnv } from '@/lib/xmtp';
+import { getSignerFromWindow, createXMTPClient, getXMTPEnv } from '@/lib/xmtp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,9 +54,6 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const welcomeSentRef = useRef(false);
   
-  // Get wallet client from wagmi
-  const { data: walletClient } = useWalletClient();
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
@@ -65,24 +61,23 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     }
   }, [messages]);
 
-  // Initialize XMTP client when wallet connects
+  // Initialize XMTP client when wallet connects (using window.ethereum directly - no wagmi)
   useEffect(() => {
     const initXMTP = async () => {
-      if (!walletClient) {
-        setXmtpClient(null);
-        setIsConnected(false);
-        return;
-      }
-
       try {
         setIsConnecting(true);
         setError(null);
         
-        // Convert viem walletClient to ethers signer
-        const signer = await walletClientToSigner(walletClient);
+        // Get signer from window.ethereum (World App, MetaMask, etc.)
+        const signer = await getSignerFromWindow();
+        if (!signer) {
+          setError('No wallet found. Please connect your wallet.');
+          setIsConnecting(false);
+          return;
+        }
         
         // Create XMTP client with the signer
-        const client = await Client.create(signer, { env: getXMTPEnv() });
+        const client = await createXMTPClient(signer, getXMTPEnv());
         setXmtpClient(client);
         
         // Try to find or create conversation with seller
@@ -129,8 +124,9 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
       }
     };
 
+    // Auto-connect on mount
     initXMTP();
-  }, [walletClient, sellerAddress]);
+  }, [sellerAddress]); // Only re-run if seller changes
 
   // Load existing messages when conversation is available
   useEffect(() => {
@@ -198,16 +194,24 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
 
 
   const handleConnect = async () => {
-    // Connection is handled by the wallet client + XMTP initialization
-    // This button is a fallback/refresh mechanism
-    if (!walletClient) {
-      setError('Please connect your wallet first');
-      return;
-    }
-    
+    setError(null);
     setIsConnecting(true);
-    // Trigger re-initialization via the useEffect
-    setTimeout(() => setIsConnecting(false), 2000);
+    try {
+      const signer = await getSignerFromWindow();
+      if (!signer) {
+        setError('No wallet found. Please connect your wallet.');
+        setIsConnecting(false);
+        return;
+      }
+      const client = await createXMTPClient(signer, getXMTPEnv());
+      setXmtpClient(client);
+      setIsConnected(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect');
+      setIsConnected(false);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const handleSend = async () => {
@@ -360,7 +364,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                 </div>
                 <Button
                   onClick={handleConnect}
-                  disabled={isConnecting || !walletClient}
+                  disabled={isConnecting}
                   className="mt-2 rounded-full px-6"
                   size="sm"
                 >
@@ -368,11 +372,6 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                       Connecting…
-                    </>
-                  ) : !walletClient ? (
-                    <>
-                      <LucideUser className="h-4 w-4 mr-2" />
-                      Connect Wallet First
                     </>
                   ) : (
                     <>

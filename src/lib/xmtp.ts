@@ -1,58 +1,88 @@
 import { Client } from '@xmtp/xmtp-js';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
-import type { WalletClient } from 'viem';
 
 // Re-export for use in components
-export type { WalletClient };
 export { BrowserProvider, JsonRpcSigner };
 
 /**
- * Convert a viem WalletClient to an ethers v6 Signer
- * This solves the wagmi v2 + ethers v6 + XMTP signer incompatibility
+ * Get signer from window.ethereum (World App, MetaMask, etc.)
+ * No wagmi/rainbowkit required - uses injected provider directly
  */
-export async function walletClientToSigner(walletClient: WalletClient): Promise<JsonRpcSigner> {
-  if (!walletClient.account || !walletClient.chain) {
-    throw new Error('WalletClient is missing account or chain');
+export async function getSignerFromWindow(): Promise<JsonRpcSigner | null> {
+  if (typeof window === 'undefined') return null;
+  
+  const ethereum = (window as any).ethereum;
+  if (!ethereum) {
+    throw new Error('No wallet found. Please install World App, MetaMask, or another Ethereum wallet.');
   }
 
-  const { account, chain, transport } = walletClient;
+  // Check if any accounts are available
+  const accounts = await ethereum.request({ method: 'eth_accounts' });
+  if (accounts.length === 0) {
+    // Request accounts (this will prompt the user to connect)
+    const requestedAccounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    if (requestedAccounts.length === 0) {
+      throw new Error('No accounts found. Please connect your wallet.');
+    }
+  }
 
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-    ensAddress: chain.contracts?.ensRegistry?.address,
-  };
-
-  // Create an ethers BrowserProvider from the viem transport
-  const provider = new BrowserProvider(transport, network);
-  
-  // Return a JsonRpcSigner for the wallet's account
-  return new JsonRpcSigner(provider, account.address);
+  const provider = new BrowserProvider(ethereum);
+  const signer = await provider.getSigner();
+  return signer;
 }
 
 /**
- * Create an XMTP client from a wagmi WalletClient
- * @param walletClient - The wagmi/viem wallet client
- * @param env - XMTP environment ( 'dev' | 'production' )
+ * Get the connected wallet address from window.ethereum
+ */
+export async function getConnectedAddress(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  
+  const ethereum = (window as any).ethereum;
+  if (!ethereum) return null;
+
+  try {
+    const accounts = await ethereum.request({ method: 'eth_accounts' });
+    return accounts.length > 0 ? accounts[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create an XMTP client from an ethers signer
+ * @param signer - An ethers.js Signer
+ * @param env - XMTP environment ( 'dev' | 'production' ) - must be 'production' for V3
  */
 export async function createXMTPClient(
-  walletClient: WalletClient,
-  env: 'dev' | 'production' = 'dev'
+  signer: JsonRpcSigner,
+  _env: 'dev' | 'production' = 'production'
 ): Promise<Client> {
-  const signer = await walletClientToSigner(walletClient);
-  const client = await Client.create(signer, { env });
+  // Clear any old V2 keys that might cause issues
+  const address = await signer.getAddress();
+  const oldKey = localStorage.getItem(`xmtp_identity_key_${address.toLowerCase()}`);
+  if (oldKey) {
+    localStorage.removeItem(`xmtp_identity_key_${address.toLowerCase()}`);
+  }
+  
+  // Create client with production env (V3 network)
+  const client = await Client.create(signer, { 
+    env: 'production',
+    persistConversations: false,
+  });
+  
   return client;
 }
 
 /**
  * Get the XMTP environment from environment variables
- * Defaults to 'dev' for development
+ * Defaults to 'production' for V3 network (V2 is deprecated)
  */
 export function getXMTPEnv(): 'dev' | 'production' {
   if (typeof window !== 'undefined') {
-    return (process.env.NEXT_PUBLIC_XMTP_ENV as 'dev' | 'production') || 'dev';
+    // V2 network is deprecated, use production (V3) by default
+    return (process.env.NEXT_PUBLIC_XMTP_ENV as 'dev' | 'production') || 'production';
   }
-  return 'dev';
+  return 'production';
 }
 
 // XMTP key storage - use localStorage to persist the XMTP identity

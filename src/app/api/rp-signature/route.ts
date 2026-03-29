@@ -1,20 +1,32 @@
 import { NextResponse } from 'next/server';
-import { signRequest } from '@worldcoin/idkit/signing';
+import { signRequest } from '@worldcoin/idkit';
 
-const RP_SIGNING_KEY = process.env.WORLD_PRIVATE_KEY;
-const ACTION = 'trucheq_auth';
+export const runtime = 'nodejs';
 
-export async function POST() {
+export async function POST(request: Request): Promise<Response> {
   try {
-    if (!RP_SIGNING_KEY) {
+    const body = (await request.json()) as { action?: string; ttl?: number };
+    const action = body.action || 'trucheq_auth';
+    
+    // Use RP_SIGNING_KEY from env
+    const signingKey = process.env.RP_SIGNING_KEY;
+    
+    if (!signingKey) {
+      console.error('[RP-Signature] RP_SIGNING_KEY not configured');
       return NextResponse.json(
-        { error: 'RP signing key not configured' },
+        { error: 'RP_SIGNING_KEY not configured' },
         { status: 500 }
       );
     }
 
-    // Sign the request with the RP signing key
-    const { sig, nonce, createdAt, expiresAt } = signRequest(ACTION, RP_SIGNING_KEY);
+    // Sign request - format: signRequest(action, signingKeyHex, ttl?)
+    const { sig, nonce, createdAt, expiresAt } = signRequest(
+      action,
+      signingKey,
+      body.ttl
+    );
+
+    console.log('[RP-Signature] Generated:', { action, nonce, expiresAt });
 
     return NextResponse.json({
       sig,
@@ -22,11 +34,10 @@ export async function POST() {
       created_at: createdAt,
       expires_at: expiresAt,
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('RP signature error:', message);
+  } catch (error) {
+    console.error('[RP-Signature] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate RP signature' },
+      { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,8 +10,14 @@ import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitte
 import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 
-export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
-  const { address, isConnected } = useAccount();
+interface DealCreatorProps {
+  isOrbVerified: boolean;
+  walletAddress?: string;
+}
+
+export function DealCreator({ isOrbVerified, walletAddress }: DealCreatorProps) {
+  const isConnected = !!walletAddress;
+  const address = walletAddress;
   const [itemName, setItemName] = useState('');
   const [price, setPrice] = useState('');
   const [images, setImages] = useState<File[]>([]);
