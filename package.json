@@ -22,7 +22,7 @@
     "@tanstack/react-query": "^5.90.19",
     "@worldcoin/idkit": "^4.0.11",
     "@xmtp/browser-sdk": "^7.0.0",
-    "@xmtp/xmtp-js": "12.1.0",
+    "@xmtp/xmtp-js": "^13.0.4",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
