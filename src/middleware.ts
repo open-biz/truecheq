@@ -1,19 +1,63 @@
-import { paymentMiddleware } from 'x402-next';
+import { NextRequest, NextResponse } from 'next/server';
+import { toUSDCUnits } from '@/lib/x402';
 
-const PAY_TO = (process.env.NEXT_PUBLIC_X402_PAY_TO || '0x0000000000000000000000000000000000000001') as `0x${string}`;
-
-export const middleware = paymentMiddleware(
-  PAY_TO,
-  {
-    '/pay/:path*': {
-      price: '$0.01',
-      network: 'base-sepolia',
-      config: {
-        description: 'TruCheq — Verified P2P Commerce Payment',
-      },
-    },
+// Dynamic x402 middleware - fetches listing metadata and routes payment to seller
+export async function middleware(request: NextRequest) {
+  // Only protect /pay routes
+  if (!request.nextUrl.pathname.startsWith('/pay/')) {
+    return;
   }
-);
+  
+  const url = new URL(request.url);
+  const metadataUrl = url.searchParams.get('meta');
+  
+  // If no metadata URL, skip payment check (allow through)
+  if (!metadataUrl) {
+    return;
+  }
+  
+  try {
+    // Fetch metadata to get seller's address and price
+    const metaResponse = await fetch(metadataUrl);
+    if (!metaResponse.ok) {
+      return;
+    }
+    const metadata = await metaResponse.json();
+    const sellerAddress = metadata.seller;
+    
+    if (!sellerAddress) {
+      return;
+    }
+    
+    // Check for x402 payment proof in headers
+    const paymentProof = request.headers.get('x402-payment-proof');
+    
+    if (!paymentProof) {
+      // Convert price to USDC units (6 decimal places)
+      const priceUSDC = toUSDCUnits(metadata.price || '0');
+      
+      const x402Header = `x402 payTo=${sellerAddress}, amount=${priceUSDC}, asset=USDC, network=base-sepolia, description="TruCheq listing payment - ${metadata.price} USDC goes directly to seller ${sellerAddress.slice(0, 6)}..."`;
+      
+      return new NextResponse('Payment required', {
+        status: 402,
+        headers: {
+          'WWW-Authenticate': x402Header,
+          'X-Pay-To': sellerAddress,
+          'X-Amount': priceUSDC,
+          'X-Amount-Display': metadata.price,
+          'X-Asset': 'USDC',
+          'X-Network': 'base-sepolia',
+        },
+      });
+    }
+    
+    // Payment verified - allow request through
+    return;
+  } catch (error) {
+    console.error('x402 middleware error:', error);
+    return;
+  }
+}
 
 export const config = {
   matcher: '/pay/:path*',

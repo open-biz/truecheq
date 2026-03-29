@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useReadContract } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,46 +9,16 @@ import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
 
-const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-
-const REGISTRY_ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"},
-] as const;
-
 export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
   const [metadata, setMetadata] = useState<DealMetadata | null>(null);
 
-  const { data: listing } = useReadContract({
-    address: REGISTRY_ADDRESS,
-    abi: REGISTRY_ABI,
-    functionName: 'listings',
-    args: [BigInt(id)],
-    query: {
-      enabled: id > 0 && REGISTRY_ADDRESS !== '0x0000000000000000000000000000000000000000',
-    }
-  });
-
-  const isActive = listing ? listing[4] : true;
-  const isOrbVerified = listing ? listing[3] : metadata?.isOrbVerified ?? false;
-  const sellerAddress = listing ? listing[0] : metadata?.seller ?? '0x0000000000000000000000000000000000000000';
+  const isOrbVerified = metadata?.isOrbVerified ?? false;
+  const sellerAddress = metadata?.seller ?? '0x0000000000000000000000000000000000000000';
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (id === 0 && !metadataUrl) {
-      setMetadata({
-        itemName: 'RTX 4090 GPU',
-        description: 'BNIB NVIDIA GeForce RTX 4090 Founders Edition. Sealed. This is a demo listing.',
-        price: '300',
-        images: ['https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop'],
-        seller: '0x0000000000000000000000000000000000000000',
-        createdAt: Date.now(),
-        isOrbVerified: true,
-      });
-      return;
-    }
-
     const fetchMetadata = async () => {
       if (!metadataUrl) return;
       try {
@@ -66,29 +35,6 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
   }, [metadataUrl, id]);
 
   if (!mounted) return null;
-
-  if (isActive === false) {
-    return (
-      <div className="max-w-2xl mx-auto py-12">
-        <Card className="border-destructive/20 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem] border-t-destructive/20">
-          <CardHeader className="text-center pb-10">
-            <div className="flex justify-center mb-6">
-              <div className="p-4 rounded-3xl bg-destructive/10 border border-destructive/20 text-destructive">
-                <LucideXCircle className="w-12 h-12" />
-              </div>
-            </div>
-            <Badge variant="destructive" className="mx-auto mb-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
-              LISTING CANCELLED
-            </Badge>
-            <CardTitle className="text-4xl font-black italic tracking-tighter">Listing Unavailable</CardTitle>
-            <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">
-              This listing has been cancelled by the seller.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-8">
@@ -116,7 +62,7 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
 
           <CardTitle className="text-4xl font-black italic tracking-tighter">{metadata?.itemName || 'Loading...'}</CardTitle>
           <CardDescription className="text-sm font-bold uppercase tracking-tighter opacity-50 mt-2">
-            Base Sepolia • Listing #{id}
+            IPFS • Listing #{id}
           </CardDescription>
         </CardHeader>
 
@@ -152,7 +98,7 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
               <p className="text-3xl font-black text-primary">{metadata?.price || '0'} USDC</p>
             </div>
 
-            <a href={`/pay/${id}`} target="_blank" rel="noopener noreferrer">
+            <a href={`/pay/${id}${metadataUrl ? `?meta=${encodeURIComponent(metadataUrl)}` : ''}`} target="_blank" rel="noopener noreferrer">
               <Button
                 className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
               >

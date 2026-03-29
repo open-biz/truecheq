@@ -43,26 +43,40 @@ It combines three hackathon primitives into one seamless flow:
 
 ---
 
-## 📜 Smart Contract
+## 🔄 Architecture (No Smart Contract)
 
-- **Network:** Base Sepolia (Chain ID `84532`)
-- **Contract:** `TruCheqRegistry.sol`
-- **Stores:** `Listing` struct with:
-  - `sellerWallet` — seller's wallet address
-  - `metadataURI` — IPFS link to listing metadata
-  - `priceUSDC` — listing price
-  - `isOrbVerified` — stamped from World ID orb verification
-  - `isActive` — listing status
+**Current:** Listings are stored entirely in IPFS. No gas fees for sellers.
 
-```solidity
-struct Listing {
-    address sellerWallet;
-    string  metadataURI;
-    uint256 priceUSDC;
-    bool    isOrbVerified;
-    bool    isActive;
-}
 ```
+Seller → Upload metadata to IPFS → Share link directly
+Buyer  → View listing from IPFS  → Pay via x402
+```
+
+**Future: Adding Escrow**
+
+If you want to add escrow functionality in the future, here are the options:
+
+### Option 1: Smart Contract Escrow
+- Deploy a contract that holds buyer funds until delivery confirmed
+- Seller calls `createListing()` (pays gas)
+- Buyer deposits USDC to contract
+- Seller confirms shipment → buyer confirms receipt → funds released
+- Dispute resolution: either party can initiate, escalation to arbitrator
+
+### Option 2: x402 Escrow Hold
+- Use x402's built-in features to hold payment
+- Both parties must confirm completion
+- Funds released only when buyer confirms "received"
+
+### Option 3: Third-Party Escrow Service
+- Integrate with existing escrow providers
+- More complex but proven dispute resolution
+
+### Option 4: Reputation-Based (No Escrow)
+- World ID verification as trust signal
+- XMTP chat for negotiation
+- Assume good faith + reputation scoring
+- Currently implemented ✓
 
 ---
 
@@ -86,9 +100,6 @@ Create a `.env.local` file in the project root:
 # World ID
 NEXT_PUBLIC_WLD_APP_ID=app_staging_...
 
-# Smart Contract (Base Sepolia)
-NEXT_PUBLIC_REGISTRY_ADDRESS=0x...
-
 # Coinbase x402 — wallet to receive payments
 NEXT_PUBLIC_X402_PAY_TO=0x...
 
@@ -97,6 +108,10 @@ FILEBASE_ACCESS_KEY=your_access_key
 FILEBASE_SECRET_KEY=your_secret_key
 NEXT_PUBLIC_FILEBASE_BUCKET=trucheq
 NEXT_PUBLIC_FILEBASE_GATEWAY=your_gateway.myfilebase.com
+
+# Coinbase CDP (optional, for agent payments)
+CDP_API_KEY_ID=...
+CDP_API_KEY_SECRET=...
 ```
 
 ---
@@ -108,6 +123,7 @@ NEXT_PUBLIC_FILEBASE_GATEWAY=your_gateway.myfilebase.com
 | **World ID** | IDKit — Orb & Device seller verification | ✅ |
 | **XMTP** | Encrypted buyer↔seller chat on listing pages | ✅ |
 | **Coinbase x402** | Payment settlement on Base | ✅ |
+| **No Gas for Sellers** | IPFS-only listings (no smart contract) | ✅ |
 
 ---
 
@@ -118,15 +134,14 @@ Seller                              Buyer / Agent
   │                                   │
   ├─ World ID verify ──────────┐      │
   ├─ Upload to IPFS (Filebase) │      │
-  ├─ Register on-chain ────────┤      │
   │                             ▼      │
   │                      TruCheq Link  │
   │                             │      │
   │                             ├──────┤
-  │                             │  View listing + trust badge
+  │                             │  View listing from IPFS
+  │                             │  World ID verification badge
   │                             │  Chat via XMTP
-  │                             │  Pay via x402 paywall (human)
-  │                             │  Pay via x402 API (agent)
+  │                             │  Pay via x402
   │                             ▼
   └──────────── Settlement on Base ────┘
 ```

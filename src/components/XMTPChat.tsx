@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Client, Conversation, type DecodedMessage } from '@xmtp/xmtp-js';
 import { useWalletClient } from 'wagmi';
 import { walletClientToSigner, getXMTPEnv } from '@/lib/xmtp';
@@ -47,7 +47,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,7 +63,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
   // Initialize XMTP client when wallet connects
   useEffect(() => {
@@ -195,39 +195,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
     };
   }, [xmtpClient, conversation]);
 
-  // Simulate agent response (for demo when no real seller bot is available)
-  const simulateAgentResponse = useCallback(
-    (userMessage: string) => {
-      if (!isConnected || conversation) {
-        // If we have a real conversation, we might not need simulation
-        return;
-      }
-      
-      setIsTyping(true);
-      const delay = 1200 + Math.random() * 800;
 
-      setTimeout(() => {
-        const responses = [
-          `Thanks for your interest in **${listingTitle}**! The price is **${price} USDC**. I can confirm this item is still available.`,
-          `Great question! For **${listingTitle}**, I can offer secure payment via x402 protocol. Here's the payment link:\n\n🔗 \`/deal/${listingId}\`\n\nThe total is **${price} USDC** — payment is trustless and on-chain.`,
-          `I'd be happy to help with that. The **${listingTitle}** is listed at **${price} USDC**. You can complete the purchase securely through our x402 payment gateway at \`/deal/${listingId}\`. All transactions are verified on-chain! ✅`,
-        ];
-
-        const responseIndex = messages.length % responses.length;
-
-        const agentMessage: Message = {
-          id: `msg-${Date.now()}-agent`,
-          sender: 'seller',
-          text: responses[responseIndex],
-          timestamp: new Date(),
-        };
-
-        setIsTyping(false);
-        setMessages((prev) => [...prev, agentMessage]);
-      }, delay);
-    },
-    [listingId, listingTitle, price, messages.length, isConnected, conversation]
-  );
 
   const handleConnect = async () => {
     // Connection is handled by the wallet client + XMTP initialization
@@ -264,12 +232,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
         // Message will appear via stream, no need to add manually
       } catch (err) {
         console.error('Failed to send message:', err);
-        // Fall back to simulation on error
-        simulateAgentResponse(text);
       }
-    } else {
-      // Fall back to simulation for demo
-      simulateAgentResponse(text);
     }
   };
 
@@ -473,21 +436,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
                   );
                 })}
 
-                {/* Typing indicator */}
-                {isTyping && (
-                  <div className="flex gap-2.5 mr-auto max-w-[85%]">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/10 mt-0.5">
-                      <LucideBot className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                    <div className="rounded-2xl rounded-bl-md bg-white/[0.07] border border-white/10 px-4 py-3">
-                      <div className="flex gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
-                      </div>
-                    </div>
-                  </div>
-                )}
+
               </>
             )}
           </div>

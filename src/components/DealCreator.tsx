@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { parseUnits, decodeEventLog } from 'viem';
+import { useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,50 +11,21 @@ import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitte
 import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 
-const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-
-const ABI = [
-  {"inputs":[{"internalType":"string","name":"_metadataURI","type":"string"},{"internalType":"uint256","name":"_priceUSDC","type":"uint256"},{"internalType":"bool","name":"_isOrbVerified","type":"bool"}],"name":"createListing","outputs":[{"internalType":"uint256","name":"listingId","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},
-  {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"id","type":"uint256"},{"indexed":false,"internalType":"address","name":"seller","type":"address"},{"indexed":false,"internalType":"bool","name":"isVerified","type":"bool"}],"name":"ListingCreated","type":"event"}
-] as const;
-
 export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
   const { address } = useAccount();
   const [itemName, setItemName] = useState('');
   const [price, setPrice] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
-  const [listingId, setListingId] = useState<bigint | null>(null);
+  const [listingCid, setListingCid] = useState<string | null>(null);
   const [metadataUrl, setMetadataUrl] = useState<string | null>(null);
+  const [createdAt, setCreatedAt] = useState<number>(0);
   const [errors, setErrors] = useState<{ itemName?: string; price?: string }>({});
   const [touched, setTouched] = useState<{ itemName?: boolean; price?: boolean }>({});
   const [copied, setCopied] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: hash, writeContract, isPending } = useWriteContract();
 
-  const { data: receipt, isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
-
-  React.useEffect(() => {
-    if (isConfirmed && receipt) {
-      const log = receipt.logs.find(l => {
-        try {
-          const event = decodeEventLog({ abi: ABI, data: l.data, topics: l.topics });
-          return event.eventName === 'ListingCreated';
-        } catch {
-          return false;
-        }
-      });
-
-      if (log) {
-        const event = decodeEventLog({ abi: ABI, data: log.data, topics: log.topics });
-        // @ts-ignore - accessing indexed arg
-        setListingId(event.args.id);
-      }
-    }
-  }, [isConfirmed, receipt]);
 
   const validateItemName = (value: string): string | undefined => {
     if (!value.trim()) return 'Item name is required';
@@ -124,11 +94,6 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
       toast.error("Please connect your wallet");
       return;
     }
-    if (REGISTRY_ADDRESS === '0x0000000000000000000000000000000000000000') {
-      toast.warning("Contract not deployed yet. Set NEXT_PUBLIC_REGISTRY_ADDRESS in your .env.local");
-      return;
-    }
-
     try {
       setIsUploading(true);
       toast.info("Uploading images to IPFS...");
@@ -163,18 +128,10 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
       if (!metadataResponse.ok) throw new Error('Metadata upload failed');
       const { url: metaUrl, cid } = await metadataResponse.json();
       setMetadataUrl(metaUrl);
-
-      toast.success("Metadata uploaded to IPFS!");
+      setListingCid(cid);
+      setCreatedAt(Date.now());
       setIsUploading(false);
-
-      toast.info("Registering listing on Base Sepolia...");
-
-      writeContract({
-        address: REGISTRY_ADDRESS,
-        abi: ABI,
-        functionName: 'createListing',
-        args: [cid, parseUnits(price, 6), isOrbVerified],
-      });
+      toast.success("Listing created successfully!");
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       console.error('Transaction error:', message);
@@ -275,13 +232,13 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
 
         <Button
           onClick={handleCreate}
-          disabled={isPending || isConfirming || isUploading}
+          disabled={isUploading}
           className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl disabled:opacity-50"
         >
-          {isUploading ? "Uploading to IPFS..." : isPending || isConfirming ? "Broadcasting..." : "Create Listing"}
+          {isUploading ? "Uploading to IPFS..." : "Create Listing"}
         </Button>
 
-        {isConfirmed && hash && (
+        {metadataUrl && listingCid && (
           <div className="mt-6 p-6 rounded-2xl bg-primary/10 border border-primary/30 animate-in zoom-in-95 space-y-4">
             <div className="flex items-center gap-2 text-primary mb-3">
               <LucideCheck className="w-5 h-5" />
@@ -290,87 +247,84 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
 
             {metadataUrl && (
               <div className="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Metadata IPFS URL</p>
-                <p className="text-xs font-mono text-primary break-all">{metadataUrl}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Metadata IPFS CID</p>
+                <p className="text-xs font-mono text-primary break-all">{listingCid}</p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Share This Link</label>
-              <div className="flex gap-2">
-                <div className="flex-1 p-3 bg-black/40 rounded-xl border border-white/5 font-mono text-xs break-all flex items-center">
-                  {typeof window !== 'undefined' && listingId !== null ? `${window.location.origin}/deal/${listingId}?meta=${encodeURIComponent(metadataUrl || '')}` : 'Loading Listing ID...'}
+            {listingCid && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Share This Link</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 p-3 bg-black/40 rounded-xl border border-white/5 font-mono text-xs break-all flex items-center">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : 'Generating link...'}
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => {
+                      const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
+                      if (!link) return;
+                      navigator.clipboard.writeText(link);
+                      setCopied(true);
+                      toast.success('Link copied to clipboard!');
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="h-12 w-12 rounded-xl border-white/10 hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                  >
+                    {copied ? <LucideCheck className="w-4 h-4 text-primary" /> : <LucideCopy className="w-4 h-4" />}
+                  </Button>
                 </div>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    const link = typeof window !== 'undefined' && listingId !== null ? `${window.location.origin}/deal/${listingId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
-                    if (!link) return;
-                    navigator.clipboard.writeText(link);
-                    setCopied(true);
-                    toast.success('Link copied to clipboard!');
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="h-12 w-12 rounded-xl border-white/10 hover:bg-primary/10 hover:border-primary/30 transition-colors"
-                >
-                  {copied ? <LucideCheck className="w-4 h-4 text-primary" /> : <LucideCopy className="w-4 h-4" />}
-                </Button>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Share On</label>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const link = typeof window !== 'undefined' && listingId !== null ? `${window.location.origin}/deal/${listingId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
-                    if (!link) return;
-                    const codeSnippet = `✅ TruCheq Verified Listing: #${listingId}\nSecure Link: ${link}`;
-                    navigator.clipboard.writeText(codeSnippet);
-                    toast.success('Reddit code copied!');
-                  }}
-                  className="flex-1 rounded-xl border-white/10 hover:bg-green-500/10 hover:border-green-500/30 hover:text-green-400 transition-colors"
-                >
-                  <LucideCheck className="w-4 h-4 mr-2" />
-                  Reddit Code
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const link = typeof window !== 'undefined' && listingId !== null ? `${window.location.origin}/deal/${listingId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
-                    const text = `Check out this ${itemName} on TruCheq! World ID verified seller with encrypted XMTP chat.`;
-                    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank');
-                  }}
-                  className="flex-1 rounded-xl border-white/10 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-colors"
-                >
-                  <LucideTwitter className="w-4 h-4 mr-2" />
-                  Twitter
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const link = typeof window !== 'undefined' && listingId !== null ? `${window.location.origin}/deal/${listingId}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
-                    const text = `🔒 ${itemName} - ${price} USDC\n\nWorld ID verified seller on TruCheq:\n${link}`;
-                    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
-                  }}
-                  className="flex-1 rounded-xl border-white/10 hover:bg-blue-400/10 hover:border-blue-400/30 hover:text-blue-300 transition-colors"
-                >
-                  <LucideMessageCircle className="w-4 h-4 mr-2" />
-                  Telegram
-                </Button>
+            {listingCid && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Share On</label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
+                      const codeSnippet = `✅ TruCheq Verified Listing\nSecure Link: ${link}`;
+                      navigator.clipboard.writeText(codeSnippet);
+                      toast.success('Reddit code copied!');
+                    }}
+                    className="flex-1 rounded-xl border-white/10 hover:bg-green-500/10 hover:border-green-500/30 hover:text-green-400 transition-colors"
+                  >
+                    <LucideCheck className="w-4 h-4 mr-2" />
+                    Reddit Code
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
+                      const text = `Check out this ${itemName} on TruCheq! World ID verified seller with encrypted XMTP chat.`;
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank');
+                    }}
+                    className="flex-1 rounded-xl border-white/10 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-colors"
+                  >
+                    <LucideTwitter className="w-4 h-4 mr-2" />
+                    Twitter
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
+                      const text = `🔒 ${itemName} - ${price} USDC\n\nWorld ID verified seller on TruCheq:\n${link}`;
+                      window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="flex-1 rounded-xl border-white/10 hover:bg-blue-400/10 hover:border-blue-400/30 hover:text-blue-300 transition-colors"
+                  >
+                    <LucideMessageCircle className="w-4 h-4 mr-2" />
+                    Telegram
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <div className="pt-2 border-t border-white/5">
-              <p className="text-[10px] text-muted-foreground text-center uppercase tracking-widest">
-                Tx: {hash.slice(0, 8)}...{hash.slice(-6)} • Base Sepolia
-              </p>
-            </div>
+            )}
           </div>
         )}
       </CardContent>

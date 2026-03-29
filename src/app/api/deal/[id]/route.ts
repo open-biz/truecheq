@@ -1,45 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http } from 'viem';
-import { baseSepolia } from '@/lib/chains';
 
-const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000';
-const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"},
-] as const;
-
+// API route for getting listing by ID
+// Currently not used - listings are accessed directly via metadataUrl query param
+// Future: Could implement IPFS-based index to list all listings
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const { searchParams } = new URL(request.url);
+  const metadataUrl = searchParams.get('meta');
 
-  const client = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
-  });
+  if (!metadataUrl) {
+    return NextResponse.json(
+      { error: "No metadata URL provided. Use ?meta=<ipfs-url>" },
+      { status: 400 }
+    );
+  }
 
   try {
-    const listing = await client.readContract({
-      address: REGISTRY_ADDRESS as `0x${string}`,
-      abi: ABI,
-      functionName: 'listings',
-      args: [BigInt(id)],
-    });
-
-    const [sellerWallet, metadataURI, priceUSDC, isOrbVerified, isActive] = listing;
+    const response = await fetch(metadataUrl);
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch metadata from IPFS" },
+        { status: 404 }
+      );
+    }
+    const metadata = await response.json();
 
     return NextResponse.json({
       id,
-      seller: sellerWallet,
-      metadataURI,
-      price: priceUSDC.toString(),
-      isOrbVerified,
-      isActive,
+      seller: metadata.seller,
+      metadataURI: metadataUrl,
+      price: metadata.price,
+      isOrbVerified: metadata.isOrbVerified,
     });
   } catch (error) {
     console.error("API Error:", error);
     return NextResponse.json(
-      { error: "Listing not found or internal error" },
+      { error: "Failed to fetch listing" },
       { status: 500 }
     );
   }

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   LucideArrowRight,
-  LucidePlayCircle,
   LucideShieldCheck,
   LucideMessageCircle,
   LucideUsers,
@@ -21,8 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { toast } from "sonner";
-import confetti from "canvas-confetti";
+
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import {
@@ -35,8 +33,6 @@ import {
 
 export default function LandingPage() {
   const [isLocked, setIsLocked] = React.useState(true);
-  const [demoVerified, setDemoVerified] = React.useState(false);
-  const [demoActive, setDemoActive] = React.useState(false);
   const [verifications, setVerifications] = useState<{ id: number; addr: string; level: string }[]>([]);
 
   useEffect(() => {
@@ -48,21 +44,7 @@ export default function LandingPage() {
     setVerifications(items);
   }, []);
 
-  const handleDemo = () => {
-    setDemoVerified(true);
-    setTimeout(() => {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#00D632", "#FFFFFF", "#10B981"],
-      });
-      toast.success("World ID Verified!", {
-        description: "Seller identity confirmed via Orb verification.",
-      });
-      setDemoActive(true);
-    }, 1500);
-  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
@@ -84,7 +66,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Features</a>
             <Link href="/marketplace" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Marketplace</Link>
-            <a href="#demo" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Demo</a>
+
             <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Use Cases</a>
           </div>
 
@@ -139,11 +121,7 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
-            <Link href="/app" className="w-full sm:w-auto">
-              <Button size="lg" variant="ghost" className="w-full sm:px-10 py-8 text-xl font-bold hover:bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm text-white">
-                View Demo <LucidePlayCircle className="ml-2 w-6 h-6" />
-              </Button>
-            </Link>
+
           </motion.div>
         </div>
       </section>
@@ -286,78 +264,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Interactive Demo */}
-      <section id="demo" className="py-24 px-6 bg-black/20 relative">
-        <RetroGrid className="opacity-20" />
-        <div className="max-w-4xl mx-auto text-center mb-16 relative z-10">
-          <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-white uppercase">Live Demo</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-bold">See how World ID verification and XMTP chat create trust for P2P listings.</p>
-        </div>
 
-        <div className="flex justify-center relative z-10">
-          <motion.div
-            whileHover={{ y: -5 }}
-            className="w-full max-w-lg p-8 md:p-12 rounded-[3rem] border border-white/10 bg-black/70 backdrop-blur-3xl shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group/demo"
-          >
-            <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/10 blur-[120px] rounded-full group-hover/demo:bg-primary/20 transition-all duration-700" />
-
-            <div className="flex justify-between items-start mb-10">
-              <div className="text-left">
-                <Badge variant="outline" className={cn(
-                  "mb-5 border-primary/30 text-primary transition-all duration-700 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]",
-                  demoActive && "bg-primary/20 border-primary shadow-[0_0_20px_rgba(0,214,50,0.3)]"
-                )}>
-                  {demoActive ? "✅ Orb Verified Seller" : "Verify Seller"}
-                </Badge>
-                <h3 className="text-4xl font-black mb-2 tracking-tight text-white">RTX 4090 GPU</h3>
-                <p className="text-base text-muted-foreground font-bold italic">Seller: <span className="text-white">@gpu_deals_2025</span></p>
-              </div>
-              <div className="p-5 rounded-[2rem] bg-black/40 border border-white/10 text-primary shadow-xl">
-                <LucidePackage className="w-10 h-10" />
-              </div>
-            </div>
-
-            <div className="space-y-6 mb-12">
-              <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Listing ID</span>
-                <span className="font-mono text-sm bg-white/5 px-4 py-1.5 rounded-xl border border-white/5 text-white">#TC-0042</span>
-              </div>
-              <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Price</span>
-                <span className="text-3xl font-black text-primary tracking-tighter drop-shadow-2xl">300 USDC</span>
-              </div>
-              <div className="flex justify-between items-center py-4 border-b border-white/5">
-                <span className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Communication</span>
-                <span className="text-sm font-black text-blue-400 flex items-center gap-2"><LucideMessageCircle className="w-4 h-4" /> XMTP Encrypted</span>
-              </div>
-            </div>
-
-            <div className="relative">
-              <Button
-                onClick={handleDemo}
-                disabled={demoVerified || demoActive}
-                className={cn(
-                  "w-full py-10 text-2xl font-black transition-all duration-500 rounded-3xl",
-                  demoActive
-                    ? "bg-white/5 text-primary cursor-default border-2 border-primary/20"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_20px_40px_rgba(0,214,50,0.4)] active:scale-95"
-                )}
-              >
-                {demoVerified && !demoActive ? (
-                  <div className="flex items-center gap-4">
-                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-6 h-6 border-3 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                    Verifying with World ID...
-                  </div>
-                ) : demoActive ? "Identity Verified ✓" : "Verify & Chat via XMTP"}
-              </Button>
-            </div>
-
-            <p className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-relaxed">
-              Powered by World ID • XMTP • Coinbase x402
-            </p>
-          </motion.div>
-        </div>
-      </section>
 
       {/* Use Case Carousel */}
       <section id="cases" className="py-24 px-6 max-w-7xl mx-auto">

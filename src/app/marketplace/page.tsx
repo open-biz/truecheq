@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useReadContract } from 'wagmi';
+import React, { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,20 +27,13 @@ import { cn } from '@/lib/utils';
 import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
-const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-
-const REGISTRY_ABI = [
-  {"inputs":[],"name":"nextListingId","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"}
-] as const;
-
+// Future: Store listings metadata in IPFS and track in localStorage or indexer
 interface Listing {
-  id: number;
+  cid: string;
   seller: string;
-  price: bigint;
-  metadataURI: string;
+  price: string;
+  metadataUrl: string;
   isOrbVerified: boolean;
-  isActive: boolean;
   metadata?: DealMetadata;
 }
 
@@ -49,7 +41,7 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
   return (
     <ScrollReveal delay={index * 0.05} direction="up">
       <Card3DTilt className="perspective-1000">
-        <Link href={`/deal/${listing.id}${listing.metadataURI ? `?meta=${encodeURIComponent(listing.metadataURI)}` : ''}`}>
+        <Link href={`/deal/${listing.cid.slice(0, 12)}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
           <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 hover:bg-black/80 transition-all duration-300 overflow-hidden relative h-full">
             {/* Animated border glow */}
             <div className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -89,9 +81,6 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
                     <LucideSmartphone className="w-3 h-3 mr-1" /> Device
                   </Badge>
                 )}
-                <Badge variant="outline" className="border-white/10 text-muted-foreground bg-white/5 text-[10px] font-black uppercase ml-auto">
-                  #{listing.id}
-                </Badge>
               </div>
               
               {/* Title */}
@@ -109,7 +98,7 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
               {/* Price */}
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-black text-primary">
-                  {formatUnits(listing.price, 6)} <span className="text-sm font-bold text-primary/60">USDC</span>
+                  {listing.price} <span className="text-sm font-bold text-primary/60">USDC</span>
                 </span>
                 <Button 
                   variant="ghost" 
@@ -148,125 +137,16 @@ export default function MarketplacePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterOrbOnly, setFilterOrbOnly] = useState(false);
 
-  const { data: nextListingId, refetch: refetchCount } = useReadContract({
-    address: REGISTRY_ADDRESS,
-    abi: REGISTRY_ABI,
-    functionName: 'nextListingId',
-    query: {
-      enabled: REGISTRY_ADDRESS !== '0x0000000000000000000000000000000000000000',
-    }
-  });
+  React.useEffect(() => {
+    // For now, marketplace is empty - listings are shared via direct links
+    // Future: Load from IPFS index or localStorage
+    setListings([]);
+    setIsLoading(false);
+  }, []);
 
-  useEffect(() => {
-    const fetchListings = async () => {
-      if (REGISTRY_ADDRESS === '0x0000000000000000000000000000000000000000') {
-        // Demo mode - show sample listings
-        setListings([
-          {
-            id: 0,
-            seller: '0x742d35Cc6634C0532925a3b844Bc9e7595f0fAb1',
-            price: BigInt(300) * BigInt(1_000_000),
-            metadataURI: '',
-            isOrbVerified: true,
-            isActive: true,
-            metadata: {
-              itemName: 'RTX 4090 GPU',
-              description: 'BNIB NVIDIA GeForce RTX 4090 Founders Edition. Sealed in original packaging.',
-              price: '300',
-              images: ['https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop'],
-              seller: '0x742d35Cc6634C0532925a3b844Bc9e7595f0fAb1',
-              createdAt: Date.now(),
-              isOrbVerified: true,
-            }
-          },
-          {
-            id: 1,
-            seller: '0x8ba1f109551bD432803AC645A37e3f02fA06a2D',
-            price: BigInt(1500) * BigInt(1_000_000),
-            metadataURI: '',
-            isOrbVerified: false,
-            isActive: true,
-            metadata: {
-              itemName: 'MacBook Pro M3 Max',
-              description: '16-inch MacBook Pro, 36GB RAM, 1TB SSD. Space Black. Includes AppleCare+.',
-              price: '1500',
-              images: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop'],
-              seller: '0x8ba1f109551bD432803AC645A37e3f02fA06a2D',
-              createdAt: Date.now() - 86400000,
-              isOrbVerified: false,
-            }
-          },
-          {
-            id: 2,
-            seller: '0xa0Ee7A142d611C41E5eA21D704D0F71f77d243c6',
-            price: BigInt(8500) * BigInt(1_000_000),
-            metadataURI: '',
-            isOrbVerified: true,
-            isActive: true,
-            metadata: {
-              itemName: 'Rolex Submariner Date',
-              description: 'Rolex Submariner Date 126610LN. Full set, box and papers. 2023 model.',
-              price: '8500',
-              images: ['https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?q=80&w=800&auto=format&fit=crop'],
-              seller: '0xa0Ee7A142d611C41E5eA21D704D0F71f77d243c6',
-              createdAt: Date.now() - 172800000,
-              isOrbVerified: true,
-            }
-          },
-        ]);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      const total = Number(nextListingId || 0);
-      const fetchedListings: Listing[] = [];
-
-      // Fetch in chunks for better performance
-      const chunkSize = 10;
-      for (let i = 0; i < total; i += chunkSize) {
-        const chunkPromises = Array.from({ length: Math.min(chunkSize, total - i) }, (_, idx) => {
-          const listingId = i + idx;
-          return fetch(`/api/deal/${listingId}`)
-            .then(res => res.ok ? res.json() : null)
-            .then(data => {
-              if (data?.isActive) {
-                return {
-                  id: listingId,
-                  seller: data.seller,
-                  price: BigInt(data.price || 0),
-                  metadataURI: data.metadataURI || '',
-                  isOrbVerified: data.isOrbVerified,
-                  isActive: data.isActive,
-                  metadata: data.metadata,
-                };
-              }
-              return null;
-            })
-            .catch(err => {
-              console.error(`Error fetching listing ${listingId}:`, err);
-              return null;
-            });
-        });
-        
-        const results = await Promise.all(chunkPromises);
-        for (const result of results) {
-          if (result !== null) {
-            fetchedListings.push(result);
-          }
-        }
-      }
-      
-      if (fetchedListings.length === 0 && total > 0) {
-        toast.error('Failed to load listings from contract');
-      }
-
-      setListings(fetchedListings.reverse());
-      setIsLoading(false);
-    };
-
-    fetchListings();
-  }, [nextListingId]);
+  const refetchCount = () => {
+    // Future: Refresh from IPFS
+  };
 
   const filteredListings = listings.filter(listing => {
     const matchesSearch = !searchQuery || 
@@ -418,19 +298,18 @@ export default function MarketplacePage() {
             <div className={cn(
               "grid gap-6",
               viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1 max-w-3xl mx-auto"
-            )}>
-              <AnimatePresence>
+            )}>                <AnimatePresence>
                 {filteredListings.map((listing, index) => (
                   viewMode === 'grid' ? (
-                    <ListingCard key={listing.id} listing={listing} index={index} />
+                    <ListingCard key={listing.cid} listing={listing} index={index} />
                   ) : (
                     <motion.div
-                      key={listing.id}
+                      key={listing.cid}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      <Link href={`/deal/${listing.id}`}>
+                      <Link href={`/deal/${listing.cid.slice(0, 20)}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
                         <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 transition-all p-4 flex items-center gap-4">
                           {/* Image */}
                           <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-white/5">
@@ -445,20 +324,19 @@ export default function MarketplacePage() {
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              {listing.isOrbVerified ? (
-                                <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-[10px] font-black uppercase">
-                                  <LucideShieldCheck className="w-3 h-3 mr-1" /> Orb
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-black uppercase">
-                                  <LucideSmartphone className="w-3 h-3 mr-1" /> Device
-                                </Badge>
-                              )}
-                            </div>
-                            <h3 className="text-lg font-black text-white truncate group-hover:text-primary transition-colors">
-                              {listing.metadata?.itemName || `Listing #${listing.id}`}
-                            </h3>
+                            <div className="flex items-center gap-2 mb-1">                {listing.isOrbVerified ? (
+                  <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-[10px] font-black uppercase">
+                    <LucideShieldCheck className="w-3 h-3 mr-1" /> Orb
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-black uppercase">
+                    <LucideSmartphone className="w-3 h-3 mr-1" /> Device
+                  </Badge>
+                )}
+              </div>
+              <h3 className="text-lg font-black text-white truncate group-hover:text-primary transition-colors">
+                {listing.metadata?.itemName || 'Listing'}
+              </h3>
                             <p className="text-sm text-muted-foreground truncate">
                               {listing.metadata?.description}
                             </p>
@@ -467,7 +345,7 @@ export default function MarketplacePage() {
                           {/* Price */}
                           <div className="text-right shrink-0">
                             <span className="text-2xl font-black text-primary">
-                              {formatUnits(listing.price, 6)}
+                              {listing.price}
                             </span>
                             <p className="text-xs text-muted-foreground font-bold">USDC</p>
                           </div>

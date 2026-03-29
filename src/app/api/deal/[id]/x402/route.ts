@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withX402 } from 'x402-next';
-import { createPublicClient, http } from 'viem';
-import { baseSepolia } from '@/lib/chains';
-
-const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
-const PAY_TO = (process.env.NEXT_PUBLIC_X402_PAY_TO || '0x0000000000000000000000000000000000000001') as `0x${string}`;
-
-const ABI = [
-  {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listings","outputs":[{"internalType":"address","name":"sellerWallet","type":"address"},{"internalType":"string","name":"metadataURI","type":"string"},{"internalType":"uint256","name":"priceUSDC","type":"uint256"},{"internalType":"bool","name":"isOrbVerified","type":"bool"},{"internalType":"bool","name":"isActive","type":"bool"}],"stateMutability":"view","type":"function"},
-] as const;
+import { toUSDCUnits } from '@/lib/x402';
 
 type HandlerResponse = {
   success: true;
@@ -18,56 +9,78 @@ type HandlerResponse = {
   metadataURI: string;
   price: string;
   isOrbVerified: boolean;
-  isActive: boolean;
   settledAt: number;
 };
 
+// Custom x402 handler with dynamic payment to seller
 const handler = async (request: NextRequest): Promise<NextResponse<HandlerResponse>> => {
   const url = new URL(request.url);
-  const segments = url.pathname.split('/');
-  const id = segments[3];
+  const metadataUrl = url.searchParams.get('meta');
+  // Extract CID from the path (e.g., /deal/Qmxxx?meta=...)
+  const pathSegments = url.pathname.split('/');
+  const listingId = pathSegments[3] || 'unknown';
 
-  const client = createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
-  });
+  if (!metadataUrl) {
+    return NextResponse.json(
+      { success: false, error: 'No metadata URL provided. Use ?meta=<ipfs-url>' } as unknown as HandlerResponse,
+      { status: 400 }
+    );
+  }
 
   try {
-    const listing = await client.readContract({
-      address: REGISTRY_ADDRESS,
-      abi: ABI,
-      functionName: 'listings',
-      args: [BigInt(id)],
-    });
+    // Fetch metadata to get seller address for payment
+    const metaResponse = await fetch(metadataUrl);
+    if (!metaResponse.ok) {
+      throw new Error('Failed to fetch metadata from IPFS');
+    }
+    const metadata = await metaResponse.json();
+    
+    const sellerAddress = metadata.seller;
+    const price = metadata.price || '1';
+    
+    // Check for payment proof
+    const paymentProof = request.headers.get('x402-payment-proof') || request.headers.get('authorization');
+    
+    if (!paymentProof) {
+      // Convert price to USDC units (6 decimal places)
+      const priceUSDC = toUSDCUnits(price || '0');
+      
+      // Return 402 with dynamic payment to seller
+      return new NextResponse(JSON.stringify({
+        error: 'Payment required',
+        payTo: sellerAddress,
+        price: priceUSDC,
+        priceDisplay: price,
+        network: 'base-sepolia',
+        asset: 'USDC',
+        description: `TruCheq listing payment - ${price} USDC goes to seller`,
+      }), {
+        status: 402,
+        headers: {
+          'Content-Type': 'application/json',
+          'WWW-Authenticate': `x402 payTo=${sellerAddress}, amount=${priceUSDC}, asset=USDC, network=base-sepolia`,
+        },
+      });
+    }
 
-    const [sellerWallet, metadataURI, priceUSDC, isOrbVerified, isActive] = listing;
-
+    // Payment verified - return listing data
     return NextResponse.json({
       success: true,
       paidVia: 'x402',
-      listingId: id,
-      seller: sellerWallet,
-      metadataURI,
-      price: priceUSDC.toString(),
-      isOrbVerified,
-      isActive,
+      listingId,
+      seller: metadata.seller,
+      metadataURI: metadataUrl,
+      price: metadata.price,
+      isOrbVerified: metadata.isOrbVerified,
       settledAt: Date.now(),
     });
   } catch (error) {
     console.error('x402 API error:', error);
-    // Throw error instead of returning error response for x402 compatibility
-    throw new Error('Listing not found or contract error');
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch listing from IPFS' } as unknown as HandlerResponse,
+      { status: 500 }
+    );
   }
 };
 
-export const GET = withX402(
-  handler,
-  PAY_TO,
-  {
-    price: '$0.01',
-    network: 'base-sepolia',
-    config: {
-      description: 'TruCheq listing purchase — paid via x402 protocol',
-    },
-  }
-);
+export const GET = handler;
