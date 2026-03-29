@@ -53,6 +53,7 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
   const inputRef = useRef<HTMLInputElement>(null);
   const [xmtpClient, setXmtpClient] = useState<Client | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  const welcomeSentRef = useRef(false);
   
   // Get wallet client from wagmi
   const { data: walletClient } = useWalletClient();
@@ -102,8 +103,9 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
           
           setIsConnected(true);
           
-          // Send welcome message if this is a new conversation
-          if (messages.length === 0) {
+          // Send welcome message if this is a new conversation (using ref to avoid re-renders)
+          if (!welcomeSentRef.current) {
+            welcomeSentRef.current = true;
             const welcomeMessage: Message = {
               id: `msg-${Date.now()}-welcome`,
               sender: 'seller',

@@ -217,26 +217,43 @@ export default function MarketplacePage() {
       const total = Number(nextListingId || 0);
       const fetchedListings: Listing[] = [];
 
-      for (let i = 0; i < total; i++) {
-        try {
-          const response = await fetch(`/api/deal/${i}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.isActive) {
-              fetchedListings.push({
-                id: i,
-                seller: data.seller,
-                price: BigInt(data.price || 0),
-                metadataURI: data.metadataURI || '',
-                isOrbVerified: data.isOrbVerified,
-                isActive: data.isActive,
-                metadata: data.metadata,
-              });
-            }
+      // Fetch in chunks for better performance
+      const chunkSize = 10;
+      for (let i = 0; i < total; i += chunkSize) {
+        const chunkPromises = Array.from({ length: Math.min(chunkSize, total - i) }, (_, idx) => {
+          const listingId = i + idx;
+          return fetch(`/api/deal/${listingId}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data?.isActive) {
+                return {
+                  id: listingId,
+                  seller: data.seller,
+                  price: BigInt(data.price || 0),
+                  metadataURI: data.metadataURI || '',
+                  isOrbVerified: data.isOrbVerified,
+                  isActive: data.isActive,
+                  metadata: data.metadata,
+                };
+              }
+              return null;
+            })
+            .catch(err => {
+              console.error(`Error fetching listing ${listingId}:`, err);
+              return null;
+            });
+        });
+        
+        const results = await Promise.all(chunkPromises);
+        for (const result of results) {
+          if (result !== null) {
+            fetchedListings.push(result);
           }
-        } catch (error) {
-          console.error(`Error fetching listing ${i}:`, error);
         }
+      }
+      
+      if (fetchedListings.length === 0 && total > 0) {
+        toast.error('Failed to load listings from contract');
       }
 
       setListings(fetchedListings.reverse());

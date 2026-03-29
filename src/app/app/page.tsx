@@ -9,7 +9,7 @@ import { DealDashboard } from '@/components/DealDashboard';
 import { WorldIDAuth, type WorldIDUser } from '@/components/WorldIDAuth';
 import { WorldIDOnboarding } from '@/components/WorldIDOnboarding';
 import { Button } from '@/components/ui/button';
-import { LucidePlusCircle, LucideArrowLeft, LucideList, LucideShieldCheck, LucideHelpCircle } from 'lucide-react';
+import { LucidePlusCircle, LucideArrowLeft, LucideList, LucideShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
