@@ -44,6 +44,9 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // State to store RP signature for inclusion in verification request
+  const [rpSig, setRpSig] = useState<{ sig: string; nonce: string; created_at: string; expires_at: string } | null>(null);
+
   // ---- IDKit v4 hook-based API -------------------------------------------
   const idKitResult = useIDKitRequest({
     app_id: APP_ID,
@@ -95,21 +98,17 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
 
   const handleOpen = useCallback(async () => {
     try {
-      setIsVerifying(true);
       setError(null);
       
-      // Fetch RP signature from backend
+      // Fetch RP signature from backend first
       const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
       if (!rpSigResponse.ok) {
         throw new Error('Failed to get RP signature');
       }
-      const rpSig = await rpSigResponse.json();
+      const sigData = await rpSigResponse.json();
+      setRpSig(sigData);
       
-      // The RP signature is passed via the action's rp_context - IDKit handles this
-      // We need to include it in the verification request
-      // For now, we'll pass it as part of the state and use it during onSuccess
-      (window as unknown as { __rp_sig__: typeof rpSig }).__rp_sig__ = rpSig;
-      
+      // Now open IDKit - it will use the signal from state
       await idKitResult.open();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Verification failed');
