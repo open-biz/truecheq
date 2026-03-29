@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# XMTP database files (runtime/cache)
+xmtp-dev-*.db3*
+
 # debug
 npm-debug.log*
 yarn-debug.log*
