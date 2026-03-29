@@ -70,7 +70,7 @@ export default function AppPage() {
     setAppSubView('create');
     setMode('seller');
   };  // Demo listings - same as marketplace, loaded from IPFS
-  // Note: First listing uses your seller address (0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2) for XMTP testing
+  // Note: All listings use XMTP agent address (0x8677e5831257e52a35d1463cfb414eda34344f4f) for DM
   const DEMO_MARKETPLACE_LISTINGS: SellerListing[] = [
     {
       cid: 'QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
@@ -78,35 +78,39 @@ export default function AppPage() {
       itemName: 'Rolex Submariner Date',
       price: '1',
       imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/Qmav2DUgXVcQbuuWVeMoxHw8KTp85A8z1fb8gA7FygUZQE',
-      sellerAddress: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2' // Your address for testing XMTP
+      sellerAddress: '0x8677e5831257e52a35d1463cfb414eda34344f4f' // XMTP agent address
     },
     {
       cid: 'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
       metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
       itemName: 'Omega Speedmaster Professional',
       price: '1',
-      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmZ1hkzcci2MEwyESZxGXBmtkQ7rvCCosxdDQT75EiTBvX'
+      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmZ1hkzcci2MEwyESZxGXBmtkQ7rvCCosxdDQT75EiTBvX',
+      sellerAddress: '0x8677e5831257e52a35d1463cfb414eda34344f4f'
     },
     {
       cid: 'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
       metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
       itemName: 'Cartier Santos de Cartier',
       price: '1',
-      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmQNtr8GhTkfkSHAQb7jNZmjC3WFpBvD9LXg9gqjwcYFqF'
+      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmQNtr8GhTkfkSHAQb7jNZmjC3WFpBvD9LXg9gqjwcYFqF',
+      sellerAddress: '0x8677e5831257e52a35d1463cfb414eda34344f4f'
     },
     {
       cid: 'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
       metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
       itemName: 'Patek Philippe Calatrava',
       price: '1',
-      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmQzfspHYt9EMH2TavYSnU6vtwq6uGX5AtBGw2csp9oNnA'
+      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmQzfspHYt9EMH2TavYSnU6vtwq6uGX5AtBGw2csp9oNnA',
+      sellerAddress: '0x8677e5831257e52a35d1463cfb414eda34344f4f'
     },
     {
       cid: 'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
       metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
       itemName: 'Audemars Piguet Royal Oak',
       price: '1',
-      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmVazpCrWnDJBJdR1LvEAE3mC6kju5nqqKB2JVVgfKSoSP'
+      imageUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmVazpCrWnDJBJdR1LvEAE3mC6kju5nqqKB2JVVgfKSoSP',
+      sellerAddress: '0x8677e5831257e52a35d1463cfb414eda34344f4f'
     },
   ];
 
