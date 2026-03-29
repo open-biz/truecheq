@@ -3,7 +3,6 @@
 import React from 'react';
 import { DealGate } from '@/components/DealGate';
 import { Toaster } from "@/components/ui/sonner";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from '@/components/ui/button';
 import { LucideArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -31,7 +30,6 @@ export default function DealPage({ params, searchParams }: { params: Promise<{ i
                 <LucideArrowLeft className="mr-2 w-4 h-4" /> Home
               </Button>
             </Link>
-            <ConnectButton label="Connect Wallet" />
           </div>
         </div>
       </nav>

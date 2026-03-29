@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -218,7 +217,6 @@ export default function MarketplacePage() {
                 <LucideArrowLeft className="mr-2 w-4 h-4" /> Home
               </Button>
             </Link>
-            <ConnectButton label="Connect" />
           </div>
         </div>
       </nav>

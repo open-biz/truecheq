@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Toaster } from "@/components/ui/sonner";
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { WorldIDAuth, type WorldIDUser } from '@/components/WorldIDAuth';
@@ -68,7 +67,6 @@ export default function AppPage() {
                 <LucideArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <ConnectButton label="Connect Wallet" />
           </div>
         </div>
       </nav>
