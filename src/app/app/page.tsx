@@ -33,7 +33,7 @@ export default function AppPage() {
             <span className="text-2xl font-black tracking-tighter italic">TruCheq</span>
           </Link>
 
-          {worldUser && isConnected && (
+          {worldUser && (
             <div className="flex items-center gap-1 md:gap-2 p-1 bg-white/5 rounded-2xl border border-white/5">
               <Button
                 variant={appSubView === 'create' ? 'secondary' : 'ghost'}
@@ -77,16 +77,7 @@ export default function AppPage() {
 
       {/* App Content */}
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        {!isConnected ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="w-24 h-24 rounded-[2rem] bg-primary/10 flex items-center justify-center mb-8 border border-primary/20">
-              <LucidePlusCircle className="w-12 h-12 text-primary" />
-            </div>
-            <h2 className="text-4xl font-black mb-4 tracking-tight">Connect Your Wallet</h2>
-            <p className="text-muted-foreground mb-10 max-w-sm font-bold">Connect your wallet to start creating verified listings on TruCheq.</p>
-            <ConnectButton />
-          </div>
-        ) : !worldUser ? (
+        {!worldUser ? (
           <div className="flex flex-col items-center justify-center py-16 gap-8">
             <div className="max-w-md w-full">
               <WorldIDAuth onSuccess={setWorldUser} />
