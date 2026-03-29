@@ -1,5 +1,7 @@
+---
 name: TruCheq
 description: Headless Web3 P2P commerce protocol - World ID verification, XMTP chat, Coinbase x402 payments on Base
+---
 
 # TruCheq - Web3 P2P Commerce Protocol
 
