@@ -203,6 +203,174 @@ export const TruCheqCoin = ({ active }: { active: boolean }) => {
   );
 };
 
+// --- FloatingOrbs (Animated floating gradient orbs for parallax background) ---
+export const FloatingOrbs = ({ className }: { className?: string }) => {
+  return (
+    <div className={cn("absolute inset-0 overflow-hidden pointer-events-none", className)}>
+      <motion.div
+        className="absolute w-[600px] h-[600px] rounded-full blur-[120px]"
+        style={{ 
+          background: 'radial-gradient(circle, rgba(0,214,50,0.4) 0%, transparent 70%)',
+          top: '10%', 
+          left: '10%',
+          opacity: 0.2,
+        }}
+        animate={{
+          x: [0, 100, 0],
+          y: [0, -50, 0],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute w-[500px] h-[500px] rounded-full blur-[100px]"
+        style={{ 
+          background: 'radial-gradient(circle, rgba(0,150,255,0.3) 0%, transparent 70%)',
+          top: '50%', 
+          right: '10%',
+          opacity: 0.15,
+        }}
+        animate={{
+          x: [0, -80, 0],
+          y: [0, 80, 0],
+          scale: [1, 1.3, 1],
+        }}
+        transition={{
+          duration: 25,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        className="absolute w-[400px] h-[400px] rounded-full blur-[80px]"
+        style={{ 
+          background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
+          bottom: '10%', 
+          left: '30%',
+          opacity: 0.1,
+        }}
+        animate={{
+          x: [0, 60, 0],
+          y: [0, -100, 0],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </div>
+  );
+};
+
+// --- ScrollReveal (Component that animates on scroll) ---
+export const ScrollReveal = ({ 
+  children, 
+  className,
+  delay = 0,
+  direction = 'up'
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'down' | 'left' | 'right';
+}) => {
+  const directionMap = {
+    up: { y: 40 },
+    down: { y: -40 },
+    left: { x: 40 },
+    right: { x: -40 },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, ...directionMap[direction] }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+// --- Card3DTilt (Card with 3D tilt effect on hover) ---
+export const Card3DTilt = ({ 
+  children, 
+  className,
+  tiltIntensity = 10
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  tiltIntensity?: number;
+}) => {
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -tiltIntensity;
+    const rotateY = ((x - centerX) / centerX) * tiltIntensity;
+    
+    setRotate({ x: rotateX, y: rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    setRotate({ x: 0, y: 0 });
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={className}
+      style={{
+        transformStyle: 'preserve-3d',
+      }}
+      animate={{
+        rotateX: rotate.x,
+        rotateY: rotate.y,
+      }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+// --- GradientText (Text with animated gradient) ---
+export const GradientText = ({ 
+  children, 
+  className,
+  gradient = 'from-primary via-green-400 to-primary'
+}: { 
+  children: React.ReactNode;
+  className?: string;
+  gradient?: string;
+}) => {
+  return (
+    <span className={cn(
+      "bg-gradient-to-r bg-clip-text text-transparent animate-gradient",
+      gradient,
+      className
+    )}>
+      {children}
+    </span>
+  );
+};
+
 // --- AnimatedBeam ---
 export const AnimatedBeam = ({
   className,

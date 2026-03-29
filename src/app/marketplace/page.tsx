@@ -25,7 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatUnits } from 'viem';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { RetroGrid, Spotlight } from '@/components/ui/code-graphics';
+import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
 const REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_REGISTRY_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
@@ -47,78 +47,83 @@ interface Listing {
 
 function ListingCard({ listing, index }: { listing: Listing; index: number }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-    >
-      <Link href={`/deal/${listing.id}${listing.metadataURI ? `?meta=${encodeURIComponent(listing.metadataURI)}` : ''}`}>
-        <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 hover:bg-black/80 transition-all duration-300 overflow-hidden relative">
-          {/* Hover glow effect */}
-          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
-          {/* Image */}
-          {listing.metadata?.images && listing.metadata.images.length > 0 ? (
-            <div className="aspect-[4/3] relative overflow-hidden">
-              <img 
-                src={listing.metadata.images[0]} 
-                alt={listing.metadata.itemName}
-                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            </div>
-          ) : (
-            <div className="aspect-[4/3] relative bg-white/5 flex items-center justify-center">
-              <LucidePackage className="w-16 h-16 text-white/10 group-hover:text-primary/50 transition-colors" />
-            </div>
-          )}
-          
-          <CardContent className="p-4 relative z-10">
-            {/* Verification Badge */}
-            <div className="flex items-center gap-2 mb-2">
-              {listing.isOrbVerified ? (
-                <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-[10px] font-black uppercase">
-                  <LucideShieldCheck className="w-3 h-3 mr-1" /> Orb
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-black uppercase">
-                  <LucideSmartphone className="w-3 h-3 mr-1" /> Device
-                </Badge>
-              )}
-              <Badge variant="outline" className="border-white/10 text-muted-foreground bg-white/5 text-[10px] font-black uppercase ml-auto">
-                #{listing.id}
-              </Badge>
+    <ScrollReveal delay={index * 0.05} direction="up">
+      <Card3DTilt className="perspective-1000">
+        <Link href={`/deal/${listing.id}${listing.metadataURI ? `?meta=${encodeURIComponent(listing.metadataURI)}` : ''}`}>
+          <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 hover:bg-black/80 transition-all duration-300 overflow-hidden relative h-full">
+            {/* Animated border glow */}
+            <div className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <div className="absolute inset-0 rounded-[inherit] border border-primary/50 animate-pulse" />
             </div>
             
-            {/* Title */}
-            <h3 className="text-lg font-black text-white mb-1 truncate group-hover:text-primary transition-colors">
-              {listing.metadata?.itemName || 'Loading...'}
-            </h3>
+            {/* Hover glow effect */}
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
-            {/* Description */}
-            {listing.metadata?.description && (
-              <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                {listing.metadata.description}
-              </p>
+            {/* Image */}
+            {listing.metadata?.images && listing.metadata.images.length > 0 ? (
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src={listing.metadata.images[0]} 
+                  alt={listing.metadata.itemName}
+                  className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              </div>
+            ) : (
+              <div className="aspect-[4/3] relative bg-white/5 flex items-center justify-center">
+                <LucidePackage className="w-16 h-16 text-white/10 group-hover:text-primary/50 transition-colors" />
+              </div>
             )}
             
-            {/* Price */}
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-black text-primary">
-                {formatUnits(listing.price, 6)} <span className="text-sm font-bold text-primary/60">USDC</span>
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <LucideExternalLink className="w-4 h-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-    </motion.div>
+            <CardContent className="p-4 relative z-10">
+              {/* Verification Badge */}
+              <div className="flex items-center gap-2 mb-2">
+                {listing.isOrbVerified ? (
+                  <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 text-[10px] font-black uppercase">
+                    <LucideShieldCheck className="w-3 h-3 mr-1" /> Orb
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10 text-[10px] font-black uppercase">
+                    <LucideSmartphone className="w-3 h-3 mr-1" /> Device
+                  </Badge>
+                )}
+                <Badge variant="outline" className="border-white/10 text-muted-foreground bg-white/5 text-[10px] font-black uppercase ml-auto">
+                  #{listing.id}
+                </Badge>
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-lg font-black text-white mb-1 truncate group-hover:text-primary transition-colors">
+                {listing.metadata?.itemName || 'Loading...'}
+              </h3>
+              
+              {/* Description */}
+              {listing.metadata?.description && (
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                  {listing.metadata.description}
+                </p>
+              )}
+              
+              {/* Price */}
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-black text-primary">
+                  {formatUnits(listing.price, 6)} <span className="text-sm font-bold text-primary/60">USDC</span>
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <LucideExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </Card3DTilt>
+    </ScrollReveal>
   );
 }
 
@@ -276,6 +281,7 @@ export default function MarketplacePage() {
   return (
     <main className="min-h-screen bg-[#0A0F14] text-foreground selection:bg-primary selection:text-primary-foreground">
       <Spotlight />
+      <FloatingOrbs className="opacity-60" />
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
       <RetroGrid className="opacity-30" />
 
