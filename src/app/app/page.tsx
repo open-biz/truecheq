@@ -276,7 +276,7 @@ const handleTruCheqLookup = async () => {
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter TruCheq code..."
+                    placeholder="Enter TruCheq code (use Code FX4A)..."
                     value={lookupCode}
                     onChange={(e) => setLookupCode(e.target.value.toUpperCase())}
                     className="bg-white/5 border-white/10 font-mono"
@@ -363,7 +363,7 @@ const handleTruCheqLookup = async () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="Enter TruCheq code (e.g., A1B2C3D4)"
+                placeholder="Enter TruCheq code (e.g., FX4A)"
                 value={lookupCode}
                 onChange={(e) => setLookupCode(e.target.value.toUpperCase())}
                 className="bg-white/5 border-white/10 font-mono text-lg text-center tracking-widest"
