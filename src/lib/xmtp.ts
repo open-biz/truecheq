@@ -1,6 +1,9 @@
 import type { Signer, Identifier } from '@xmtp/browser-sdk';
 import { IdentifierKind } from '@xmtp/browser-sdk';
 
+// Re-export Identifier type for use in components
+export type { Identifier };
+
 // Client is imported dynamically to avoid WASM issues during SSR
 let Client: typeof import('@xmtp/browser-sdk').Client | null = null;
 

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Client, Conversation, type DecodedMessage } from '@xmtp/browser-sdk';
-import { getXMTPSigner, createXMTPClient, getXMTPEnv } from '@/lib/xmtp';
+import { Client, Conversation, type DecodedMessage, IdentifierKind } from '@xmtp/browser-sdk';
+import { getXMTPSigner, createXMTPClient, getXMTPEnv, type Identifier } from '@/lib/xmtp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,20 +84,22 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
         
         // Try to find or create DM conversation with seller using v7 API
         try {
-          // In v7, we use createDm with inbox ID - but first we need to get the seller's inbox ID
-          // For now, list all conversations and try to find one with the seller
-          const conversations = await client.conversations.list();
-          const existingConv = conversations.find(
-            (c) => c && 'id' in c
-          );
-          
-          if (existingConv) {
-            setConversation(existingConv as Conversation);
+          if (sellerAddress) {
+            // Create identifier for the seller
+            const sellerIdentifier: Identifier = {
+              identifier: sellerAddress.toLowerCase(),
+              identifierKind: IdentifierKind.Ethereum,
+            };
+            
+            // Try to create a DM with the seller (v7 will find existing or create new)
+            const dm = await client.conversations.createDmWithIdentifier(sellerIdentifier);
+            setConversation(dm as Conversation);
           } else {
-            // No existing conversation - try to create a new DM
-            // In v7, we need the identifier, not the address
-            // For now, just set connected state without a specific conversation
-            // The user will need to initiate from their XMTP app
+            // No seller address - just list existing conversations
+            const conversations = await client.conversations.listDms();
+            if (conversations.length > 0) {
+              setConversation(conversations[0] as Conversation);
+            }
           }
           
           setIsConnected(true);
