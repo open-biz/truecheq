@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { WorldIDAuth, type WorldIDUser } from '@/components/WorldIDAuth';
@@ -15,7 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
 export default function AppPage() {
-  const { isConnected } = useAccount();
   const [appSubView, setAppSubView] = useState<'create' | 'dashboard'>('create');
   const [worldUser, setWorldUser] = useState<WorldIDUser | null>(null);
 
