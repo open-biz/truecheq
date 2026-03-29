@@ -1,14 +1,32 @@
-import { Client } from '@xmtp/xmtp-js';
-import { BrowserProvider, JsonRpcSigner } from 'ethers';
+import type { Signer, Identifier } from '@xmtp/browser-sdk';
+import { IdentifierKind } from '@xmtp/browser-sdk';
 
-// Re-export for use in components
-export { BrowserProvider, JsonRpcSigner };
+// Client is imported dynamically to avoid WASM issues during SSR
+let Client: typeof import('@xmtp/browser-sdk').Client | null = null;
+
+async function getClient() {
+  if (!Client) {
+    const module = await import('@xmtp/browser-sdk');
+    Client = module.Client;
+  }
+  return Client;
+}
 
 /**
- * Get signer from window.ethereum (World App, MetaMask, etc.)
- * No wagmi/rainbowkit required - uses injected provider directly
+ * Convert an Ethereum address to an XMTP Identifier
  */
-export async function getSignerFromWindow(): Promise<JsonRpcSigner | null> {
+function addressToIdentifier(address: string): Identifier {
+  return {
+    identifier: address.toLowerCase(),
+    identifierKind: IdentifierKind.Ethereum,
+  };
+}
+
+/**
+ * Get signer info from window.ethereum (World App, MetaMask, etc.)
+ * Returns the address and a proper XMTP v7 Signer with signMessage function
+ */
+export async function getXMTPSigner(): Promise<{ address: string; signer: Signer } | null> {
   if (typeof window === 'undefined') return null;
   
   const ethereum = (window as any).ethereum;
@@ -18,17 +36,53 @@ export async function getSignerFromWindow(): Promise<JsonRpcSigner | null> {
 
   // Check if any accounts are available
   const accounts = await ethereum.request({ method: 'eth_accounts' });
-  if (accounts.length === 0) {
+  let address = accounts[0];
+  
+  if (!address) {
     // Request accounts (this will prompt the user to connect)
     const requestedAccounts = await ethereum.request({ method: 'eth_requestAccounts' });
     if (requestedAccounts.length === 0) {
       throw new Error('No accounts found. Please connect your wallet.');
     }
+    address = requestedAccounts[0];
   }
 
-  const provider = new BrowserProvider(ethereum);
-  const signer = await provider.getSigner();
-  return signer;
+  // Create a proper XMTP v7 signer with the signMessage function
+  // This wraps the wallet's personal_sign method
+  const signer: Signer = {
+    type: 'EOA',
+    getIdentifier: async () => addressToIdentifier(address),
+    signMessage: async (message: string) => {
+      // Convert message to hex for personal_sign
+      const messageBytes = new TextEncoder().encode(message);
+      const messageHex = '0x' + Array.from(messageBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      // Request signature from wallet
+      const signature = await ethereum.request({
+        method: 'personal_sign',
+        params: [messageHex, address],
+      });
+      
+      // Convert hex signature to Uint8Array
+      const signatureHex = signature as string;
+      const signatureBytes = new Uint8Array(signatureHex.length / 2);
+      for (let i = 0; i < signatureBytes.length; i++) {
+        signatureBytes[i] = parseInt(signatureHex.substr(2 + i * 2, 2), 16);
+      }
+      return signatureBytes;
+    },
+  };
+  
+  return { address, signer };
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use getXMTPSigner instead
+ */
+export async function getSignerFromWindow(): Promise<Signer | null> {
+  const xmtpSigner = await getXMTPSigner();
+  return xmtpSigner?.signer ?? null;
 }
 
 /**
@@ -49,26 +103,19 @@ export async function getConnectedAddress(): Promise<string | null> {
 }
 
 /**
- * Create an XMTP client from an ethers signer
- * @param signer - An ethers.js Signer
- * @param env - XMTP environment ( 'dev' | 'production' ) - must be 'production' for V3
+ * Create an XMTP client using the v7 browser-sdk API
+ * @param signer - An XMTP Signer from getXMTPSigner()
+ * @param env - XMTP environment (defaults to production for V3)
  */
 export async function createXMTPClient(
-  signer: JsonRpcSigner,
+  signer: Signer,
   _env: 'dev' | 'production' = 'production'
-): Promise<Client> {
-  // Clear any old V2 keys that might cause issues
-  const address = await signer.getAddress();
-  const oldKey = localStorage.getItem(`xmtp_identity_key_${address.toLowerCase()}`);
-  if (oldKey) {
-    localStorage.removeItem(`xmtp_identity_key_${address.toLowerCase()}`);
-  }
+): Promise<import('@xmtp/browser-sdk').Client> {
+  // Get Client dynamically to avoid WASM issues during SSR
+  const ClientClass = await getClient();
   
-  // Create client with production env (V3 network)
-  const client = await Client.create(signer, { 
-    env: 'production',
-    persistConversations: false,
-  });
+  // Create client - v7 SDK uses 'production' env by default for V3 network
+  const client = await ClientClass.create(signer);
   
   return client;
 }
