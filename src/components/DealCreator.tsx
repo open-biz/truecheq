@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitter, LucideMessageCircle, LucideImage, LucideX, LucideUpload, LucideShieldCheck } from 'lucide-react';
+import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitter, LucideMessageCircle, LucideImage, LucideX, LucideUpload, LucideShieldCheck, LucideWallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 
 export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const [itemName, setItemName] = useState('');
   const [price, setPrice] = useState('');
   const [images, setImages] = useState<File[]>([]);
@@ -90,8 +90,8 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
       toast.error("Please fix the errors before continuing");
       return;
     }
-    if (!address) {
-      toast.error("Please connect your wallet");
+    if (!isConnected || !address) {
+      toast.error("Wallet required to create listings - needed to receive payments");
       return;
     }
     try {
@@ -230,12 +230,22 @@ export function DealCreator({ isOrbVerified }: { isOrbVerified: boolean }) {
           </label>
         </div>
 
+        {/* Wallet Notice - only shown when user hasn't connected */}
+        {!isConnected && (
+          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+            <p className="text-xs text-blue-400 font-bold flex items-center gap-2">
+              <LucideWallet className="w-4 h-4" />
+              Connect wallet in the header to create listings and receive USDC payments
+            </p>
+          </div>
+        )}
+
         <Button
           onClick={handleCreate}
-          disabled={isUploading}
+          disabled={isUploading || !isConnected}
           className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl disabled:opacity-50"
         >
-          {isUploading ? "Uploading to IPFS..." : "Create Listing"}
+          {isUploading ? "Uploading to IPFS..." : isConnected ? "Create Listing" : "Connect Wallet to Create"}
         </Button>
 
         {metadataUrl && listingCid && (
