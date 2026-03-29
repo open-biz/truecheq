@@ -27,7 +27,106 @@ import { cn } from '@/lib/utils';
 import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
-// Future: Store listings metadata in IPFS and track in localStorage or indexer
+// Demo seed listings for testing (1 USDC each on Base Sepolia)
+const SEED_LISTINGS: Listing[] = [
+  {
+    cid: 'QmDemo001',
+    seller: '0x1234567890abcdef1234567890abcdef12345678',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item1/400/300',
+    isOrbVerified: true,
+    metadata: {
+      itemName: 'Vintage Mechanical Keyboard',
+      description: 'Cherry MX Blue switches, retro beige case. Mint condition.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1595225476474-87563907a212?w=400&h=300&fit=crop'],
+      seller: '0x1234567890abcdef1234567890abcdef12345678',
+      createdAt: Date.now() - 86400000,
+      isOrbVerified: true,
+    },
+  },
+  {
+    cid: 'QmDemo002',
+    seller: '0xabcdef1234567890abcdef1234567890abcdef12',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item2/400/300',
+    isOrbVerified: false,
+    metadata: {
+      itemName: 'USB-C Hub 7-in-1',
+      description: 'HDMI 4K, 3x USB-A, SD card reader, PD 100W.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1625723044792-44de16ccb4e9?w=400&h=300&fit=crop'],
+      seller: '0xabcdef1234567890abcdef1234567890abcdef12',
+      createdAt: Date.now() - 172800000,
+      isOrbVerified: false,
+    },
+  },
+  {
+    cid: 'QmDemo003',
+    seller: '0xdeadbeef12345678deadbeef12345678deadbeef',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item3/400/300',
+    isOrbVerified: true,
+    metadata: {
+      itemName: 'Sony WH-1000XM4 Headphones',
+      description: 'Like new, includes carrying case and cables.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=300&fit=crop'],
+      seller: '0xdeadbeef12345678deadbeef12345678deadbeef',
+      createdAt: Date.now() - 259200000,
+      isOrbVerified: true,
+    },
+  },
+  {
+    cid: 'QmDemo004',
+    seller: '0xcafebabe12345678cafebabe12345678cafebabe',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item4/400/300',
+    isOrbVerified: false,
+    metadata: {
+      itemName: 'iPad Pro 11" Case',
+      description: 'Smart Folio compatible with M2 chip. Navy blue.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?w=400&h=300&fit=crop'],
+      seller: '0xcafebabe12345678cafebabe12345678cafebabe',
+      createdAt: Date.now() - 345600000,
+      isOrbVerified: false,
+    },
+  },
+  {
+    cid: 'QmDemo005',
+    seller: '0xfeedface12345678feedface12345678feedface',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item5/400/300',
+    isOrbVerified: true,
+    metadata: {
+      itemName: 'Anker 100W GaN Charger',
+      description: 'Compact 2-port charger. Perfect for laptop + phone.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400&h=300&fit=crop'],
+      seller: '0xfeedface12345678feedface12345678feedface',
+      createdAt: Date.now() - 432000000,
+      isOrbVerified: true,
+    },
+  },
+  {
+    cid: 'QmDemo006',
+    seller: '0xbabecafe12345678babecafe12345678babecafe',
+    price: '1',
+    metadataUrl: 'https://picsum.photos/seed/item6/400/300',
+    isOrbVerified: true,
+    metadata: {
+      itemName: 'Logitech MX Master 3S',
+      description: 'Quiet clicks, MagSpeed scrolling. Graphite color.',
+      price: '1',
+      images: ['https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=300&fit=crop'],
+      seller: '0xbabecafe12345678babecafe12345678babecafe',
+      createdAt: Date.now() - 518400000,
+      isOrbVerified: true,
+    },
+  },
+];
+
 interface Listing {
   cid: string;
   seller: string;
@@ -138,9 +237,8 @@ export default function MarketplacePage() {
   const [filterOrbOnly, setFilterOrbOnly] = useState(false);
 
   React.useEffect(() => {
-    // For now, marketplace is empty - listings are shared via direct links
-    // Future: Load from IPFS index or localStorage
-    setListings([]);
+    // Load seed listings for demo (in production, load from IPFS/localStorage)
+    setListings(SEED_LISTINGS);
     setIsLoading(false);
   }, []);
 
