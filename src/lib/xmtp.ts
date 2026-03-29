@@ -54,25 +54,42 @@ export async function getXMTPSigner(): Promise<{ address: string; signer: Signer
   // This wraps the wallet's personal_sign method
   const signer: Signer = {
     type: 'EOA',
-    getIdentifier: async () => addressToIdentifier(address),
+    getIdentifier: async () => {
+      const identifier = addressToIdentifier(address);
+      console.log('[XMTP] getIdentifier returned:', identifier);
+      return identifier;
+    },
     signMessage: async (message: string) => {
-      // Convert message to hex for personal_sign
-      const messageBytes = new TextEncoder().encode(message);
-      const messageHex = '0x' + Array.from(messageBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      // Request signature from wallet
-      const signature = await ethereum.request({
-        method: 'personal_sign',
-        params: [messageHex, address],
-      });
-      
-      // Convert hex signature to Uint8Array
-      const signatureHex = signature as string;
-      const signatureBytes = new Uint8Array(signatureHex.length / 2);
-      for (let i = 0; i < signatureBytes.length; i++) {
-        signatureBytes[i] = parseInt(signatureHex.substr(2 + i * 2, 2), 16);
+      try {
+        // Convert message to hex for personal_sign
+        const messageBytes = new TextEncoder().encode(message);
+        const messageHex = '0x' + Array.from(messageBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        console.log('[XMTP] Requesting signature from wallet for message:', message.substring(0, 50));
+        
+        // Request signature from wallet
+        const signature = await ethereum.request({
+          method: 'personal_sign',
+          params: [messageHex, address],
+        });
+        
+        console.log('[XMTP] Signature received:', signature ? 'yes' : 'no');
+        
+        if (!signature) {
+          throw new Error('Wallet returned empty signature');
+        }
+        
+        // Convert hex signature to Uint8Array
+        const signatureHex = signature as string;
+        const signatureBytes = new Uint8Array(signatureHex.length / 2);
+        for (let i = 0; i < signatureBytes.length; i++) {
+          signatureBytes[i] = parseInt(signatureHex.substr(2 + i * 2, 2), 16);
+        }
+        return signatureBytes;
+      } catch (signError) {
+        console.error('[XMTP] Sign error:', signError);
+        throw signError;
       }
-      return signatureBytes;
     },
   };
   

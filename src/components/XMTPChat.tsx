@@ -2,6 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Client, Conversation, type DecodedMessage, IdentifierKind } from '@xmtp/browser-sdk';
+import { IdentifierKind as WasmIdentifierKind } from '@xmtp/wasm-bindings';
+
+// Debug: Log IdentifierKind values
+console.log('[XMTP] IdentifierKind from browser-sdk:', IdentifierKind);
+console.log('[XMTP] IdentifierKind from wasm-bindings:', WasmIdentifierKind);
 import { getXMTPSigner, createXMTPClient, getXMTPEnv, type Identifier } from '@/lib/xmtp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,25 +84,41 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
         const { address: myAddress, signer } = xmtpSignerInfo;
         
         // Create XMTP client with the v7 signer
+        console.log('[XMTP] Creating client...');
         const client = await createXMTPClient(signer, getXMTPEnv());
+        console.log('[XMTP] Client created, inboxId:', client.inboxId);
         setXmtpClient(client);
         
         // Try to find or create DM conversation with seller using v7 API
         try {
+          console.log('[XMTP] Getting conversations manager...');
+          const conversationsManager = client.conversations;
+          console.log('[XMTP] Conversations manager:', conversationsManager);
+          
+          if (!conversationsManager) {
+            throw new Error('Conversations manager not available');
+          }
+          
           if (sellerAddress) {
             // Create identifier for the seller
+            // Try using the value directly instead of the enum
             const sellerIdentifier: Identifier = {
               identifier: sellerAddress.toLowerCase(),
-              identifierKind: IdentifierKind.Ethereum,
+              identifierKind: IdentifierKind?.Ethereum ?? 0, // Fallback to 0 if undefined
             };
+            console.log('[XMTP] Seller identifier:', sellerIdentifier);
+            console.log('[XMTP] Creating DM with seller:', sellerIdentifier);
             
             // Try to create a DM with the seller (v7 will find existing or create new)
-            const dm = await client.conversations.createDmWithIdentifier(sellerIdentifier);
+            const dm = await conversationsManager.createDmWithIdentifier(sellerIdentifier);
+            console.log('[XMTP] DM created:', dm?.id);
             setConversation(dm as Conversation);
           } else {
             // No seller address - just list existing conversations
-            const conversations = await client.conversations.listDms();
-            if (conversations.length > 0) {
+            console.log('[XMTP] Listing DMs...');
+            const conversations = await conversationsManager.listDms();
+            console.log('[XMTP] Found DMs:', conversations?.length);
+            if (conversations && conversations.length > 0) {
               setConversation(conversations[0] as Conversation);
             }
           }
