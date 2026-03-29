@@ -1,5 +1,7 @@
 # 🛡️ TruCheq: Headless Web3 Commerce Protocol
 
+### The Buy Button for your DMs
+
 **Built for the World Chain × XMTP × Coinbase Hackathon**
 
 ---
