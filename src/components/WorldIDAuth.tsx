@@ -46,26 +46,36 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // State for RP signature
+  // State for RP signature - fetch when user clicks sign in
   const [rpSig, setRpSig] = useState<{ sig: string; nonce: string; created_at: string; expires_at: string } | null>(null);
+  const [isLoadingSig, setIsLoadingSig] = useState(false);
 
-  // Fetch RP signature when widget opens
-  const handleOpenChange = useCallback(async (open: boolean) => {
-    if (open && !rpSig) {
-      try {
-        const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
-        if (!rpSigResponse.ok) {
-          throw new Error('Failed to get RP signature');
-        }
-        const sigData = await rpSigResponse.json();
-        setRpSig(sigData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to get RP signature');
-        return;
+  // Fetch RP signature when user clicks the sign-in button
+  const handleSignInClick = useCallback(async () => {
+    setIsLoadingSig(true);
+    setError(null);
+    try {
+      const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
+      if (!rpSigResponse.ok) {
+        throw new Error('Failed to get RP signature');
       }
+      const sigData = await rpSigResponse.json();
+      setRpSig(sigData);
+      setIsLoadingSig(false);
+      setIsOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get RP signature');
+      setIsLoadingSig(false);
     }
+  }, []);
+
+  // Handle widget open/close
+  const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
-  }, [rpSig]);
+    if (!open) {
+      setIsLoadingSig(false);
+    }
+  }, []);
 
   // Handle verification - send proof to backend
   const handleVerify = useCallback(async (result: IDKitResult) => {
@@ -238,11 +248,11 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
 
         {/* IDKit v4 Widget */}
         <Button
-          onClick={() => setIsOpen(true)}
-          disabled={isVerifying}
+          onClick={handleSignInClick}
+          disabled={isVerifying || isLoadingSig}
           className="w-full py-8 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_16px_32px_rgba(0,214,50,0.25)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isVerifying ? (
+          {isVerifying || isLoadingSig ? (
             <span className="flex items-center gap-2">
               <svg
                 className="w-4 h-4 animate-spin"
@@ -263,7 +273,7 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              Verifying…
+              {isLoadingSig ? 'Preparing...' : 'Verifying…'}
             </span>
           ) : (
             <span className="flex items-center gap-2">
@@ -273,7 +283,7 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
           )}
         </Button>
 
-        {/* IDKit Widget Modal */}
+        {/* IDKit Widget Modal - only show after signature is loaded */}
         {rpSig && (
           <IDKitRequestWidget
             open={isOpen}
