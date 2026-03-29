@@ -3,8 +3,11 @@ import { toUSDCUnits } from '@/lib/x402';
 
 // Dynamic x402 proxy - fetches listing metadata and routes payment to seller
 export async function proxy(request: NextRequest) {
-  // Only protect /pay routes
-  if (!request.nextUrl.pathname.startsWith('/pay/')) {
+  const pathname = request.nextUrl.pathname;
+  
+  // Only protect /pay/api routes, not the UI page (/pay/[id])
+  // Allow the payment page UI to render - user connects wallet to pay
+  if (!pathname.startsWith('/pay/api/')) {
     return;
   }
   
@@ -60,5 +63,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/pay/:path*',
+  matcher: '/pay/api/:path*',
 };

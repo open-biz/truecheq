@@ -190,8 +190,12 @@ export async function startSellerAgent() {
   // Start the agent
   await agent.start();
   
+  // Get the agent's wallet address
+  const agentAddress = (agent as any).address;
   console.log(`[Agent] ✅ Seller agent started!`);
+  console.log(`[Agent] Address: ${agentAddress}`);
   console.log(`[Agent] Listening for messages on ${XMTP_ENV} network`);
+  console.log(`[Agent] Send a message to this address on XMTP (dev network) to test!`);
 
   return agent;
 }

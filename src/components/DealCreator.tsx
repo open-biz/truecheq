@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +17,9 @@ interface DealCreatorProps {
   walletAddress?: string;
 }
 
-export function DealCreator({ isOrbVerified, walletAddress }: DealCreatorProps) {
-  const isConnected = !!walletAddress;
-  const address = walletAddress;
+export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: DealCreatorProps) {
+  const { address: walletAddress, isConnected } = useAccount();
+  const address = walletAddress || manualWallet;
   const [itemName, setItemName] = useState('');
   const [price, setPrice] = useState('');
   const [images, setImages] = useState<File[]>([]);
@@ -237,11 +239,18 @@ export function DealCreator({ isOrbVerified, walletAddress }: DealCreatorProps) 
 
         {/* Wallet Notice - only shown when user hasn't connected */}
         {!isConnected && (
-          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-3">
             <p className="text-xs text-blue-400 font-bold flex items-center gap-2">
               <LucideWallet className="w-4 h-4" />
-              Connect wallet in the header to create listings and receive USDC payments
+              Connect your wallet to create listings and receive USDC payments
             </p>
+            <div className="flex justify-center">
+              <ConnectButton 
+                chainStatus="icon"
+                accountStatus="address"
+                showBalance={false}
+              />
+            </div>
           </div>
         )}
 

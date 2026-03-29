@@ -8,6 +8,7 @@ import { LucideLock, LucideShieldCheck, LucideSmartphone, LucideImage, LucideXCi
 import { cn } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
+import Link from 'next/link';
 
 export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
@@ -98,14 +99,14 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
               <p className="text-3xl font-black text-primary">{metadata?.price || '0'} USDC</p>
             </div>
 
-            <a href={`/pay/${id}${metadataUrl ? `?meta=${encodeURIComponent(metadataUrl)}` : ''}`} target="_blank" rel="noopener noreferrer">
+            <Link href={`/pay/${id}${metadataUrl ? `?meta=${encodeURIComponent(metadataUrl)}` : ''}`}>
               <Button
                 className="w-full py-10 text-2xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-3xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
               >
                 <LucideExternalLink className="w-6 h-6 mr-3" />
                 Pay via x402
               </Button>
-            </a>
+            </Link>
 
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <div className="flex items-center gap-2 text-muted-foreground">

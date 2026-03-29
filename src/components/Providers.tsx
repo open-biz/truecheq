@@ -15,24 +15,21 @@ export function Providers({ children }: { children: ReactNode }) {
     setIsClient(true);
   }, []);
 
-  // Prevent WalletConnect error during SSR - only render on client
-  if (!isClient) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
-  }
-
+  // Always wrap with WagmiProvider (supports SSR with ssr: true config)
+  // RainbowKit is client-only so wrap that conditionally
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={config}>
-        <RainbowKitProvider 
-          theme={darkTheme()}
-          initialChain={84532} // Base Sepolia
-        >
-          {children}
-        </RainbowKitProvider>
+        {isClient ? (
+          <RainbowKitProvider 
+            theme={darkTheme()}
+            initialChain={84532} // Base Sepolia
+          >
+            {children}
+          </RainbowKitProvider>
+        ) : (
+          children
+        )}
       </WagmiProvider>
     </QueryClientProvider>
   );

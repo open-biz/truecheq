@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useConnectors } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { parseUnits } from 'viem';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,9 +44,13 @@ export default function PaymentPage() {
   const metadataUrl = searchParams.get('meta');
   const listingId = searchParams.get('id');
   
-  const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { address, isConnected, chain } = useAccount();
+  const { switchChain } = useSwitchChain();
   const { writeContract, data: hash, isPending: isSigning } = useWriteContract();
+  
+  // Base Sepolia chain ID
+  const BASE_SEPOLIA_CHAIN_ID = 84532;
+  const isCorrectChain = chain?.id === BASE_SEPOLIA_CHAIN_ID;
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ 
     hash 
   });
@@ -87,22 +91,18 @@ export default function PaymentPage() {
     }
   }, [isConfirmed, hash]);
 
-  // Auto-advance to review when wallet connects
+  // Auto-advance to review when wallet connects on correct chain
   useEffect(() => {
-    if (isConnected && paymentStep === 'connect') {
+    if (isConnected && isCorrectChain && paymentStep === 'connect') {
       setPaymentStep('review');
     }
-  }, [isConnected, paymentStep]);
+  }, [isConnected, isCorrectChain, paymentStep]);
 
-  const handleConnect = () => {
-    // If wallet not connected, open connection modal
-    if (!isConnected && openConnectModal) {
-      openConnectModal();
-      return;
-    }
-    // If wallet is already connected, proceed to review
-    setPaymentStep('review');
+  const handleSwitchChain = () => {
+    switchChain({ chainId: BASE_SEPOLIA_CHAIN_ID });
   };
+
+  // Wallet auto-connects via RainbowKit ConnectButton, then auto-advances to review
 
   const handlePay = async () => {
     if (!metadata || !metadata.seller) {
@@ -294,13 +294,44 @@ export default function PaymentPage() {
             {/* Wallet Connection */}
             {paymentStep === 'connect' && (
               <div className="space-y-4">
-                <Button 
-                  onClick={handleConnect}
-                  className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)]"
-                >
-                  <LucideWallet className="w-6 h-6 mr-3" />
-                  Connect Wallet to Pay
-                </Button>
+                {!isConnected ? (
+                  <div className="flex justify-center">
+                    <ConnectButton 
+                      chainStatus="icon"
+                      accountStatus="address"
+                      showBalance={false}
+                    />
+                  </div>
+                ) : chain === undefined ? (
+                  // Waiting for chain info to load
+                  <div className="flex justify-center py-6">
+                    <LucideLoader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : !isCorrectChain ? (
+                  // Connected but wrong chain - show switch button
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20">
+                      <p className="text-xs text-yellow-400 font-bold">
+                        ⚠️ Please switch to Base Sepolia to complete payment
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={handleSwitchChain}
+                      className="w-full py-6 text-lg font-black bg-yellow-500 text-black hover:bg-yellow-400 rounded-2xl"
+                    >
+                      <LucideWallet className="w-5 h-5 mr-3" />
+                      Switch to Base Sepolia
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => setPaymentStep('review')}
+                    className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)]"
+                  >
+                    <LucideWallet className="w-6 h-6 mr-3" />
+                    Continue to Pay
+                  </Button>
+                )}
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   Payment goes directly to seller • No intermediary
                 </p>

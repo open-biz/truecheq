@@ -31,6 +31,12 @@ export default function AppPage() {
   const [appSubView, setAppSubView] = useState<'create' | 'dashboard' | 'buyer'>('create');
   const [worldUser, setWorldUser] = useState<WorldIDUser | null>(null);
   const [mode, setMode] = useState<'seller' | 'buyer'>('buyer');
+  const [mounted, setMounted] = useState(false);
+  
+  // Track wallet connection on client side only
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // TruCheq code lookup
   const [lookupCode, setLookupCode] = useState('');

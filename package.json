@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "agent": "tsx src/lib/xmtp-agent.ts"
+    "agent": "bun --bun src/lib/xmtp-agent.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.975.0",

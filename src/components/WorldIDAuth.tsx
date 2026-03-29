@@ -36,9 +36,16 @@ const APP_ID = process.env.NEXT_PUBLIC_APP_ID as `app_${string}` | undefined;
 const RP_ID = process.env.NEXT_PUBLIC_RP_ID;
 const ACTION = 'trucheq_auth';
 
-// Generate short TruCheq code from nullifier (first 8 chars)
+// Generate short TruCheq code from nullifier (first 4 chars as digits)
 function generateTruCheqCode(nullifier: string): string {
-  return nullifier.slice(0, 8).toUpperCase();
+  // Convert hex chars to numbers for 4-digit demo code
+  const hex = nullifier.slice(2, 10); // skip '0x' and take 8 chars
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    const num = parseInt(hex.slice(i * 2, i * 2 + 2), 16) % 100;
+    code += num.toString().padStart(2, '0');
+  }
+  return code;
 }
 
 // ---------------------------------------------------------------------------
