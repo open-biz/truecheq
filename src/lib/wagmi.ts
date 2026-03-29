@@ -1,6 +1,7 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { http, createStorage } from 'wagmi';
+import { http, createConfig, createStorage } from 'wagmi';
 import { baseSepolia } from './chains';
+import { injected } from 'wagmi/connectors';
+import { metaMask } from 'wagmi/connectors';
 
 const noopStorage = {
   getItem: () => null,
@@ -14,11 +15,9 @@ if (typeof window === 'undefined') {
   };
 }
 
-export const config = getDefaultConfig({
-  appName: 'TruCheq',
-  // Get your own free projectId at https://cloud.walletconnect.com
-  // This is a demo ID that may have rate limits - replace with your own for production
-  projectId: 'abc123def456789', 
+// Use createConfig instead of getDefaultConfig to avoid WalletConnect
+// Include MetaMask and other injected wallets
+export const config = createConfig({
   chains: [baseSepolia],
   ssr: true,
   transports: {
@@ -27,4 +26,8 @@ export const config = getDefaultConfig({
   storage: createStorage({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
+  connectors: [
+    metaMask(),
+    injected(),
+  ],
 });

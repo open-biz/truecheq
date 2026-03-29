@@ -26,39 +26,39 @@ import { cn } from '@/lib/utils';
 import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
-// Seed listings from IPFS (5 watches at 1 USDC each)
+// Seed listings from IPFS (all from seller 0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2)
 const SEED_LISTINGS: Listing[] = [
   {
     cid: 'QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
-    seller: '0x1234567890abcdef1234567890abcdef12345678',
+    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
     isOrbVerified: true,
   },
   {
     cid: 'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
-    seller: '0xabcdef1234567890abcdef1234567890abcdef12',
+    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
     isOrbVerified: true,
   },
   {
     cid: 'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
-    seller: '0xdeadbeef12345678deadbeef12345678deadbeef',
+    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
     isOrbVerified: true,
   },
   {
     cid: 'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
-    seller: '0xcafebabe12345678cafebabe12345678cafebabe',
+    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
     isOrbVerified: false,
   },
   {
     cid: 'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
-    seller: '0xfeedface12345678feedface12345678feedface',
+    seller: '0x84BBEFF31B0619C7Dd7cC439359EeC486E733Ff2',
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
     isOrbVerified: false,
