@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useIDKitRequest, type UseIDKitRequestHookResult } from '@worldcoin/idkit';
+import { IDKitRequestWidget, orbLegacy, type IDKitResult } from '@worldcoin/idkit';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,6 +33,7 @@ interface WorldIDAuthProps {
 // ---------------------------------------------------------------------------
 
 const APP_ID = (process.env.NEXT_PUBLIC_WLD_APP_ID ?? 'app_staging_...') as `app_${string}`;
+const RP_ID = APP_ID.replace('app_', 'rp_');
 const ACTION = 'trucheq_auth';
 
 // ---------------------------------------------------------------------------
@@ -43,78 +44,64 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
   const [user, setUser] = useState<WorldIDUser | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // State to store RP signature for inclusion in verification request
+  // State for RP signature
   const [rpSig, setRpSig] = useState<{ sig: string; nonce: string; created_at: string; expires_at: string } | null>(null);
 
-  // ---- IDKit v4 hook-based API -------------------------------------------
-  const idKitResult = useIDKitRequest({
-    app_id: APP_ID,
-    action: ACTION,
-    action_description: 'Authenticate with TruCheq',
-    // @ts-expect-error - onSuccess callback not in current types but works at runtime
-    onSuccess: async (result: unknown) => {
+  // Fetch RP signature when widget opens
+  const handleOpenChange = useCallback(async (open: boolean) => {
+    if (open && !rpSig) {
       try {
-        // IDKit v4 result structure - extract info from responses
-        const r = result as { responses?: Array<{ credential_type?: string; nullifier?: string }>; nonce?: string; session_id?: string };
-        const responses = r?.responses;
-        const hasOrb = !!(responses?.some(res => res.credential_type === 'orb') || 
-                       responses?.some(res => res.credential_type === '生物識別'));
-        
-        // Verify the proof with our backend
-        const verifyResponse = await fetch('/api/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(result),
-        });
-        
-        if (!verifyResponse.ok) {
-          const err = await verifyResponse.json().catch(() => ({ error: 'Verification failed' }));
-          throw new Error(err.error || 'Verification failed');
+        const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
+        if (!rpSigResponse.ok) {
+          throw new Error('Failed to get RP signature');
         }
-        
-        const verifyResult = await verifyResponse.json();
-        
-        const userData: WorldIDUser = {
-          nullifierHash: verifyResult.nullifier_hash || r?.nonce || 'unknown',
-          isOrbVerified: verifyResult.verification_level === 'orb' || hasOrb,
-          verificationLevel: verifyResult.verification_level || (hasOrb ? 'orb' : 'device'),
-          sessionId: r?.session_id,
-        };
-        setUser(userData);
-        setIsVerifying(false);
-        setError(null);
-        onSuccess(userData);
+        const sigData = await rpSigResponse.json();
+        setRpSig(sigData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Verification failed');
-        setIsVerifying(false);
+        setError(err instanceof Error ? err.message : 'Failed to get RP signature');
+        return;
       }
-    },
-    onVerify: () => {
-      setIsVerifying(true);
-      setError(null);
-    },
-  });
-
-  const handleOpen = useCallback(async () => {
-    try {
-      setError(null);
-      
-      // Fetch RP signature from backend first
-      const rpSigResponse = await fetch('/api/rp-signature', { method: 'POST' });
-      if (!rpSigResponse.ok) {
-        throw new Error('Failed to get RP signature');
-      }
-      const sigData = await rpSigResponse.json();
-      setRpSig(sigData);
-      
-      // Now open IDKit - it will use the signal from state
-      await idKitResult.open();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
-      setIsVerifying(false);
     }
-  }, [idKitResult]);
+    setIsOpen(open);
+  }, [rpSig]);
+
+  // Handle verification - send proof to backend
+  const handleVerify = useCallback(async (result: IDKitResult) => {
+    const verifyResponse = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result),
+    });
+
+    if (!verifyResponse.ok) {
+      const err = await verifyResponse.json().catch(() => ({ error: 'Verification failed' }));
+      throw new Error(err.error || 'Backend verification failed');
+    }
+
+    return await verifyResponse.json();
+  }, []);
+
+  // Handle successful verification
+  const handleSuccess = useCallback((result: IDKitResult) => {
+    const r = result as { responses?: Array<{ credential_type?: string; nullifier?: string }>; nonce?: string; session_id?: string };
+    const responses = r?.responses;
+    const hasOrb = !!(responses?.some(res => res.credential_type === 'orb') || 
+                   responses?.some(res => res.credential_type === '生物識別'));
+
+    const userData: WorldIDUser = {
+      nullifierHash: r?.responses?.[0]?.nullifier || r?.nonce || 'unknown',
+      isOrbVerified: hasOrb,
+      verificationLevel: hasOrb ? 'orb' : 'device',
+      sessionId: r?.session_id,
+    };
+    setUser(userData);
+    setIsVerifying(false);
+    setIsOpen(false);
+    setError(null);
+    onSuccess(userData);
+  }, [onSuccess]);
 
   // ---- already authenticated state ----------------------------------------
   if (user) {
@@ -249,9 +236,9 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
           </div>
         )}
 
-        {/* IDKit v4 trigger button using hook */}
+        {/* IDKit v4 Widget */}
         <Button
-          onClick={handleOpen}
+          onClick={() => setIsOpen(true)}
           disabled={isVerifying}
           className="w-full py-8 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_16px_32px_rgba(0,214,50,0.25)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -285,6 +272,28 @@ export function WorldIDAuth({ onSuccess, className }: WorldIDAuthProps) {
             </span>
           )}
         </Button>
+
+        {/* IDKit Widget Modal */}
+        {rpSig && (
+          <IDKitRequestWidget
+            open={isOpen}
+            onOpenChange={handleOpenChange}
+            app_id={APP_ID}
+            action={ACTION}
+            action_description="Authenticate with TruCheq"
+            allow_legacy_proofs={true}
+            preset={orbLegacy()}
+            rp_context={{
+              rp_id: RP_ID,
+              nonce: rpSig.nonce,
+              created_at: new Date(rpSig.created_at).getTime() / 1000,
+              expires_at: new Date(rpSig.expires_at).getTime() / 1000,
+              signature: rpSig.sig,
+            }}
+            handleVerify={handleVerify}
+            onSuccess={handleSuccess}
+          />
+        )}
 
         <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground">
           Accepts Orb &amp; Device verification
