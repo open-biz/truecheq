@@ -150,10 +150,10 @@ Seller                              Buyer / Agent
 
 ## 📸 Demo Screenshots
 
-### Screenshot 1: Deal Page with World ID Verification
+### Screenshot 1: Agent Interface for Sellers vs Buyers
 ![Deal Page](screenshot-1.png)
 
-### Screenshot 2: Payment via x402
+### Screenshot 2: World ID + CDP x402 
 ![Payment](screenshot-2.png)
 
 ---
