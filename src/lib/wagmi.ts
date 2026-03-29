@@ -16,7 +16,9 @@ if (typeof window === 'undefined') {
 
 export const config = getDefaultConfig({
   appName: 'TruCheq',
-  projectId: '39a97f3743c39130761e089d701e5491',
+  // Get your own free projectId at https://cloud.walletconnect.com
+  // This is a demo ID that may have rate limits - replace with your own for production
+  projectId: 'abc123def456789', 
   chains: [baseSepolia],
   ssr: true,
   transports: {

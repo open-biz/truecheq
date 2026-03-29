@@ -1,78 +1,49 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Client, Conversation, type DecodedMessage, IdentifierKind } from '@xmtp/browser-sdk';
-import { IdentifierKind as WasmIdentifierKind } from '@xmtp/wasm-bindings';
-
-// Debug: Log IdentifierKind values
-console.log('[XMTP] IdentifierKind from browser-sdk:', IdentifierKind);
-console.log('[XMTP] IdentifierKind from wasm-bindings:', WasmIdentifierKind);
-import { getXMTPSigner, createXMTPClient, getXMTPEnv, type Identifier } from '@/lib/xmtp';
+import { Client, Conversation, type DecodedMessage } from '@xmtp/xmtp-js';
+import { getXMTPSigner, createXMTPClient, getXMTPEnv } from '@/lib/xmtp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-import {
-  MessageCircle as LucideMessageCircle,
-  Send as LucideSend,
-  Bot as LucideBot,
-  User as LucideUser,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-interface Message {
+type Message = {
   id: string;
   sender: 'user' | 'seller';
   text: string;
   timestamp: Date;
-}
+};
 
 interface XMTPChatProps {
-  sellerAddress: string;
-  listingId: number;
-  listingTitle: string;
-  price: string;
+  sellerAddress?: string;
 }
 
-function truncateAddress(address: string): string {
-  if (!address || address.length < 10) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTPChatProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  
-  const [error, setError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+export function XMTPChat({ sellerAddress }: XMTPChatProps) {
   const [xmtpClient, setXmtpClient] = useState<Client | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const welcomeSentRef = useRef(false);
-  
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [myAddress, setMyAddress] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Initialize XMTP client when wallet connects (using window.ethereum directly - no wagmi)
+  // Initialize XMTP client when wallet connects
   useEffect(() => {
-    const initXMTP = async () => {
+    let isCancelled = false;
+
+    async function initXMTP() {
+      if (!sellerAddress) return;
+      
+      setIsConnecting(true);
+      setError(null);
+      
       try {
-        setIsConnecting(true);
-        setError(null);
-        
         // Get signer from window.ethereum (World App, MetaMask, etc.)
         const xmtpSignerInfo = await getXMTPSigner();
         if (!xmtpSignerInfo) {
@@ -81,427 +52,220 @@ export function XMTPChat({ sellerAddress, listingId, listingTitle, price }: XMTP
           return;
         }
         
-        const { address: myAddress, signer } = xmtpSignerInfo;
+        const { address, signer } = xmtpSignerInfo;
+        setMyAddress(address);
         
-        // Create XMTP client with the v7 signer
+        // Create XMTP client with the signer
         console.log('[XMTP] Creating client...');
         const client = await createXMTPClient(signer, getXMTPEnv());
-        console.log('[XMTP] Client created, inboxId:', client.inboxId);
+        console.log('[XMTP] Client created, address:', client.address);
         setXmtpClient(client);
         
-        // Try to find or create DM conversation with seller using v7 API
+        // Try to find or create conversation with seller
         try {
-          console.log('[XMTP] Getting conversations manager...');
-          const conversationsManager = client.conversations;
-          console.log('[XMTP] Conversations manager:', conversationsManager);
+          console.log('[XMTP] Creating conversation with seller:', sellerAddress);
           
-          if (!conversationsManager) {
-            throw new Error('Conversations manager not available');
-          }
+          // Create or get conversation with seller
+          const conv = await client.conversations.newConversation(sellerAddress);
+          console.log('[XMTP] Conversation created:', conv.topic);
+          setConversation(conv);
           
-          if (sellerAddress) {
-            // Create identifier for the seller
-            // Try using the value directly instead of the enum
-            const sellerIdentifier: Identifier = {
-              identifier: sellerAddress.toLowerCase(),
-              identifierKind: IdentifierKind?.Ethereum ?? 0, // Fallback to 0 if undefined
-            };
-            console.log('[XMTP] Seller identifier:', sellerIdentifier);
-            console.log('[XMTP] Creating DM with seller:', sellerIdentifier);
-            
-            // Try to create a DM with the seller (v7 will find existing or create new)
-            const dm = await conversationsManager.createDmWithIdentifier(sellerIdentifier);
-            console.log('[XMTP] DM created:', dm?.id);
-            setConversation(dm as Conversation);
-          } else {
-            // No seller address - just list existing conversations
-            console.log('[XMTP] Listing DMs...');
-            const conversations = await conversationsManager.listDms();
-            console.log('[XMTP] Found DMs:', conversations?.length);
-            if (conversations && conversations.length > 0) {
-              setConversation(conversations[0] as Conversation);
-            }
-          }
+          // Load existing messages
+          const msgs = await conv.messages();
+          console.log('[XMTP] Loaded messages:', msgs.length);
           
-          setIsConnected(true);
-          
-          // Send welcome message if this is a new conversation (using ref to avoid re-renders)
-          if (!welcomeSentRef.current) {
-            welcomeSentRef.current = true;
-            const welcomeMessage: Message = {
-              id: `msg-${Date.now()}-welcome`,
-              sender: 'seller',
-              text: `👋 Welcome! I'm the Seller Agent for **${listingTitle}**. Feel free to ask me anything about this listing or proceed to purchase at **${price} USDC** via x402 protocol.`,
-              timestamp: new Date(),
-            };
-            setMessages([welcomeMessage]);
+          if (!isCancelled) {
+            const formattedMessages: Message[] = msgs.slice(-20).map((msg: DecodedMessage) => ({
+              id: msg.id,
+              sender: msg.senderAddress.toLowerCase() === client.address?.toLowerCase() 
+                ? 'user' 
+                : 'seller',
+              text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+              timestamp: msg.sent,
+            }));
+            setMessages(formattedMessages);
           }
         } catch (convError) {
-          console.warn('Could not load/create conversation:', convError);
-          // Still connected to XMTP, just couldn't load conversation
-          setIsConnected(true);
+          console.warn('[XMTP] Could not create conversation:', convError);
+          if (!isCancelled) {
+            setError('Could not start conversation with seller. They may not be on XMTP yet.');
+          }
         }
-        
-      } catch (err) {
-        console.error('XMTP initialization error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to connect to XMTP');
-        setIsConnected(false);
-      } finally {
+      } catch (err: any) {
+        console.error('[XMTP] Connection error:', err);
+        if (!isCancelled) {
+          setError(err.message || 'Failed to connect to XMTP');
+        }
+      }
+      
+      if (!isCancelled) {
         setIsConnecting(false);
       }
-    };
+    }
 
-    // Auto-connect on mount
     initXMTP();
-  }, [sellerAddress]); // Only re-run if seller changes
 
-  // Load existing messages when conversation is available
-  useEffect(() => {
-    let isCancelled = false;
-    
-    const loadMessages = async () => {
-      if (!xmtpClient || !conversation) return;
-      
-      try {
-        const msgs = await conversation.messages();
-        if (isCancelled) return;
-        
-        const formattedMessages: Message[] = msgs.slice(-20).map((msg: DecodedMessage) => ({
-          id: msg.id,
-          // In v7, use senderInboxId instead of senderAddress
-          sender: msg.senderInboxId.toLowerCase() === xmtpClient.inboxId?.toLowerCase() 
-            ? 'user' 
-            : 'seller',
-          text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          timestamp: msg.sentAt,
-        }));
-        setMessages(formattedMessages);
-      } catch (err) {
-        console.warn('Could not load messages:', err);
+    return () => {
+      isCancelled = true;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
+  }, [sellerAddress]);
 
-    loadMessages();
+  // Subscribe to new messages
+  useEffect(() => {
+    if (!conversation || !xmtpClient) return;
 
-    // Set up message stream for real-time updates
-    let abortController: AbortController | null = null;
-    
-    const setupStream = async () => {
-      if (!conversation || !xmtpClient) return;
-      abortController = new AbortController();
+    let isCancelled = false;
+    abortControllerRef.current = new AbortController();
+
+    async function streamMessages() {
+      if (!conversation) return;
       
       try {
-        // In v7, use conversation.stream() instead of streamMessages()
-        const stream = await conversation.stream();
+        const stream = await conversation.streamMessages();
+        if (!stream) return;
         
         for await (const msg of stream) {
-          if (isCancelled || abortController?.signal.aborted) break;
+          if (isCancelled || abortControllerRef.current?.signal.aborted) break;
           
-          // In v7, use senderInboxId instead of senderAddress
-          if (msg.senderInboxId.toLowerCase() !== xmtpClient.inboxId?.toLowerCase()) {
+          if (xmtpClient && msg.senderAddress.toLowerCase() !== xmtpClient.address?.toLowerCase()) {
             const newMessage: Message = {
               id: msg.id,
               sender: 'seller',
               text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-              timestamp: msg.sentAt,
+              timestamp: msg.sent,
             };
             setMessages((prev) => [...prev, newMessage]);
           }
         }
       } catch (err) {
-        console.warn('Message stream error:', err);
+        console.warn('Could not stream messages:', err);
       }
-    };
+    }
 
-    setupStream();
+    streamMessages();
 
     return () => {
       isCancelled = true;
-      abortController?.abort();
+      abortControllerRef.current?.abort();
     };
-  }, [xmtpClient, conversation]);
+  }, [conversation, xmtpClient]);
 
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-
-  const handleConnect = async () => {
-    setError(null);
-    setIsConnecting(true);
+  async function sendMessage() {
+    if (!newMessage.trim() || !conversation || !xmtpClient) return;
+    
+    setIsSending(true);
     try {
-      const xmtpSignerInfo = await getXMTPSigner();
-      if (!xmtpSignerInfo) {
-        setError('No wallet found. Please connect your wallet.');
-        setIsConnecting(false);
-        return;
-      }
-      const client = await createXMTPClient(xmtpSignerInfo.signer, getXMTPEnv());
-      setXmtpClient(client);
-      setIsConnected(true);
+      // Send message
+      await conversation.send(newMessage);
+      
+      // Add to local state
+      const sentMessage: Message = {
+        id: Date.now().toString(),
+        sender: 'user',
+        text: newMessage,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, sentMessage]);
+      setNewMessage('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect');
-      setIsConnected(false);
-    } finally {
-      setIsConnecting(false);
+      console.error('Failed to send message:', err);
+      setError('Failed to send message');
     }
-  };
+    setIsSending(false);
+  }
 
-  const handleSend = async () => {
-    const text = inputValue.trim();
-    if (!text) return;
-
-    const userMessage: Message = {
-      id: `msg-${Date.now()}-user`,
-      sender: 'user',
-      text,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    inputRef.current?.focus();
-
-    // If we have a real conversation, send via XMTP
-    if (conversation && xmtpClient) {
-      try {
-        // Use sendText for v7 API
-        await conversation.sendText(text);
-        // Message will appear via stream, no need to add manually
-      } catch (err) {
-        console.error('Failed to send message:', err);
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const renderMessageText = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*|`[^`]+`|\n)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={i} className="font-semibold text-white">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      if (part.startsWith('`') && part.endsWith('`')) {
-        return (
-          <code
-            key={i}
-            className="rounded bg-white/10 px-1.5 py-0.5 text-xs font-mono text-primary"
-          >
-            {part.slice(1, -1)}
-          </code>
-        );
-      }
-      if (part === '\n') {
-        return <br key={i} />;
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
-
-  // Show error state
-  if (error) {
-    return (
-      <Card className="border-white/10 bg-black/60 backdrop-blur-xl overflow-hidden">
-        <CardHeader className="border-b border-white/10 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/20 border border-destructive/30">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <CardTitle className="text-sm font-semibold text-white">
-                  Connection Error
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  XMTP could not be initialized
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <p className="text-sm text-destructive mb-4">{error}</p>
-          <Button onClick={handleConnect} className="w-full">
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    );
+  if (!sellerAddress) {
+    return null;
   }
 
   return (
-    <Card className="border-white/10 bg-black/60 backdrop-blur-xl overflow-hidden">
-      {/* Header */}
-      <CardHeader className="border-b border-white/10 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 border border-primary/30">
-              <LucideMessageCircle className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-white">
-                Chat with Seller
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {sellerAddress ? truncateAddress(sellerAddress) : 'Seller'}
-              </p>
-            </div>
-          </div>
-          <Badge
-            variant="outline"
-            className={cn(
-              'text-xs gap-1.5',
-              isConnected
-                ? 'border-primary/40 text-primary bg-primary/10'
-                : 'border-white/10 text-muted-foreground bg-white/5'
-            )}
-          >
-            <span
-              className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                isConnected ? 'bg-primary animate-pulse' : 'bg-muted-foreground'
-              )}
-            />
-            {isConnected ? 'XMTP Connected' : isConnecting ? 'Connecting...' : 'Offline'}
-          </Badge>
-        </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Chat with Seller</span>
+          {xmtpClient && (
+            <Badge variant="secondary" className="text-xs">
+              XMTP Connected
+            </Badge>
+          )}
+        </CardTitle>
       </CardHeader>
-
-      <CardContent className="p-0">
-        {/* Messages Area */}
-        <ScrollArea className="h-[320px]">
-          <div ref={scrollRef} className="flex flex-col gap-3 p-4 h-[320px] overflow-y-auto">
-            {!isConnected ? (
-              /* Connection Screen */
-              <div className="flex flex-1 flex-col items-center justify-center gap-4 py-12">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10">
-                  <LucideMessageCircle className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-white">
-                    Start a conversation
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
-                    Connect to XMTP to chat directly with the seller about{' '}
-                    <span className="text-white font-medium">{listingTitle}</span>
-                  </p>
-                </div>
-                <Button
-                  onClick={handleConnect}
-                  disabled={isConnecting}
-                  className="mt-2 rounded-full px-6"
-                  size="sm"
-                >
-                  {isConnecting ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Connecting…
-                    </>
-                  ) : (
-                    <>
-                      <LucideMessageCircle className="h-4 w-4" />
-                      Connect to XMTP
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : (
-              /* Messages */
-              <>
-                {messages.map((message) => {
-                  const isUser = message.sender === 'user';
-                  return (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        'flex gap-2.5 max-w-[85%]',
-                        isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
-                      )}
-                    >
-                      {/* Avatar */}
-                      <div
-                        className={cn(
-                          'flex h-7 w-7 shrink-0 items-center justify-center rounded-full mt-0.5',
-                          isUser
-                            ? 'bg-primary/20 border border-primary/30'
-                            : 'bg-white/10 border border-white/10'
-                        )}
-                      >
-                        {isUser ? (
-                          <LucideUser className="h-3.5 w-3.5 text-primary" />
-                        ) : (
-                          <LucideBot className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </div>
-
-                      {/* Bubble */}
-                      <div className="flex flex-col gap-1">
-                        <div
-                          className={cn(
-                            'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                            isUser
-                              ? 'bg-primary text-primary-foreground rounded-br-md'
-                              : 'bg-white/[0.07] border border-white/10 text-white/90 rounded-bl-md'
-                          )}
-                        >
-                          {renderMessageText(message.text)}
-                        </div>
-                        <span
-                          className={cn(
-                            'text-[10px] text-muted-foreground px-1',
-                            isUser ? 'text-right' : 'text-left'
-                          )}
-                        >
-                          {isUser ? 'You' : 'Seller'} · {formatTime(message.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-
-              </>
-            )}
-          </div>
-        </ScrollArea>
-
-        {/* Input Area */}
-        {isConnected && (
-          <div className="border-t border-white/10 p-3">
-            <div className="flex items-center gap-2">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a message…"
-                className="flex-1 border-white/10 bg-white/5 text-white placeholder:text-muted-foreground rounded-full px-4 h-10 text-sm focus-visible:ring-primary/30 focus-visible:border-primary/40"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!inputValue.trim()}
-                size="icon"
-                className="h-10 w-10 rounded-full shrink-0"
-              >
-                <LucideSend className="h-4 w-4" />
-              </Button>
-            </div>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">
+            {error}
           </div>
         )}
-
-        {/* Footer */}
-        <div className="border-t border-white/5 px-4 py-2.5">
-          <p className="text-[10px] text-muted-foreground/60 text-center">
-            {isConnected ? 'XMTP • End-to-end encrypted' : 'Powered by XMTP'}
-          </p>
-        </div>
+        
+        {isConnecting ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Connecting to XMTP...</span>
+          </div>
+        ) : !xmtpClient ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Connect your wallet to chat with the seller
+          </div>
+        ) : (
+          <>
+            <ScrollArea className="h-[300px] pr-4">
+              <div ref={scrollRef} className="space-y-3">
+                {messages.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-4">
+                    No messages yet. Say hello!
+                  </p>
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                          msg.sender === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p>{msg.text}</p>
+                        <p className={`text-xs mt-1 opacity-70 ${msg.sender === 'user' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
+                          {msg.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+            
+            <div className="flex gap-2">
+              <Input
+                placeholder="Type a message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !isSending && sendMessage()}
+                disabled={isSending || !conversation}
+              />
+              <Button 
+                onClick={sendMessage} 
+                disabled={isSending || !newMessage.trim() || !conversation}
+                size="sm"
+              >
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

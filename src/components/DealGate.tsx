@@ -131,9 +131,6 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
       {metadata && (
         <XMTPChat
           sellerAddress={sellerAddress}
-          listingId={id}
-          listingTitle={metadata.itemName}
-          price={metadata.price}
         />
       )}
     </div>
