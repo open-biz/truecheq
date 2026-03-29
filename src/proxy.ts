@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { toUSDCUnits } from '@/lib/x402';
 
-// Dynamic x402 middleware - fetches listing metadata and routes payment to seller
-export async function middleware(request: NextRequest) {
+// Dynamic x402 proxy - fetches listing metadata and routes payment to seller
+export async function proxy(request: NextRequest) {
   // Only protect /pay routes
   if (!request.nextUrl.pathname.startsWith('/pay/')) {
     return;
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     // Payment verified - allow request through
     return;
   } catch (error) {
-    console.error('x402 middleware error:', error);
+    console.error('x402 proxy error:', error);
     return;
   }
 }
