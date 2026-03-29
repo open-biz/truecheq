@@ -9,12 +9,12 @@ const nextConfig: NextConfig = {
       ...config.experiments,
       asyncWebAssembly: true,
     };
-    
+
     // Mark @xmtp/node-sdk as external to prevent bundling issues
     if (!isServer) {
       config.externals = [...(config.externals || []), '@xmtp/node-sdk'];
     }
-    
+
     return config;
   },
 };

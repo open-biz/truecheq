@@ -44,8 +44,8 @@
     "react-dom": "19.2.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
-    "viem": "^2.44.4",
-    "wagmi": "^3.4.1",
+    "viem": "^2.47.6",
+    "wagmi": "^3.6.0",
     "x402-next": "^1.1.0"
   },
   "devDependencies": {
@@ -69,5 +69,9 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "overrides": {
+    "@noble/hashes": "^1.8.0",
+    "@noble/secp256k1": "^2.2.3"
+  }
 }
