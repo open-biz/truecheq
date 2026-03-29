@@ -28,6 +28,5 @@ export const config = createConfig({
   }),
   connectors: [
     metaMask(),
-    injected(),
   ],
 });
