@@ -136,6 +136,19 @@
 }
 
 @layer utilities {
+  .pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% {
+      border-color: rgba(63, 63, 70, 0.5);
+    }
+    50% {
+      border-color: rgba(0, 214, 50, 0.4);
+    }
+  }
+
   .grid-pattern {
     background-image: radial-gradient(circle, #ffffff0d 1px, transparent 1px);
     background-size: 40px 40px;

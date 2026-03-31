@@ -134,7 +134,7 @@ export default function LandingPage() {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="group relative w-auto min-w-[340px] md:min-w-[380px] bg-zinc-800/60 border border-zinc-700/50 rounded-md overflow-hidden flex items-center justify-between px-4 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(0,214,50,0.15)] h-[52px]"
+                className="group relative w-auto min-w-[340px] md:min-w-[380px] bg-zinc-800/60 border border-zinc-700/50 rounded-md overflow-hidden flex items-center justify-between px-4 transition-all duration-300 pulse-border hover:border-primary/40 hover:shadow-[0_0_15px_rgba(0,214,50,0.15)] h-[52px]"
                 aria-label="Copy agent skill curl command"
               >
                 <div className="flex items-center space-x-3">
@@ -143,7 +143,10 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center ml-3 p-1.5 rounded text-white/50 hover:text-white hover:bg-white/5 transition-colors">
                   {copied ? (
-                    <LucideCheckCircle className="w-4 h-4 text-primary" aria-hidden="true" />
+                    <div className="flex items-center gap-1 text-green-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                      <span className="text-xs font-medium">Copied!</span>
+                    </div>
                   ) : (
                     <LucideCopy className="w-4 h-4" aria-hidden="true" />
                   )}
