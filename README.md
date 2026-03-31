@@ -1,13 +1,16 @@
 # TruCheq
 
-[![GitHub commits](https://img.shields.io/github/commit-activity/t/open-biz/truecheq?style=flat&logo=github&label=Commits)](https://github.com/open-biz/truecheq/commits/main)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/open-biz/truecheq?style=flat&logo=github&label=Commits)](https://github.com/open-biz/truecheq/commits/main)
 [![GitHub stars](https://img.shields.io/github/stars/open-biz/truecheq?style=flat&logo=github&label=Stars)](https://github.com/open-biz/truecheq)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org)
-[![World ID](https://img.shields.io/badge/World%20ID-Verify-brightgreen?style=flat)](https://worldcoin.org)
-[![XMTP](https://img.shields.io/badge/XMTP-Encrypt-purple?style=flat)](https://xmtp.org)
-[![Coinbase x402](https://img.shields.io/badge/Coinbase-x402-blue?style=flat)](https://docs.cdp.coinbase.com/x402)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
+[![Bun](https://img.shields.io/badge/Bun-%23fff?logo=bun&style=flat)](https://bun.sh)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js&style=flat)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&style=flat)](https://www.typescriptlang.org)
+[![Tailwind](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss&style=flat)](https://tailwindcss.com)
+[![World ID](https://img.shields.io/badge/World%20ID-Verify-green?logo=worldcoin&style=flat)](https://worldcoin.org)
+[![XMTP](https://img.shields.io/badge/XMTP-Encrypt-purple?logo=xmtp&style=flat)](https://xmtp.org)
+[![Base](https://img.shields.io/badge/Base-Sepolia-0052FF?logo=base&style=flat)](https://base.org)
+[![Coinbase x402](https://img.shields.io/badge/x402-0052FF?logo=coinbase&style=flat)](https://docs.cdp.coinbase.com/x402)
 
 > [!NOTE]
 > This file is synced with `SKILL.md`. Edits to one will be reflected in the other.
