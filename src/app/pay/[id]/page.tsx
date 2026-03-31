@@ -71,10 +71,11 @@ function parseX402Header(authHeader: string): X402PaymentRequirement | null {
   }
 }
 
-export default function PaymentPage() {
+export default function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = React.use(params);
   const searchParams = useSearchParams();
   const metadataUrl = searchParams.get('meta');
-  const listingId = searchParams.get('id');
+  const listingId = resolvedParams.id;
   
   const { address, isConnected, chain } = useAccount();
   const { switchChain } = useSwitchChain();

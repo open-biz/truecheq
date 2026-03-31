@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LucideLock, LucideShieldCheck, LucideSmartphone, LucideImage, LucideXCircle, LucideExternalLink, LucideBot } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 
-export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
+export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
   const [metadata, setMetadata] = useState<DealMetadata | null>(null);
   
@@ -84,7 +84,7 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {metadata.images.map((imageUrl, index) => (
                     <div key={index} className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                      <img src={imageUrl} alt={`${metadata.itemName} - Image ${index + 1}`} className="w-full h-full object-cover" />
+                      <img src={getProxiedImageUrl(imageUrl)} alt={`${metadata.itemName} - Image ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>

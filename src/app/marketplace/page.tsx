@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUnits } from 'viem';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { RetroGrid, Spotlight, FloatingOrbs, ScrollReveal, Card3DTilt, GradientText } from '@/components/ui/code-graphics';
 import type { DealMetadata } from '@/lib/filebase';
 
@@ -85,7 +85,7 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
   return (
     <ScrollReveal delay={index * 0.05} direction="up">
       <Card3DTilt className="perspective-1000">
-        <Link href={`/deal/${listing.cid.slice(0, 12)}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
+        <Link href={`/deal/${listing.cid}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
           <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 hover:bg-black/80 transition-all duration-300 overflow-hidden relative h-full">
             {/* Animated border glow */}
             <div className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -99,7 +99,7 @@ function ListingCard({ listing, index }: { listing: Listing; index: number }) {
             {listing.metadata?.images && listing.metadata.images.length > 0 ? (
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
-                  src={listing.metadata.images[0]} 
+                  src={getProxiedImageUrl(listing.metadata.images[0])} 
                   alt={listing.metadata.itemName}
                   className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
                 />
@@ -182,9 +182,33 @@ export default function MarketplacePage() {
   const [filterOrbOnly, setFilterOrbOnly] = useState(false);
 
   React.useEffect(() => {
-    // Load seed listings for demo (in production, load from IPFS/localStorage)
-    setListings(SEED_LISTINGS);
-    setIsLoading(false);
+    const fetchAllMetadata = async () => {
+      setIsLoading(true);
+      try {
+        const listingsWithMetadata = await Promise.all(
+          SEED_LISTINGS.map(async (listing) => {
+            try {
+              const response = await fetch(listing.metadataUrl);
+              if (response.ok) {
+                const metadata = await response.json();
+                return { ...listing, metadata };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch metadata for ${listing.cid}:`, err);
+            }
+            return listing;
+          })
+        );
+        setListings(listingsWithMetadata);
+      } catch (error) {
+        console.error('Error fetching marketplace metadata:', error);
+        setListings(SEED_LISTINGS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllMetadata();
   }, []);
 
   const refetchCount = () => {
@@ -351,12 +375,12 @@ export default function MarketplacePage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      <Link href={`/deal/${listing.cid.slice(0, 20)}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
+                      <Link href={`/deal/${listing.cid}?meta=${encodeURIComponent(listing.metadataUrl)}`}>
                         <Card className="group border-white/10 bg-black/60 backdrop-blur-xl hover:border-primary/30 transition-all p-4 flex items-center gap-4">
                           {/* Image */}
                           <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-white/5">
                             {listing.metadata?.images?.[0] ? (
-                              <img src={listing.metadata.images[0]} alt="" className="w-full h-full object-cover" />
+                              <img src={getProxiedImageUrl(listing.metadata.images[0])} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <LucidePackage className="w-8 h-8 text-white/20" />

@@ -36,7 +36,7 @@ export default function DealPage({ params, searchParams }: { params: Promise<{ i
 
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         <DealGate
-          id={parseInt(resolvedParams.id) || 0}
+          id={resolvedParams.id}
           metadataUrl={resolvedSearchParams.meta ? decodeURIComponent(resolvedSearchParams.meta) : undefined}
         />
       </div>
