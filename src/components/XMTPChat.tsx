@@ -3,9 +3,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { MessageCircle, Copy, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
+import { MessageCircle } from 'lucide-react';
+
 import dynamic from 'next/dynamic';
 
 interface XMTPChatProps {

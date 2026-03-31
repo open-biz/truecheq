@@ -1,7 +1,7 @@
 // XMTP Agent for TruCheq seller automation
-// Using @xmtp/agent-sdk for V3 support
+// This runs as a standalone process to handle buyer messages
 import 'dotenv-defaults/config';
-import { Agent, createSigner, createUser } from '@xmtp/agent-sdk';
+import { Agent } from '@xmtp/agent-sdk';
 import OpenAI from 'openai';
 
 // Conversation history storage (in production, use Redis/Postgres)
@@ -9,7 +9,10 @@ const conversationHistories: Map<string, Array<{role: string, content: string}>>
 
 // Required environment variables:
 // - XMTP_WALLET_KEY: Private key of the seller wallet
+// - XMTP_DB_ENCRYPTION_KEY: 32-byte hex key for DB encryption
 // - NEXT_PUBLIC_XMTP_ENV: 'dev' or 'production'
+// Note: Seller address will be obtained from the agent after initialization
+
 const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'dev';
 
 // NVIDIA OpenAI client for DeepSeek AI
@@ -66,8 +69,8 @@ Instructions:
 - Remember context from previous messages in this conversation`;
 
   try {
-    // Build messages including history - properly typed for OpenAI
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    // Build messages including history - cast to any to avoid strict OpenAI type issues
+    const messages: any = [
       { role: 'system', content: systemPrompt },
       ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
       { role: 'user', content: userMessage }
@@ -134,168 +137,174 @@ const LISTINGS: Record<string, ListingInfo> = {
   },
 };
 
-// Process incoming message and generate response
-async function processMessage(content: string, conversationId: string): Promise<string> {
-  const messageLower = content.toLowerCase();
-  
-  // Help command
-  if (messageLower === 'help' || messageLower === '?' || messageLower === '/help') {
-    return (
-      `🏪 **TruCheq Seller Assistant**\n\n` +
-      `Available commands:\n` +
-      `• \`list\` - View available listings\n` +
-      `• \`price <cid>\` - Get price for a specific item\n` +
-      `• \`buy <cid>\` - Get purchase link for an item\n` +
-      `• \`status\` - Check seller verification status\n\n` +
-      `Just send a message to start a conversation!`
-    );
-  }
-  
-  // List command
-  if (messageLower === 'list' || messageLower === '/list') {
-    let response = '📦 **Available Listings:**\n\n';
-    for (const [cid, listing] of Object.entries(LISTINGS)) {
-      response += `• **${listing.name}** - ${listing.price} USDC\n`;
-      response += `  CID: \`${cid.slice(0, 12)}...\`\n\n`;
-    }
-    response += `Use \`price <cid>\` for details or \`buy <cid>\` to purchase.`;
-    return response;
-  }
-  
-  // Price command
-  if (messageLower.startsWith('price ')) {
-    const cid = messageLower.replace('price ', '').trim();
-    const listing = LISTINGS[cid];
-    
-    if (listing) {
-      return (
-        `💰 **${listing.name}**\n` +
-        `Price: ${listing.price} USDC\n` +
-        `Description: ${listing.description}\n\n` +
-        `To purchase: \`buy ${cid}\``
-      );
-    } else {
-      return `❌ Listing not found. Use \`list\` to see available items.`;
-    }
-  }
-  
-  // Buy command
-  if (messageLower.startsWith('buy ')) {
-    const cid = messageLower.replace('buy ', '').trim();
-    const listing = LISTINGS[cid];
-    
-    if (listing) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const purchaseUrl = `${baseUrl}/pay/${cid.slice(0, 12)}?meta=https://parallel-pink-stork.myfilebase.com/ipfs/${cid}`;
-      return (
-        `🛒 **Purchase ${listing.name}**\n\n` +
-        `Price: ${listing.price} USDC\n\n` +
-        `[Click here to pay](${purchaseUrl})\n\n` +
-        `Payment processed via x402 on Base Sepolia.`
-      );
-    } else {
-      return `❌ Listing not found. Use \`list\` to see available items.`;
-    }
-  }
-  
-  // Status command
-  if (messageLower === 'status' || messageLower === '/status') {
-    return (
-      `✅ **Seller Status**\n\n` +
-      `Verification: Orb Verified (World ID)\n` +
-      `Network: Base Sepolia (Testnet)\n\n` +
-      `All listings are verified via World ID sybil resistance.`
-    );
-  }
-  
-  // Default response - use AI for natural conversation with history
-  return await getAIResponse(content, conversationId);
+async function createAgent() {
+  console.log(`[Agent] Environment: ${XMTP_ENV}`);
+
+  // Create agent from environment variables (XMTP_WALLET_KEY, XMTP_DB_ENCRYPTION_KEY)
+  // Use persistent database path to avoid creating new installations on restart
+  // This is critical for production - hitting installation limits (10 max) causes issues
+  const dbPath = process.env.XMTP_DB_PATH || `./xmtp-${XMTP_ENV}-${process.env.XMTP_WALLET_KEY?.slice(0, 10) || 'default'}.db3`;
+  console.log(`[Agent] Database path: ${dbPath}`);
+
+  const agent = await Agent.createFromEnv({
+    appVersion: 'trucheq-seller-v1',
+    env: XMTP_ENV as 'dev' | 'production',
+    dbPath, // Persistent storage to prevent installation limit issues
+  });
+
+  return agent;
 }
 
 export async function startSellerAgent() {
-  const privateKey = process.env.XMTP_WALLET_KEY;
-  
-  if (!privateKey) {
-    throw new Error('XMTP_WALLET_KEY environment variable is required');
-  }
-  
-  console.log(`[Agent] Starting with @xmtp/agent-sdk on ${XMTP_ENV} network`);
-  
-  // Create user from private key using agent-sdk's createUser
-  // The first parameter is the private key hex string
-  const user = createUser(privateKey as `0x${string}`);
-  
-  // Create signer from user
-  const signer = createSigner(user);
-  
-  // Create agent using the agent-sdk
-  const agent = await Agent.create(signer, {
-    env: XMTP_ENV as 'dev' | 'production'
-  });
-  
-  console.log(`[Agent] ✅ Agent created successfully`);
-  console.log(`[Agent] 📍 Listening for messages on ${XMTP_ENV} network`);
-  
-  // Log the agent's wallet address (not just installation ID)
-  console.log(`[Agent]钱包 Wallet Address: ${agent.address}`);
-  console.log(`[Agent] 📋 Inbox ID: ${agent.client.inboxId}`);
-  console.log(`[Agent] 💬 To test, send a message to this address on xmtp.chat (dev network)`);
-  
-  // Set up welcome message for new conversations
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const welcomeMessage = (
-    `👋 **Welcome to TruCheq!**\n\n` +
-    `I'm your automated seller assistant. Here's what I can do:\n\n` +
-    `📋 **Commands:**\n` +
-    `• \`list\` - View all available watches\n` +
-    `• \`help\` - See all commands\n` +
-    `• \`status\` - Check seller verification\n\n` +
-    `💬 Just chat naturally - I can help you find the perfect watch and guide you through purchase!\n\n` +
-    `🔒 **Payment:** All transactions protected via x402 on **Base Sepolia**\n\n` +
-    `[View Listings](${baseUrl}/marketplace)`
-  );
-  
+  const agent = await createAgent();
+
   // Handle text messages
   agent.on('text', async (ctx) => {
-    const message = ctx.message.content;
-    const sender = ctx.message.senderInboxId;
+    const message = ctx.message.content.toLowerCase();
+    const sender = (ctx.message as any).senderAddress || 'unknown';
     
-    console.log(`[Agent] Received message from ${sender}: ${message}`);
-    
-    // Get conversation ID for history
-    const conversationId = ctx.conversation.id;
-    
-    // Process the message and get response
-    const response = await processMessage(message, conversationId);
-    
-    // Send response using sendTextReply
-    await ctx.sendTextReply(response);
-    console.log('[Agent] Response sent');
-  });
-  
-  // Handle new DMs
-  agent.on('dm', async (ctx) => {
-    console.log(`[Agent] New DM conversation: ${ctx.conversation.id}`);
-    
-    // Send welcome message to new conversation
-    try {
-      await ctx.conversation.sendText(welcomeMessage);
-      console.log('[Agent] Welcome message sent to new DM');
-    } catch (e) {
-      console.log('[Agent] Could not send welcome message:', e);
+    console.log(`[Agent] Received message from ${sender}: ${ctx.message.content}`);
+
+    // Help command
+    if (message === 'help' || message === '?' || message === '/help') {
+      await ctx.conversation.sendText(
+        `🏪 **TruCheq Seller Assistant**\n\n` +
+        `Available commands:\n` +
+        `• \`list\` - View available listings\n` +
+        `• \`price <cid>\` - Get price for a specific item\n` +
+        `• \`buy <cid>\` - Get purchase link for an item\n` +
+        `• \`status\` - Check seller verification status\n\n` +
+        `Just send a message to start a conversation!`
+      );
+      return;
     }
+
+    // List command
+    if (message === 'list' || message === '/list') {
+      let response = '📦 **Available Listings:**\n\n';
+      for (const [cid, listing] of Object.entries(LISTINGS)) {
+        response += `• **${listing.name}** - ${listing.price} USDC\n`;
+        response += `  CID: \`${cid.slice(0, 12)}...\`\n\n`;
+      }
+      response += `Use \`price <cid>\` for details or \`buy <cid>\` to purchase.`;
+      await ctx.conversation.sendText(response);
+      return;
+    }
+
+    // Price command
+    if (message.startsWith('price ')) {
+      const cid = message.replace('price ', '').trim();
+      const listing = LISTINGS[cid];
+      
+      if (listing) {
+        await ctx.conversation.sendText(
+          `💰 **${listing.name}**\n` +
+          `Price: ${listing.price} USDC\n` +
+          `Description: ${listing.description}\n\n` +
+          `To purchase: \`buy ${cid}\``
+        );
+      } else {
+        await ctx.conversation.sendText(
+          `❌ Listing not found. Use \`list\` to see available items.`
+        );
+      }
+      return;
+    }
+
+    // Buy command
+    if (message.startsWith('buy ')) {
+      const cid = message.replace('buy ', '').trim();
+      const listing = LISTINGS[cid];
+      
+      if (listing) {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const purchaseUrl = `${baseUrl}/pay/${cid.slice(0, 12)}?meta=https://parallel-pink-stork.myfilebase.com/ipfs/${cid}`;
+        await ctx.conversation.sendText(
+          `🛒 **Purchase ${listing.name}**\n\n` +
+          `Price: ${listing.price} USDC\n\n` +
+          `[Click here to pay](${purchaseUrl})\n\n` +
+          `Payment processed via x402 on Base Sepolia.`
+        );
+      } else {
+        await ctx.conversation.sendText(
+          `❌ Listing not found. Use \`list\` to see available items.`
+        );
+      }
+      return;
+    }
+
+    // Status command
+    if (message === 'status' || message === '/status') {
+      // Get agent address from the agent instance
+      const agentAddress = (agent as any).address || 'Unknown';
+      await ctx.conversation.sendText(
+        `✅ **Seller Status**\n\n` +
+        `Address: \`${agentAddress}\`\n` +
+        `Verification: Orb Verified (World ID)\n` +
+        `Network: Base Sepolia (Testnet)\n\n` +
+        `All listings are verified via World ID sybil resistance.`
+      );
+      return;
+    }
+
+    // Get conversation ID for history
+    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
+    
+    // Default response - use AI for natural conversation with history
+    const aiResponse = await getAIResponse(ctx.message.content, conversationId);
+    await ctx.conversation.sendText(aiResponse);
   });
-  
-  // Handle new group messages
+
+  // Handle DMs (new conversations) - clear history and send welcome
+  agent.on('dm', async (ctx) => {
+    const dmCtx = ctx as any;
+    const sender = dmCtx.message?.senderAddress || 'unknown';
+    console.log(`[Agent] New DM from ${sender}`);
+    
+    // Clear old history for new conversation
+    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
+    conversationHistories.delete(conversationId);
+    
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    
+    // Get agent address for status
+    const agentAddress = (agent as any).address || 'Unknown';
+    
+    await ctx.conversation.sendText(
+      `🤖 **AI Agent - TruCheq Seller Assistant**\n\n` +
+      `I'm an AI agent, not a human. I'm here to help you find the perfect watch!\n\n` +
+      `📋 **What I can do:**\n` +
+      `• \`list\` - View all available watches\n` +
+      `• \`help\` - See all commands\n` +
+      `• \`status\` - Check seller verification\n\n` +
+      `💬 Chat naturally - I'll help you find what you're looking for!\n\n` +
+      `🔒 **Payment:** All transactions protected via x402 on **Base Sepolia**\n\n` +
+      `[View Listings](${baseUrl}/marketplace)`
+    );
+  });
+
+  // Handle group messages
   agent.on('group', async (ctx) => {
-    console.log(`[Agent] Added to group: ${ctx.conversation.id}`);
+    const groupCtx = ctx as any;
+    console.log(`[Agent] New group message from ${groupCtx.message?.senderAddress || 'unknown'}`);
+    // Optionally handle group chats
   });
-  
-  // Start the agent - this keeps it running and listening
-  console.log('[Agent] Agent is now running and listening for messages...');
+
+  // Handle errors
+  agent.on('unhandledError', (error) => {
+    console.error('[Agent] Unhandled error:', error);
+  });
+
+  // Start the agent
   await agent.start();
   
-  // Keep the process running
+  // Get the agent's wallet address
+  const agentAddress = (agent as any).address;
+  console.log(`[Agent] ✅ Seller agent started!`);
+  console.log(`[Agent] Address: ${agentAddress}`);
+  console.log(`[Agent] Listening for messages on ${XMTP_ENV} network`);
+  console.log(`[Agent] Send a message to this address on XMTP (dev network) to test!`);
+
   return agent;
 }
 

@@ -12,9 +12,6 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 
-// Hardcoded XMTP agent address for chat
-const XMTP_AGENT_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
-
 export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
   const [metadata, setMetadata] = useState<DealMetadata | null>(null);
@@ -22,8 +19,8 @@ export function DealGate({ id, metadataUrl }: { id: number; metadataUrl?: string
   const { isConnected } = useAccount();
 
   const isOrbVerified = metadata?.isOrbVerified ?? false;
-  // Use hardcoded XMTP agent address for chat
-  const sellerAddress = XMTP_AGENT_ADDRESS;
+  // Use seller's actual address from metadata for XMTP chat
+  const sellerAddress = metadata?.seller || '';
 
   useEffect(() => { setMounted(true); }, []);
 

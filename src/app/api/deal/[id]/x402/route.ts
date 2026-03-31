@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toUSDCUnits } from '@/lib/x402';
+import { formatPriceForX402, BASE_SEPOLIA_CHAIN_ID } from '@/lib/x402';
 
+// Type for the handler response
 type HandlerResponse = {
   success: true;
   paidVia: string;
@@ -12,23 +13,23 @@ type HandlerResponse = {
   settledAt: number;
 };
 
-// Custom x402 handler with dynamic payment to seller
-const handler = async (request: NextRequest): Promise<NextResponse<HandlerResponse>> => {
+// x402 route - returns listing data AFTER payment is verified
+// Clients use @coinbase/x402 to make payment and retry with proof
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const metadataUrl = url.searchParams.get('meta');
-  // Extract CID from the path (e.g., /deal/Qmxxx?meta=...)
-  const pathSegments = url.pathname.split('/');
-  const listingId = pathSegments[3] || 'unknown';
-
+  
   if (!metadataUrl) {
     return NextResponse.json(
-      { success: false, error: 'No metadata URL provided. Use ?meta=<ipfs-url>' } as unknown as HandlerResponse,
+      { error: 'No metadata URL provided. Use ?meta=<ipfs-url>' },
       { status: 400 }
     );
   }
 
   try {
-    // Fetch metadata to get seller address for payment
+    // Fetch metadata to get seller address and price for dynamic payment
     const metaResponse = await fetch(metadataUrl);
     if (!metaResponse.ok) {
       throw new Error('Failed to fetch metadata from IPFS');
@@ -37,37 +38,44 @@ const handler = async (request: NextRequest): Promise<NextResponse<HandlerRespon
     
     const sellerAddress = metadata.seller;
     const price = metadata.price || '1';
-    
-    // Check for payment proof
-    const paymentProof = request.headers.get('x402-payment-proof') || request.headers.get('authorization');
+    const priceFormatted = formatPriceForX402(price);
+
+    // Check for x402 payment proof in headers
+    // The proof is provided by @coinbase/x402 client after successful payment
+    const paymentProof = request.headers.get('x402-payment-proof');
     
     if (!paymentProof) {
-      // Convert price to USDC units (6 decimal places)
-      const priceUSDC = toUSDCUnits(price || '0');
+      // No payment - return 402 with proper x402 header format
+      // The x402 header tells the client what payment is required
+      // Format: x402 scheme=exact, network=eip155:84532, amount=$price, asset=USDC, payTo=seller
+      const x402Header = `x402 scheme=exact, network=${BASE_SEPOLIA_CHAIN_ID}, amount=${priceFormatted}, asset=USDC, payTo=${sellerAddress}`;
       
-      // Return 402 with dynamic payment to seller
       return new NextResponse(JSON.stringify({
         error: 'Payment required',
-        payTo: sellerAddress,
-        price: priceUSDC,
-        priceDisplay: price,
-        network: 'base-sepolia',
+        scheme: 'exact',
+        price: priceFormatted,
+        network: BASE_SEPOLIA_CHAIN_ID,
         asset: 'USDC',
-        description: `TruCheq listing payment - ${price} USDC goes to seller`,
+        payTo: sellerAddress,
+        maxTimeoutSeconds: 300,
+        description: `TruCheq listing: ${metadata.itemName} - ${price} USDC`,
       }), {
         status: 402,
         headers: {
           'Content-Type': 'application/json',
-          'WWW-Authenticate': `x402 payTo=${sellerAddress}, amount=${priceUSDC}, asset=USDC, network=base-sepolia`,
+          'WWW-Authenticate': x402Header,
         },
       });
     }
 
-    // Payment verified - return listing data
+    // Payment proof present - verify and return listing data
+    // In production, you'd verify the proof with the facilitator
+    // For now, we assume proof is valid if present
+    
     return NextResponse.json({
       success: true,
       paidVia: 'x402',
-      listingId,
+      listingId: url.pathname.split('/')[3] || 'unknown',
       seller: metadata.seller,
       metadataURI: metadataUrl,
       price: metadata.price,
@@ -75,12 +83,10 @@ const handler = async (request: NextRequest): Promise<NextResponse<HandlerRespon
       settledAt: Date.now(),
     });
   } catch (error) {
-    console.error('x402 API error:', error);
+    console.error('x402 route error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch listing from IPFS' } as unknown as HandlerResponse,
+      { error: 'Failed to process request' },
       { status: 500 }
     );
   }
-};
-
-export const GET = handler;
+}

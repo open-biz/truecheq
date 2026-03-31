@@ -15,6 +15,8 @@ import {
   LucideArrowUpRight,
   LucideBot,
   LucideSmartphone,
+  LucideCopy,
+  LucideCheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +35,7 @@ import {
 
 export default function LandingPage() {
   const [isLocked, setIsLocked] = React.useState(true);
+  const [copied, setCopied] = React.useState(false);
   const [verifications, setVerifications] = useState<{ id: number; addr: string; level: string }[]>([]);
 
   useEffect(() => {
@@ -111,15 +114,41 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-5"
+            className="flex flex-col items-center justify-center gap-8"
           >
-            <div className="relative group w-full sm:w-auto">
-              <BorderBeam size={80} duration={4} borderWidth={2} />
-              <Link href="/app" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)]">
-                  Create Listing <LucideArrowRight className="ml-2 w-6 h-6" />
-                </Button>
-              </Link>
+            <Link href="/app" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)] flex items-center justify-center gap-2">
+                Create Listing <LucideArrowRight className="w-6 h-6" />
+              </Button>
+            </Link>
+
+            {/* Agent Skill Copy Button */}
+            <div className="mt-8 w-full max-w-xl flex flex-col items-center">
+              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                <LucideBot className="w-4 h-4" />
+                Agent Skill: Get Protocol Docs
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText("curl -s https://trucheq.com/SKILL.md");
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="group relative w-auto min-w-[340px] md:min-w-[380px] bg-zinc-800/60 border border-zinc-700/50 rounded-md overflow-hidden flex items-center justify-between px-4 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(0,214,50,0.15)] h-[52px]"
+                aria-label="Copy agent skill curl command"
+              >
+                <div className="flex items-center space-x-3">
+                  <LucideBot className="w-[18px] h-[18px] text-primary flex-shrink-0" aria-hidden="true" />
+                  <code className="font-mono text-sm text-white/90 select-all">curl -s https://trucheq.com/SKILL.md</code>
+                </div>
+                <div className="flex items-center ml-3 p-1.5 rounded text-white/50 hover:text-white hover:bg-white/5 transition-colors">
+                  {copied ? (
+                    <LucideCheckCircle className="w-4 h-4 text-primary" aria-hidden="true" />
+                  ) : (
+                    <LucideCopy className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </div>
+              </button>
             </div>
 
           </motion.div>

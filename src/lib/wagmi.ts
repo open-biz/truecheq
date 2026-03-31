@@ -1,6 +1,5 @@
 import { http, createConfig, createStorage } from 'wagmi';
 import { baseSepolia, base } from './chains';
-import { injected } from 'wagmi/connectors';
 import { metaMask } from 'wagmi/connectors';
 
 const noopStorage = {

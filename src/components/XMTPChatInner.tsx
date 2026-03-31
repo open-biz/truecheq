@@ -51,8 +51,7 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
   const { data: walletClient } = useWalletClient();
   const { address: userAddress, isConnected, chainId } = useAccount();
   
-  // Check if wallet is on Base (either mainnet 8453 or Sepolia 84532)
-  const isCorrectChain = chainId === 8453 || chainId === 84532;
+
 
   // Debug logging
   useEffect(() => {
@@ -99,6 +98,7 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
   const isSellerAddressValid = sellerAddress && sellerAddress.startsWith('0x') && !sellerAddress.includes('abcdef');
 
   // Initialize XMTP client when wallet connects
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     async function initXMTP() {
       // Skip if already initialized for this wallet AND seller combination
@@ -160,6 +160,7 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
               identifier: userAddress.toLowerCase() as `0x${string}`,
               identifierKind: IdentifierKind.Ethereum,
             }),
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             signMessage: async (_message: string): Promise<Uint8Array> => {
               // Without walletClient, we can't sign - this is a limitation
               throw new Error('Wallet client not available for signing. Please reconnect your wallet.');
@@ -173,7 +174,7 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
         
         // Create XMTP client with v7 API - use dev network to match agent
         console.log('[XMTP V7] Creating client on dev network...');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const xmtpClient = await Client.create(xmtpSigner, { env: 'dev' } as any);
         
         if (!isMountedRef.current) {
@@ -194,31 +195,20 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
         console.log('[XMTP V7] Checking if seller is reachable:', sellerAddress);
         console.log('[XMTP V7] Calling Client.canMessage...');
         console.log('[XMTP V7] Seller address lower:', sellerAddress.toLowerCase());
-        
         console.log('[XMTP V7] About to call Client.canMessage with:', sellerAddress.toLowerCase());
         
         let isReachable = false;
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const canMessageResult = await Client.canMessage([{
+          // Use v7 canMessage API with Identifier array - returns Map<identifier, boolean>
+          const identifiers = [{
             identifier: sellerAddress.toLowerCase() as `0x${string}`,
             identifierKind: IdentifierKind.Ethereum,
-          }], { env: 'dev' } as any);
+          }];
+          // Use the static canMessage with XmtpEnv parameter (deprecated but works)
+          const canMessageResult = await Client.canMessage(identifiers, 'dev' as any);
           console.log('[XMTP V7] canMessage completed, result:', canMessageResult);
-          console.log('[XMTP V7] canMessageResult type:', typeof canMessageResult, Object.prototype.toString.call(canMessageResult));
-          
-          // Try different ways to get the result
-          try {
-            isReachable = canMessageResult.get(sellerAddress.toLowerCase()) ?? false;
-          } catch (e) {
-            console.log('[XMTP V7] canMessageResult.get() error:', e);
-            // Try with the original address
-            try {
-              isReachable = canMessageResult.get(sellerAddress) ?? false;
-            } catch (e2) {
-              console.log('[XMTP V7] canMessageResult.get() with original also failed:', e2);
-            }
-          }
+          // Extract result from Map
+          isReachable = canMessageResult.get(sellerAddress.toLowerCase()) ?? false;
         } catch (canMsgError) {
           console.error('[XMTP V7] canMessage failed:', canMsgError);
           setError('Failed to check if seller can receive messages: ' + (canMsgError instanceof Error ? canMsgError.message : 'Unknown error'));

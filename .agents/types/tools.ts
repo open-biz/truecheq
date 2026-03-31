@@ -61,6 +61,7 @@ export interface ToolParamsMap {
   web_search: WebSearchParams
   write_file: WriteFileParams
   write_todos: WriteTodosParams
+  [key: string]: unknown
 }
 
 /**
