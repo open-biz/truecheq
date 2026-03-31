@@ -6,8 +6,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 let Client: any = null;
 async function getClient() {
   if (!Client) {
-    const module = await import('@xmtp/node-sdk');
-    Client = module.Client;
+    const xmtpModule = await import('@xmtp/node-sdk');
+    Client = xmtpModule.Client;
   }
   return Client;
 }
