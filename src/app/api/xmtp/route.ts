@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
-import { Client } from '@xmtp/node-sdk';
 import { getRandomValues } from 'node:crypto';
 import { privateKeyToAccount } from 'viem/accounts';
+
+// Dynamic import to avoid native binding issues at build time
+let Client: any = null;
+async function getClient() {
+  if (!Client) {
+    const module = await import('@xmtp/node-sdk');
+    Client = module.Client;
+  }
+  return Client;
+}
 
 // IdentifierKind enum value for Ethereum
 const IDENTIFIER_KIND_ETHEREUM = 1;
@@ -36,9 +45,9 @@ const XMTP_SIGNER = getXmtpSigner();
 export const runtime = 'nodejs';
 
 // Initialize XMTP client (singleton)
-let xmtpClient: Client | null = null;
+let xmtpClient: any = null;
 
-async function getXMTPClient(): Promise<Client | null> {
+async function getXMTPClient(): Promise<any> {
   if (!XMTP_SIGNER) {
     console.error('[XMTP API] Signer not configured - missing XMTP_SELLER_PRIVATE_KEY or XMTP_SELLER_ADDRESS');
     return null;
@@ -48,9 +57,10 @@ async function getXMTPClient(): Promise<Client | null> {
     return xmtpClient;
   }
   
+  const ClientClass = await getClient();
   const dbEncryptionKey = getRandomValues(new Uint8Array(32));
   
-  xmtpClient = await Client.create(XMTP_SIGNER, {
+  xmtpClient = await ClientClass.create(XMTP_SIGNER, {
     dbEncryptionKey,
     dbPath: './xmtp-db',
   });
