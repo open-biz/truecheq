@@ -126,7 +126,7 @@ export default function LandingPage() {
             <div className="mt-8 w-full max-w-xl flex flex-col items-center">
               <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
                 <LucideBot className="w-4 h-4" />
-                Agent Skill: Get Protocol Docs
+                Agent: Fetch Marketplace API
               </p>
               <button
                 onClick={() => {
