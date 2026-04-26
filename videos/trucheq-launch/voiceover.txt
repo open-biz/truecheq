@@ -1,0 +1,21 @@
+0:00-0:05
+P2P buying in DMs is fast, but trust is broken.
+
+0:05-0:11
+On Reddit and Craigslist, buyers still ask: is this seller real, and is this listing safe?
+
+0:11-0:17
+TruCheq is the buy button for your DMs.
+
+0:17-0:23
+Sellers verify with World ID, so every listing starts with proof of personhood.
+
+0:23-0:30
+Buyers chat through XMTP, and TruCheq’s agent handles seller-side coordination.
+
+0:30-0:36
+When it’s time to close, payment happens in-flow with x402.
+
+0:36-0:45
+Trust, messaging, and checkout in one headless commerce layer.
+TruCheq. Verified P2P commerce for the agent era.

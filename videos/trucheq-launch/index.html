@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TruCheq Product Promo</title>
+  </head>
+  <body>
+    <div
+      data-composition-id="trucheq-launch"
+      data-start="0"
+      data-duration="40"
+      data-track-index="0"
+      data-width="1920"
+      data-height="1080"
+    >
+      <audio
+        id="music-track"
+        data-start="0"
+        data-duration="40"
+        data-track-index="3"
+        src="assets/music-bed.mp3"
+        data-volume="0.9"
+      ></audio>
+
+      <div class="bg-grid"></div>
+      <div class="bg-glow"></div>
+
+      <section class="scene" id="scene-0">
+        <div class="hero-card s0-a">
+          <img src="assets/trucheq-logo.png" alt="TruCheq logo" />
+          <p class="hero-kicker">Product Promo</p>
+          <h1>The Buy Button For Your DMs</h1>
+          <p>Social commerce without scam roulette.</p>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-1">
+        <div class="problem-header s1-a">
+          <p class="kicker">Problem</p>
+          <h2>Do you buy or sell on Reddit or Craigslist? Worried about getting scammed?</h2>
+        </div>
+        <div class="flow-wrap s1-b">
+          <div class="flow-col bad">
+            <p class="flow-title">Manual Reddit Flow</p>
+            <div class="flow-step">Post WTS / WTB manually</div>
+            <div class="flow-step">Wait hours for DM replies</div>
+            <div class="flow-step">Chat with possible fraudster</div>
+            <div class="flow-step">Send money, hope for delivery</div>
+            <div class="flow-step danger">Risk: blocked, no item, no recourse</div>
+          </div>
+          <div class="flow-vs">VS</div>
+          <div class="flow-col good">
+            <p class="flow-title">TruCheq Flow</p>
+            <div class="flow-step">Paste seller code in TruCheq</div>
+            <div class="flow-step">Verify with World ID</div>
+            <div class="flow-step">Chat via XMTP + AI agent</div>
+            <div class="flow-step">Pay instantly with x402</div>
+            <div class="flow-step success">Final sale + seller inventory browsing</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-2">
+        <div class="problem-header s2-a">
+          <p class="kicker">Live Market</p>
+          <h2>Real Reddit selling pressure across watches and tickets.</h2>
+        </div>
+        <div class="reddit-stack s2-b">
+          <article class="reddit-card r1">
+            <p class="sub">r/BSTRepWatch</p>
+            <p class="title">[WTS][CONUS] Rolex / AP / Hublot (GoConfirm verified)</p>
+            <p class="meta">Manual trust checks. DM-first negotiation.</p>
+          </article>
+          <article class="reddit-card r2">
+            <p class="sub">r/BSTRepWatch</p>
+            <p class="title">[WTS][US] VSF Omega + Deville (+ more)</p>
+            <p class="meta">High-value listings, uneven buyer protection.</p>
+          </article>
+          <article class="reddit-card r3">
+            <p class="sub">r/Tickets</p>
+            <p class="title">BTS / Concert / Baseball ticket sales threads</p>
+            <p class="meta">Fast moving DMs + payment-method guessing.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-3">
+        <div class="problem-header s3-a">
+          <p class="kicker">Action</p>
+          <h2>Paste seller code. Verify fast. See inventory immediately.</h2>
+        </div>
+        <div class="shot s3-b">
+          <video class="shot-video" src="assets/clips/scene4-discover-6s.mp4" muted playsinline autoplay loop></video>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-4">
+        <div class="problem-header s4-a">
+          <p class="kicker">Action</p>
+          <h2>Chat on XMTP, get instant AI-assisted context, pay with x402.</h2>
+        </div>
+        <div class="two-shot s4-b">
+          <div class="shot">
+            <video class="shot-video" src="assets/clips/scene5-agent-7s.mp4" muted playsinline autoplay loop></video>
+          </div>
+          <div class="shot">
+            <video class="shot-video" src="assets/clips/scene6-pay-6s.mp4" muted playsinline autoplay loop></video>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-5">
+        <div class="problem-header s5-a">
+          <p class="kicker">Seller Value</p>
+          <h2>Quick sales. Verified buyers. No chargeback chaos. AI scale.</h2>
+        </div>
+        <div class="cta-wrap s5-b">
+          <img class="cta-bg" src="assets/trucheq-browse-listings.png" alt="TruCheq listings" />
+          <img class="cta-overlay" src="assets/trucheq-payment-x402.png" alt="x402 checkout" />
+          <div class="cta-pill">
+            <p class="url">trucheq.com</p>
+            <p>Use TruCheq now.</p>
+          </div>
+        </div>
+      </section>
+
+      <div id="cursor"></div>
+      <div id="click-ring"></div>
+      <div id="transition-leak"></div>
+      <div id="transition-vignette"></div>
+      <div id="final-fade"></div>
+    </div>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap");
+      * { box-sizing: border-box; }
+
+      [data-composition-id="trucheq-launch"] {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #060c16;
+        color: #f2fbff;
+        font-family: "IBM Plex Sans", sans-serif;
+      }
+
+      [data-composition-id="trucheq-launch"] .bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        background-size: 56px 56px;
+        opacity: 0.24;
+      }
+
+      [data-composition-id="trucheq-launch"] .bg-glow {
+        position: absolute;
+        inset: -15%;
+        background:
+          radial-gradient(circle at 16% 22%, rgba(20, 239, 178, 0.18), rgba(20, 239, 178, 0) 34%),
+          radial-gradient(circle at 86% 78%, rgba(110, 208, 255, 0.22), rgba(110, 208, 255, 0) 34%);
+      }
+
+      [data-composition-id="trucheq-launch"] .scene {
+        position: absolute;
+        inset: 0;
+        padding: 64px 84px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        background-color: #060c16;
+      }
+
+      [data-composition-id="trucheq-launch"] .kicker {
+        margin: 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #15f2b3;
+        font-weight: 700;
+      }
+
+      [data-composition-id="trucheq-launch"] .problem-header h2 {
+        margin: 8px 0 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 46px;
+        line-height: 1.04;
+        max-width: 1500px;
+      }
+
+      [data-composition-id="trucheq-launch"] .hero-card {
+        width: 1180px;
+        margin: auto;
+        padding: 34px 44px;
+        border-radius: 26px;
+        background: rgba(7, 13, 23, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 42px 110px rgba(0, 0, 0, 0.52);
+        text-align: center;
+        transform-style: preserve-3d;
+      }
+
+      [data-composition-id="trucheq-launch"] .hero-card img {
+        width: 180px;
+        margin: 0 auto 10px;
+        display: block;
+      }
+
+      [data-composition-id="trucheq-launch"] .hero-kicker {
+        margin: 0;
+        color: #15f2b3;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      [data-composition-id="trucheq-launch"] .hero-card h1 {
+        margin: 10px 0 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 62px;
+        line-height: 1.02;
+      }
+
+      [data-composition-id="trucheq-launch"] .hero-card p {
+        margin: 10px 0 0;
+        font-size: 28px;
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-wrap {
+        flex: 1;
+        display: flex;
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-col {
+        flex: 1;
+        border-radius: 18px;
+        padding: 20px;
+        background: rgba(11, 18, 30, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-col.bad {
+        border-color: rgba(255, 124, 124, 0.48);
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-col.good {
+        border-color: rgba(21, 242, 179, 0.5);
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-title {
+        margin: 0 0 14px;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 34px;
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-step {
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        font-size: 23px;
+        line-height: 1.2;
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-step.danger {
+        background: rgba(255, 104, 104, 0.16);
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-step.success {
+        background: rgba(21, 242, 179, 0.16);
+      }
+
+      [data-composition-id="trucheq-launch"] .flow-vs {
+        width: 98px;
+        align-self: center;
+        text-align: center;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 54px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-stack {
+        flex: 1;
+        position: relative;
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-card {
+        position: absolute;
+        width: 980px;
+        border-radius: 16px;
+        padding: 18px 22px;
+        background: #141d2d;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-card .sub {
+        margin: 0;
+        color: #8fc3ff;
+        font-size: 19px;
+        font-weight: 700;
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-card .title {
+        margin: 8px 0 0;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.22;
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-card .meta {
+        margin: 8px 0 0;
+        font-size: 22px;
+        color: rgba(242, 251, 255, 0.78);
+      }
+
+      [data-composition-id="trucheq-launch"] .reddit-card.r1 { left: 120px; top: 70px; }
+      [data-composition-id="trucheq-launch"] .reddit-card.r2 { left: 460px; top: 230px; }
+      [data-composition-id="trucheq-launch"] .reddit-card.r3 { left: 210px; top: 390px; }
+
+      [data-composition-id="trucheq-launch"] .shot,
+      [data-composition-id="trucheq-launch"] .cta-wrap {
+        position: relative;
+        flex: 1;
+        border-radius: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(122, 214, 255, 0.45);
+        box-shadow: 0 30px 88px rgba(0, 0, 0, 0.5);
+      }
+
+      [data-composition-id="trucheq-launch"] .two-shot {
+        flex: 1;
+        display: flex;
+        gap: 14px;
+      }
+
+      [data-composition-id="trucheq-launch"] .shot-video,
+      [data-composition-id="trucheq-launch"] .cta-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      [data-composition-id="trucheq-launch"] .cta-overlay {
+        position: absolute;
+        width: 520px;
+        right: 20px;
+        bottom: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(21, 242, 179, 0.45);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
+      }
+
+      [data-composition-id="trucheq-launch"] .cta-pill {
+        position: absolute;
+        left: 20px;
+        bottom: 20px;
+        background: rgba(5, 10, 18, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 14px;
+        padding: 14px 18px;
+      }
+
+      [data-composition-id="trucheq-launch"] .cta-pill .url {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 42px;
+      }
+
+      [data-composition-id="trucheq-launch"] .cta-pill p {
+        margin: 6px 0 0;
+        font-size: 22px;
+      }
+
+      [data-composition-id="trucheq-launch"] #cursor {
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        border-radius: 50% 50% 50% 2px;
+        background: linear-gradient(145deg, #fff, #d9f3ff);
+        box-shadow: 0 0 0 2px rgba(5, 11, 21, 0.55), 0 8px 18px rgba(0, 0, 0, 0.42);
+        opacity: 0;
+        z-index: 90;
+      }
+
+      [data-composition-id="trucheq-launch"] #click-ring {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(21, 242, 179, 0.85);
+        opacity: 0;
+        z-index: 89;
+      }
+
+      [data-composition-id="trucheq-launch"] #transition-leak {
+        position: absolute;
+        inset: -10% -20%;
+        background: linear-gradient(104deg, rgba(255,255,255,0), rgba(136,246,222,0.2), rgba(165,225,255,0.3), rgba(255,255,255,0));
+        mix-blend-mode: screen;
+        opacity: 0;
+        z-index: 80;
+      }
+
+      [data-composition-id="trucheq-launch"] #transition-vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 50%, rgba(8,16,28,0) 44%, rgba(8,16,28,0.36) 100%);
+        opacity: 0;
+        z-index: 81;
+      }
+
+      [data-composition-id="trucheq-launch"] #final-fade {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        opacity: 0;
+        z-index: 95;
+      }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const scenes = ["#scene-0","#scene-1","#scene-2","#scene-3","#scene-4","#scene-5"];
+
+      gsap.set(scenes, { autoAlpha: 0 });
+      gsap.set("#scene-0", { autoAlpha: 1 });
+      gsap.set("#cursor", { autoAlpha: 0, x: -100, y: -100, rotation: -18 });
+      gsap.set("#click-ring", { autoAlpha: 0, x: -100, y: -100, scale: 0.2 });
+      gsap.set(".reddit-card", { autoAlpha: 0, y: 28 });
+
+      document.querySelectorAll("video").forEach((v) => {
+        try { v.playbackRate = 1.28; } catch (e) {}
+      });
+
+      function sceneIn(selectors, at) {
+        selectors.forEach((s, i) => {
+          tl.from(s, { opacity: 0, y: 20, duration: 0.42, ease: "power3.out" }, at + i * 0.08);
+        });
+      }
+
+      function meld(outScene, inScene, at) {
+        const d = 0.7;
+        tl.set(inScene, { autoAlpha: 1, zIndex: 12, filter: "blur(18px)", scale: 1.04, opacity: 0.5 }, at);
+        tl.to(outScene, { filter: "blur(14px)", scale: 1.03, opacity: 0.5, duration: d, ease: "sine.inOut" }, at);
+        tl.to(inScene, { filter: "blur(0px)", scale: 1, opacity: 1, duration: d, ease: "sine.inOut" }, at);
+        tl.fromTo("#transition-leak", { autoAlpha: 0, xPercent: -45 }, { autoAlpha: 0.58, xPercent: 8, duration: d * 0.52, ease: "power1.out" }, at + 0.04);
+        tl.to("#transition-leak", { autoAlpha: 0, xPercent: 46, duration: d * 0.48, ease: "power1.in" }, at + d * 0.52);
+        tl.fromTo("#transition-vignette", { autoAlpha: 0 }, { autoAlpha: 0.42, duration: d * 0.5, ease: "sine.out" }, at + 0.03);
+        tl.to("#transition-vignette", { autoAlpha: 0, duration: d * 0.5, ease: "sine.in" }, at + d * 0.5);
+        tl.set(outScene, { autoAlpha: 0, filter: "none", scale: 1, opacity: 1 }, at + d + 0.01);
+        tl.set(inScene, { zIndex: "auto", filter: "none", scale: 1, opacity: 1 }, at + d + 0.01);
+      }
+
+      function cursorMove(at, x, y, dur) {
+        tl.set("#cursor", { autoAlpha: 1 }, at);
+        tl.to("#cursor", { x, y, duration: dur, ease: "power2.inOut" }, at);
+      }
+
+      function click(at, x, y) {
+        tl.set("#click-ring", { x: x + 6, y: y + 6, scale: 0.2, autoAlpha: 0.95 }, at);
+        tl.to("#click-ring", { scale: 2.2, autoAlpha: 0, duration: 0.34, ease: "power2.out" }, at);
+      }
+
+      // 0-6: 3D reveal
+      sceneIn([".s0-a"], 0.0);
+      tl.fromTo(".hero-card", { rotateX: 56, rotateY: -28, z: -540, scale: 0.82 }, { rotateX: 0, rotateY: 0, z: 0, scale: 1, duration: 2.2, ease: "power4.out" }, 0.12);
+      tl.to(".hero-card", { rotateY: 2, duration: 1.2, yoyo: true, repeat: 1, ease: "sine.inOut" }, 2.6);
+      meld("#scene-0", "#scene-1", 6.0);
+
+      // 6-14: flowchart
+      sceneIn([".s1-a", ".s1-b"], 6.2);
+      tl.from(".flow-col.bad .flow-step", { opacity: 0, x: -24, stagger: 0.11, duration: 0.3 }, 6.54);
+      tl.from(".flow-col.good .flow-step", { opacity: 0, x: 24, stagger: 0.11, duration: 0.3 }, 7.1);
+      meld("#scene-1", "#scene-2", 14.0);
+
+      // 14-20: reddit cards
+      sceneIn([".s2-a", ".s2-b"], 14.2);
+      tl.to(".reddit-card.r1", { autoAlpha: 1, y: 0, duration: 0.36, ease: "power3.out" }, 14.5);
+      tl.to(".reddit-card.r2", { autoAlpha: 1, y: 0, duration: 0.36, ease: "power3.out" }, 14.9);
+      tl.to(".reddit-card.r3", { autoAlpha: 1, y: 0, duration: 0.36, ease: "power3.out" }, 15.3);
+      tl.to(".reddit-stack", { x: -24, duration: 2.8, ease: "none" }, 15.5);
+      meld("#scene-2", "#scene-3", 20.0);
+
+      // 20-27: discover
+      sceneIn([".s3-a", ".s3-b"], 20.2);
+      tl.fromTo("#scene-3 .shot-video", { x: 0, y: 0, scale: 1 }, { x: -44, y: -16, scale: 1.12, duration: 6, ease: "none" }, 20.5);
+      cursorMove(21.2, 940, 418, 0.52);
+      click(21.75, 940, 418);
+      meld("#scene-3", "#scene-4", 27.0);
+
+      // 27-33: xmtp + pay
+      sceneIn([".s4-a", ".s4-b"], 27.2);
+      tl.fromTo("#scene-4 .two-shot .shot:nth-child(1) .shot-video", { x: 0, y: 0, scale: 1 }, { x: -28, y: -12, scale: 1.1, duration: 5.2, ease: "none" }, 27.5);
+      tl.fromTo("#scene-4 .two-shot .shot:nth-child(2) .shot-video", { x: 0, y: 0, scale: 1 }, { x: -14, y: -22, scale: 1.12, duration: 5.2, ease: "none" }, 27.6);
+      cursorMove(29.0, 1260, 704, 0.44);
+      click(29.48, 1260, 704);
+      meld("#scene-4", "#scene-5", 33.0);
+
+      // 33-40: seller value + cta
+      sceneIn([".s5-a", ".s5-b"], 33.2);
+      tl.fromTo(".cta-bg", { scale: 1 }, { scale: 1.06, duration: 6.2, ease: "none" }, 33.4);
+      tl.from(".cta-overlay", { opacity: 0, x: 80, duration: 0.44, ease: "power3.out" }, 33.8);
+      tl.from(".cta-pill", { opacity: 0, y: 28, duration: 0.42, ease: "power3.out" }, 33.9);
+      tl.to("#cursor", { autoAlpha: 0, duration: 0.2 }, 33.15);
+      tl.to("#final-fade", { opacity: 1, duration: 0.8, ease: "power2.out" }, 39.2);
+
+      window.__timelines["trucheq-launch"] = tl;
+    </script>
+  </body>
+</html>
