@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitter, LucideMessageCircle, LucideImage, LucideX, LucideUpload, LucideShieldCheck, LucideWallet } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, STORAGE_KEYS } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 
 interface DealCreatorProps {
@@ -26,7 +26,6 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [listingCid, setListingCid] = useState<string | null>(null);
   const [metadataUrl, setMetadataUrl] = useState<string | null>(null);
-  const [createdAt, setCreatedAt] = useState<number>(0);
   const [errors, setErrors] = useState<{ itemName?: string; price?: string }>({});
   const [touched, setTouched] = useState<{ itemName?: boolean; price?: boolean }>({});
   const [copied, setCopied] = useState(false);
@@ -136,8 +135,34 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
       const { url: metaUrl, cid } = await metadataResponse.json();
       setMetadataUrl(metaUrl);
       setListingCid(cid);
-      setCreatedAt(Date.now());
       setIsUploading(false);
+
+      // Persist listing to localStorage so DealDashboard can show it
+      try {
+        const stored = localStorage.getItem(STORAGE_KEYS.USER_LISTINGS);
+        const existing = stored ? JSON.parse(stored) : [];
+        existing.push({
+          cid,
+          metadataUrl: metaUrl,
+          seller: address as string,
+          price,
+          isOrbVerified,
+          createdAt: Date.now(),
+          metadata: {
+            itemName,
+            description: `Item: ${itemName}`,
+            price,
+            images: imageUrls,
+            seller: address as string,
+            isOrbVerified,
+            createdAt: Date.now(),
+          },
+        });
+        localStorage.setItem(STORAGE_KEYS.USER_LISTINGS, JSON.stringify(existing));
+      } catch (e) {
+        console.error('Failed to save listing to localStorage:', e);
+      }
+
       toast.success("Listing created successfully!");
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Unknown error';

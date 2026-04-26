@@ -11,12 +11,9 @@ import {
   LucideUsers,
   LucideLock,
   LucideUnlock,
-  LucidePackage,
   LucideArrowUpRight,
   LucideBot,
-  LucideSmartphone,
   LucideCopy,
-  LucideCheckCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -30,7 +27,6 @@ import {
   Marquee,
   TruCheqCoin,
   Spotlight,
-  BorderBeam
 } from "@/components/ui/code-graphics";
 
 export default function LandingPage() {
@@ -68,12 +64,12 @@ export default function LandingPage() {
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Features</a>
-            <Link href="/marketplace" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Marketplace</Link>
+            <Link href="/?tab=buy" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Marketplace</Link>
 
             <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Use Cases</a>
           </div>
 
-          <Link href="/app">
+          <Link href="/">
             <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl px-6 py-4 shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
               Launch App
             </Button>
@@ -116,7 +112,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex flex-col items-center justify-center gap-8"
           >
-            <Link href="/app" className="w-full sm:w-auto">
+            <Link href="/" className="w-full sm:w-auto">
               <Button size="lg" className="w-full sm:w-auto sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)] flex items-center justify-center gap-2">
                 Create Listing <LucideArrowRight className="w-6 h-6" />
               </Button>
@@ -348,7 +344,7 @@ export default function LandingPage() {
           <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none text-white uppercase">Ready to Trade?</h3>
 
           <div className="relative group mb-20 scale-110">
-            <Link href="/app">
+            <Link href="/">
               <Button size="lg" className="px-16 py-10 text-3xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,214,50,0.3)] transition-all active:scale-95">
                 Launch App
               </Button>
