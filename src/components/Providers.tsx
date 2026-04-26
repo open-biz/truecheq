@@ -1,24 +1,35 @@
 'use client';
 
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
+import { MiniKit } from '@worldcoin/minikit-js';
 import { config } from '@/lib/wagmi';
 import { XMTPProvider } from '@/lib/xmtp-provider';
+
+// MiniKit requires a valid app_id (format: app_xxx) from developer.world.org.
+// Fail loudly at runtime if missing — the TypeScript `!` assertion only hides the type error.
+const APP_ID = process.env.NEXT_PUBLIC_APP_ID;
+if (!APP_ID) throw new Error('NEXT_PUBLIC_APP_ID is required — get it from https://developer.world.org');
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
-  // Custom World-focused wallet UI - no RainbowKit needed
-  // MiniKitProvider enables native World App wallet via deep links
-  // The worldApp() connector in wagmi config handles the fallback
+  // When running inside World App, add a CSS class to the body so we can scope
+  // Mini App-specific styles (e.g. bottom safe zone) without affecting standalone.
+  useEffect(() => {
+    if (MiniKit.isInstalled()) {
+      document.body.classList.add('is-mini-app');
+    }
+  }, []);
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <MiniKitProvider
           props={{
-            appId: process.env.NEXT_PUBLIC_APP_ID || 'app_trucheq',
+            appId: APP_ID as `app_${string}`,
             wagmiConfig: config,
           }}
         >

@@ -1,7 +1,8 @@
 {
   "version": "1.0",
+  "app_id": "app_81f193f79b966a9a337e2db2d560dfbc",
   "name": "TruCheq",
   "description": "P2P commerce protocol with World ID verification, encrypted XMTP chat, and x402 payments on Base",
   "icon": "/trucheq-logo-sz.jpeg",
-  "link": "https://trucheq.vercel.app"
+  "link": "https://trucheq.com"
 }

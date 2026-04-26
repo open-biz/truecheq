@@ -84,7 +84,7 @@ function BottomTabBar({
     <nav
       className={cn(
         'fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl',
-        isMiniApp ? 'bottom-0 pb-safe' : 'bottom-0',
+        isMiniApp ? 'bottom-[var(--world-nav-height)]' : 'bottom-0',
       )}
       role="tablist"
       aria-label="Main navigation"

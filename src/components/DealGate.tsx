@@ -123,7 +123,7 @@ function StickyBottomCTA({
     <div
       className={cn(
         'fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl',
-        isMiniApp ? 'bottom-0 pb-safe' : 'bottom-0',
+        isMiniApp ? 'bottom-[var(--world-nav-height)]' : 'bottom-0',
       )}
     >
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
@@ -360,7 +360,7 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
           itemName={metadata.itemName}
           itemPrice={metadata.price}
           itemImage={metadata.images?.[0]}
-          bottomOffset="5rem"
+          bottomOffset={isMiniApp ? 'calc(5rem + var(--world-nav-height))' : '5rem'}
         />
       )}
 

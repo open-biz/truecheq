@@ -133,6 +133,20 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* World App safe zone: bottom nav bar overlay height.
+     Used by globals.css body padding + fixed-position elements (AppShell, DealGate).
+     Update this value if World App changes its overlay size. */
+  :root {
+    --world-nav-height: 94px;
+  }
+
+  /* Only apply when running inside World App (body.is-mini-app class is set
+     by Providers.tsx via MiniKit.isInstalled()). This avoids the gap
+     in standalone browsers. */
+  body.is-mini-app {
+    padding-bottom: max(env(safe-area-inset-bottom), var(--world-nav-height));
+  }
 }
 
 @layer utilities {
