@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
+import { MiniKit } from '@worldcoin/minikit-js';
+import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import {
@@ -32,6 +34,7 @@ import {
 export default function LandingPage() {
   const [isLocked, setIsLocked] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
+  const isMiniApp = MiniKit.isInstalled();
   const [verifications, setVerifications] = useState<{ id: number; addr: string; level: string }[]>([]);
 
   useEffect(() => {
@@ -353,16 +356,16 @@ export default function LandingPage() {
 
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 mb-24 max-w-4xl w-full">
             <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://github.com/open-biz/truecheq" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
+              <a href="https://github.com/open-biz/truecheq" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://github.com/open-biz/truecheq'); toast.success('Link copied!'); } : undefined}>GitHub Repo</a>
             </Button>
             <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.world.org/world-id" target="_blank" rel="noopener noreferrer">World ID Docs</a>
+              <a href="https://docs.world.org/world-id" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.world.org/world-id'); toast.success('Link copied!'); } : undefined}>World ID Docs</a>
             </Button>
             <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.xmtp.org" target="_blank" rel="noopener noreferrer">XMTP Docs</a>
+              <a href="https://docs.xmtp.org" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.xmtp.org'); toast.success('Link copied!'); } : undefined}>XMTP Docs</a>
             </Button>
             <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.cdp.coinbase.com/x402/welcome" target="_blank" rel="noopener noreferrer">Coinbase x402</a>
+              <a href="https://docs.cdp.coinbase.com/x402/welcome" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.cdp.coinbase.com/x402/welcome'); toast.success('Link copied!'); } : undefined}>Coinbase x402</a>
             </Button>
           </div>
 

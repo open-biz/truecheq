@@ -192,8 +192,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
   body {
     @apply bg-background text-foreground;
+    min-height: 100dvh;
   }
 
   /* World App safe zone: bottom nav bar overlay height.

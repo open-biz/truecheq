@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LucidePackage, LucideAlertCircle, LucideCopy, LucideCheck, LucideTwitter, LucideMessageCircle, LucideImage, LucideX, LucideUpload, LucideShieldCheck, LucideWallet } from 'lucide-react';
 import { cn, STORAGE_KEYS } from '@/lib/utils';
+import { MiniKit } from '@worldcoin/minikit-js';
 import type { DealMetadata } from '@/lib/filebase';
 
 interface DealCreatorProps {
@@ -347,7 +348,12 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
                     onClick={() => {
                       const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
                       const text = `Check out this ${itemName} on TruCheq! World ID verified seller with encrypted XMTP chat.`;
-                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank');
+                      if (MiniKit.isInstalled()) {
+                        navigator.clipboard.writeText(`${text}\n${link}`);
+                        toast.success('Link copied — paste it in your social app!');
+                      } else {
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`, '_blank');
+                      }
                     }}
                     className="flex-1 rounded-xl border-white/10 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-colors"
                   >
@@ -360,7 +366,12 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
                     onClick={() => {
                       const link = typeof window !== 'undefined' ? `${window.location.origin}/deal/${listingCid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl || '')}` : '';
                       const text = `🔒 ${itemName} - ${price} USDC\n\nWorld ID verified seller on TruCheq:\n${link}`;
-                      window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
+                      if (MiniKit.isInstalled()) {
+                        navigator.clipboard.writeText(`${text}\n${link}`);
+                        toast.success('Link copied — paste it in your social app!');
+                      } else {
+                        window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
+                      }
                     }}
                     className="flex-1 rounded-xl border-white/10 hover:bg-blue-400/10 hover:border-blue-400/30 hover:text-blue-300 transition-colors"
                   >

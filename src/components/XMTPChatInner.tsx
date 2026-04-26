@@ -25,6 +25,7 @@ import { Client, IdentifierKind, type Dm } from '@xmtp/browser-sdk';
 import { useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { MiniKit } from '@worldcoin/minikit-js';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { getXMTPEnv } from '@/lib/xmtp';
 import {
@@ -894,12 +895,19 @@ export function XMTPChatInner({
                 className='flex-1 border-white/10 hover:bg-white/10'
               >
                 <a 
-                  href={`https://xmtp.chat/dm/${sellerAddress}`} 
-                  target='_blank' 
+                  href={`https://xmtp.chat/dm/${sellerAddress}`}
+                  target={MiniKit.isInstalled() ? undefined : '_blank'} 
                   rel='noopener noreferrer'
+                  onClick={MiniKit.isInstalled() ? (e) => {
+                    e.preventDefault();
+                    navigator.clipboard.writeText(`https://xmtp.chat/dm/${sellerAddress}`);
+                    toast.success('XMTP link copied!');
+                  } : undefined}
                 >
-                  <ExternalLink className='w-4 h-4 mr-2' />
-                  External
+                  {MiniKit.isInstalled()
+                    ? <><Copy className='w-4 h-4 mr-2' />Copy Link</>
+                    : <><ExternalLink className='w-4 h-4 mr-2' />External</>
+                  }
                 </a>
               </Button>
             </div>

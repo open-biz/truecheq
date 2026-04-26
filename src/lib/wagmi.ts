@@ -44,6 +44,11 @@ export const config = createConfig({
   }),
   connectors: [
     worldApp(),        // World App native connector (only works inside World App WebView)
-    injected(),        // MetaMask, Rabby, and other injected wallets
+    // Only add injected() connector outside World App to prevent deep-link
+    // triggers that open Safari from within the World App webview.
+    // MiniKit.isInstalled() checks window.WorldApp internally.
+    ...(typeof window !== 'undefined' && !(window as unknown as { WorldApp?: unknown }).WorldApp
+      ? [injected()]
+      : []),
   ],
 });

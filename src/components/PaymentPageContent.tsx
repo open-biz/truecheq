@@ -11,7 +11,7 @@ import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LucideCheckCircle, LucideArrowLeft, LucideWallet, LucideLoader2, LucideExternalLink, LucideShieldCheck, LucideCoins, LucideCreditCard, LucideSmartphone } from 'lucide-react';
+import { LucideCheckCircle, LucideArrowLeft, LucideWallet, LucideLoader2, LucideExternalLink, LucideShieldCheck, LucideCoins, LucideCreditCard, LucideSmartphone, LucideCopy } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { STORAGE_KEYS, cn, getProxiedImageUrl } from '@/lib/utils';
@@ -603,12 +603,17 @@ function PaymentPageContentInner({ id }: { id: string }) {
                       href={selectedChain === WORLD_CHAIN_ID
                         ? `https://worldchain-mainnet.g.alchemy.com/explorer/tx/${displayTxHash}`
                         : `https://basescan.org/tx/${displayTxHash}`}
-                      target="_blank" 
+                      target={isMiniApp ? undefined : '_blank'}
                       rel="noopener noreferrer"
+                      onClick={isMiniApp ? (e) => {
+                        e.preventDefault();
+                        navigator.clipboard.writeText(displayTxHash);
+                        toast.success('Tx hash copied!');
+                      } : undefined}
                       className="text-[10px] font-mono text-primary flex items-center gap-1 hover:underline"
                     >
                       {displayTxHash.slice(0, 6)}...{displayTxHash.slice(-4)}
-                      <LucideExternalLink className="w-3 h-3" />
+                      {isMiniApp ? <LucideCopy className="w-3 h-3" /> : <LucideExternalLink className="w-3 h-3" />}
                     </a>
                   </div>
                 )}

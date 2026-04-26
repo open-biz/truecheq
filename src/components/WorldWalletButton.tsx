@@ -73,11 +73,13 @@ export function WorldWalletButton({
   
   // Wagmi wallet connection
   const { address, isConnected, chain, connector } = useAccount();
-  const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   
   const isCorrectChain = chain?.id === WORLD_CHAIN_ID || chain?.id === WORLD_CHAIN_SEPOLIA_ID || chain?.id === BASE_CHAIN_NUM;
+  
+  // Check if running inside World App webview
+  const isInsideWorldApp = MiniKit.isInstalled();
   
   // Check if connected via World App deep link
   const isWorldApp = connector?.id === 'worldApp' || connector?.name.toLowerCase().includes('world');
@@ -191,12 +193,16 @@ export function WorldWalletButton({
                   <div className='p-4 border-b border-white/10'>
                     <a 
                       href={`${getExplorerUrl(chain.id)}/address/${address}`}
-                      target='_blank'
+                      target={isInsideWorldApp ? undefined : '_blank'}
                       rel='noopener noreferrer'
+                      onClick={isInsideWorldApp ? (e) => {
+                        e.preventDefault();
+                        copyAddress(address);
+                      } : undefined}
                       className='flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors'
                     >
-                      View on Explorer
-                      <LucideExternalLink className='w-3 h-3' />
+                      {isInsideWorldApp ? 'Copy Address' : 'View on Explorer'}
+                      {isInsideWorldApp ? <LucideCopy className='w-3 h-3' /> : <LucideExternalLink className='w-3 h-3' />}
                     </a>
                   </div>
                 )}
