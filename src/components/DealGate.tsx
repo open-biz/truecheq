@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   type CarouselApi,
@@ -30,6 +29,8 @@ import { WorldWalletButton } from './WorldWalletButton';
 import Link from 'next/link';
 import {
   VerificationBadge,
+  Chip,
+  Token,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
 // ============================================================================
@@ -252,15 +253,12 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         {miniAppBack}
         <Card className="border-primary/20 bg-black/80 backdrop-blur-xl overflow-hidden rounded-2xl">
           <CardHeader className="text-center pb-2">
-            <Badge variant="outline" className={cn(
-              'mx-auto mb-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest',
-              trucheqUser.isOrbVerified
-                ? 'bg-primary/20 text-primary border-primary/40'
-                : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-            )}>
-              {trucheqUser.isOrbVerified ? <LucideShieldCheck className='w-3 h-3 mr-1.5' /> : <LucideSmartphone className='w-3 h-3 mr-1.5' />}
-              {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified
-            </Badge>
+            <Chip
+              label={`${trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified`}
+              variant={trucheqUser.isOrbVerified ? 'success' : 'default'}
+              icon={trucheqUser.isOrbVerified ? <LucideShieldCheck className='w-3 h-3' /> : <LucideSmartphone className='w-3 h-3' />}
+              className='mx-auto mb-3'
+            />
             <CardTitle className="text-xl font-black italic tracking-tighter">
               Connect Wallet to Pay
             </CardTitle>
@@ -307,15 +305,11 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={cn(
-            'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest',
-            isOrbVerified
-              ? 'bg-primary/20 text-primary border-primary/40'
-              : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-          )}>
-            {isOrbVerified ? <LucideShieldCheck className="w-3 h-3 mr-1" /> : <LucideSmartphone className="w-3 h-3 mr-1" />}
-            {isOrbVerified ? 'Orb Verified Seller' : 'Device Verified Seller'}
-          </Badge>
+          <Chip
+            label={isOrbVerified ? 'Orb Verified Seller' : 'Device Verified Seller'}
+            variant={isOrbVerified ? 'success' : 'default'}
+            icon={isOrbVerified ? <LucideShieldCheck className="w-3 h-3" /> : <LucideSmartphone className="w-3 h-3" />}
+          />
           <span className="text-[10px] font-mono text-muted-foreground">
             {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
           </span>
@@ -337,9 +331,12 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
           {metadata?.itemName || 'Loading...'}
         </h1>
         <div className="flex items-center gap-3 mt-1">
-          <span className="text-3xl font-black italic tracking-tighter text-primary">
-            {metadata?.price || '0'} <span className="text-[10px] font-bold text-primary/60 not-italic">USDC</span>
-          </span>
+          <div className="flex items-center gap-2">
+            {isMiniApp && <Token value='USDC' size={24} />}
+            <span className="text-3xl font-black italic tracking-tighter text-primary">
+              {metadata?.price || '0'} <span className="text-[10px] font-bold text-primary/60 not-italic">USDC</span>
+            </span>
+          </div>
           <span className="text-[10px] text-muted-foreground">
             on Base
           </span>

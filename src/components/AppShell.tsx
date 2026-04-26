@@ -22,6 +22,10 @@ import {
   TopBar,
   VerificationBadge,
   CircularIcon,
+  BottomBar,
+  Tabs,
+  TabItem,
+  useHaptics,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
 import {
@@ -68,6 +72,7 @@ function BottomTabBar({
   // Track 0→>0 transition for pulse animation
   const prevUnreadRef = useRef(chatUnreadCount);
   const [isPulsing, setIsPulsing] = useState(false);
+  const haptics = useHaptics();
 
   useEffect(() => {
     if (prevUnreadRef.current === 0 && chatUnreadCount > 0) {
@@ -79,18 +84,44 @@ function BottomTabBar({
     prevUnreadRef.current = chatUnreadCount;
   }, [chatUnreadCount]);
 
-  const tabs: { id: TabId; icon: typeof LucideTag; label: string }[] = [
-    { id: 'sell', icon: LucideTag, label: 'Sell' },
-    { id: 'buy', icon: LucideShoppingCart, label: 'Buy' },
-    { id: 'chat', icon: LucideMessageCircle, label: 'Chat' },
+  const tabs: { id: TabId; icon: React.ReactNode; activeIcon: React.ReactNode; label: string }[] = [
+    { id: 'sell', icon: <LucideTag className='w-5 h-5' />, activeIcon: <LucideTag className='w-5 h-5' />, label: 'Sell' },
+    { id: 'buy', icon: <LucideShoppingCart className='w-5 h-5' />, activeIcon: <LucideShoppingCart className='w-5 h-5' />, label: 'Buy' },
+    { id: 'chat', icon: <LucideMessageCircle className='w-5 h-5' />, activeIcon: <LucideMessageCircle className='w-5 h-5' />, label: 'Chat' },
   ];
 
+  const handleTabChange = (tab: TabId) => {
+    onTabChange(tab);
+    if (isMiniApp) {
+      haptics.impact('light');
+    }
+  };
+
+  // Mini App: Use official UI Kit BottomBar + Tabs/TabItem for compliance
+  if (isMiniApp) {
+    return (
+      <div className='fixed left-0 right-0 z-50 bottom-[var(--world-nav-height)]'>
+        <BottomBar direction='horizontal'>
+          <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabId)}>
+            {tabs.map((tab) => (
+              <TabItem
+                key={tab.id}
+                value={tab.id}
+                icon={tab.icon}
+                altIcon={tab.activeIcon}
+                label={tab.label}
+              />
+            ))}
+          </Tabs>
+        </BottomBar>
+      </div>
+    );
+  }
+
+  // Standalone: Custom tab bar with Framer Motion animations
   return (
     <nav
-      className={cn(
-        'fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl',
-        isMiniApp ? 'bottom-[var(--world-nav-height)]' : 'bottom-0',
-      )}
+      className='fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl bottom-0'
       role="tablist"
       aria-label="Main navigation"
     >
@@ -98,22 +129,21 @@ function BottomTabBar({
           <div className="max-w-lg mx-auto flex items-center">
             {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
 
           return (
             <button
               key={tab.id}
               role="tab"
               aria-selected={isActive}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={cn(
                 'flex-1 flex flex-col items-center gap-1 py-3 transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-white/70',
               )}
             >
               <div className="relative">
-                <Icon className={cn('w-5 h-5', isActive && 'drop-shadow-[0_0_6px_rgba(0,214,50,0.5)]')} />
-                {/* Unread badge on Chat tab — animated notification style */}
+                {isActive ? tab.activeIcon : tab.icon}
+                {/* Unread badge on Chat tab */}
                 <AnimatePresence>
                   {tab.id === 'chat' && chatUnreadCount > 0 && !isActive && (
                     <motion.div

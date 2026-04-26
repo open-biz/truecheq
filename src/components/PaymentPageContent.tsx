@@ -25,6 +25,8 @@ import {
 import {
   TopBar,
   CircularIcon,
+  Spinner,
+  Token,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
 // Chain names
@@ -471,7 +473,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
         <PageHeader isMiniApp={isMiniApp} />
         <div className="max-w-lg mx-auto px-4 py-12 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <LucideLoader2 className="w-8 h-8 animate-spin text-primary" />
+            {isMiniApp
+              ? <Spinner className='w-8 h-8' />
+              : <LucideLoader2 className="w-8 h-8 animate-spin text-primary" />
+            }
             <p className="text-sm font-bold text-muted-foreground">Loading listing...</p>
           </div>
         </div>
@@ -681,9 +686,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
             <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Price</span>
-                <span className="text-2xl font-black italic tracking-tighter text-primary">
+                <div className="flex items-center gap-2 text-2xl font-black italic tracking-tighter text-primary">
+                  {isMiniApp && <Token value='USDC' size={20} />}
                   {metadata.price} <span className="text-[10px] font-bold text-primary/60 not-italic">USDC</span>
-                </span>
+                </div>
               </div>
               
               <div className="flex items-center justify-between">
@@ -768,7 +774,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
                   </div>
                 ) : chain === undefined ? (
                   <div className="flex justify-center py-4">
-                    <LucideLoader2 className="w-6 h-6 animate-spin text-primary" />
+                    {isMiniApp
+                      ? <Spinner className='w-6 h-6' />
+                      : <LucideLoader2 className="w-6 h-6 animate-spin text-primary" />
+                    }
                   </div>
                 ) : !isCorrectChain ? (
                   <div className="space-y-2">
@@ -836,7 +845,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
                 >
                   {(isSigning || isWagmiSigning) ? (
                     <>
-                      <LucideLoader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {isMiniApp
+                        ? <Spinner className='w-4 h-4 mr-2' />
+                        : <LucideLoader2 className="w-4 h-4 mr-2 animate-spin" />
+                      }
                       Confirm on {CHAIN_NAMES[selectedChain]}...
                     </>
                   ) : (
@@ -852,7 +864,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
             {/* Paying State */}
             {paymentStep === 'paying' && !isConfirming && !isWagmiConfirming && !isUserOpPolling && (
               <div className="flex flex-col items-center gap-3 py-6">
-                <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
+                {isMiniApp
+                  ? <Spinner className='w-10 h-10' />
+                  : <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
+                }
                 <p className="text-sm font-black text-white">Processing x402 Payment...</p>
                 <p className="text-xs text-muted-foreground">
                   {(isSigning || isWagmiSigning) ? 'Confirm the transaction in your wallet' : 'Initiating payment...'}
@@ -863,7 +878,10 @@ function PaymentPageContentInner({ id }: { id: string }) {
             {/* Confirming State (wagmi or userOp polling) */}
             {(isConfirming || isWagmiConfirming || isUserOpPolling) && !isConfirmed && (
               <div className="flex flex-col items-center gap-3 py-6">
-                <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
+                {isMiniApp
+                  ? <Spinner className='w-10 h-10' />
+                  : <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
+                }
                 <p className="text-sm font-black text-white">Confirming Transaction...</p>
                 <p className="text-xs text-muted-foreground">
                   {isMiniApp ? 'Waiting for bundler confirmation...' : 'Waiting for on-chain confirmation'}

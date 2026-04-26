@@ -35,7 +35,11 @@ import {
   parseMessageContent,
 } from '@/lib/xmtp-types';
 import { useXMTP } from '@/lib/xmtp-provider';
-import { VerificationBadge } from '@worldcoin/mini-apps-ui-kit-react';
+import {
+  VerificationBadge,
+  Spinner,
+  Token,
+} from '@worldcoin/mini-apps-ui-kit-react';
 
 // ============================================================================
 // TYPES
@@ -116,9 +120,11 @@ function TrustHeader({ sellerName, sellerAddress, sellerPfp, isOrbVerified, isCo
 // COMPONENT: Message Status Indicator
 // ============================================================================
 
-function MessageStatus({ status }: { status: 'sending' | 'sent' | 'delivered' }) {
+function MessageStatus({ status, isMiniApp }: { status: 'sending' | 'sent' | 'delivered'; isMiniApp: boolean }) {
   const icons = {
-    sending: <Loader2 className='w-3 h-3 text-muted-foreground animate-spin' />,
+    sending: isMiniApp
+      ? <Spinner className='w-3 h-3' />
+      : <Loader2 className='w-3 h-3 text-muted-foreground animate-spin' />,
     sent: <span className='w-3 h-3 text-muted-foreground text-xs'>✓</span>,
     delivered: <CheckCircle2 className='w-3 h-3 text-primary' />,
   };
@@ -169,9 +175,10 @@ interface InvoiceCardProps {
   payload: X402InvoicePayload;
   onPay: (cid: string, metadataUrl?: string) => void;
   isBuyer?: boolean;
+  isMiniApp?: boolean;
 }
 
-function InvoiceCard({ payload, onPay, isBuyer = true }: InvoiceCardProps) {
+function InvoiceCard({ payload, onPay, isBuyer = true, isMiniApp = false }: InvoiceCardProps) {
   const handlePay = () => {
     const gateway = typeof window !== 'undefined' 
       ? (process.env.NEXT_PUBLIC_FILEBASE_GATEWAY || 'https://parallel-pink-stork.myfilebase.com')
@@ -222,9 +229,12 @@ function InvoiceCard({ payload, onPay, isBuyer = true }: InvoiceCardProps) {
           )}
           <div className='flex-1'>
             <h4 className='text-sm font-bold text-white'>{payload.itemName}</h4>
-            <p className='text-xl font-black italic tracking-tighter text-primary'>
-              {payload.amount} USDC
-            </p>
+            <div className='flex items-center gap-2'>
+              {isMiniApp && <Token value='USDC' size={20} />}
+              <p className='text-xl font-black italic tracking-tighter text-primary'>
+                {payload.amount} USDC
+              </p>
+            </div>
           </div>
         </div>
         
@@ -269,6 +279,7 @@ export function XMTPChatInner({
   const router = useRouter();
   const { address: userAddress, isConnected } = useAccount();
   const { client, isLoading: isProviderLoading, error: providerError, initClient, activateClient } = useXMTP();
+  const isMiniApp = MiniKit.isInstalled();
 
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -644,7 +655,10 @@ export function XMTPChatInner({
             <div className='h-80 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-black/60 to-black/40'>
               {isLoading ? (
                 <div className='text-center py-8'>
-                  <Loader2 className='w-8 h-8 mx-auto animate-spin text-primary' />
+                  {isMiniApp
+                    ? <Spinner className='w-8 h-8 mx-auto' />
+                    : <Loader2 className='w-8 h-8 mx-auto animate-spin text-primary' />
+                  }
                   <p className='text-xs text-muted-foreground mt-3'>Connecting...</p>
                 </div>
               ) : error ? (
@@ -703,6 +717,7 @@ export function XMTPChatInner({
                               payload={msg.payload as X402InvoicePayload}
                               onPay={handlePayFromInvoice}
                               isBuyer={!msg.isSelf}
+                              isMiniApp={isMiniApp}
                             />
                           </div>
                         )}
@@ -736,7 +751,7 @@ export function XMTPChatInner({
                                 <span className='whitespace-pre-wrap break-words'>{msg.content}</span>
                               </div>
                               {msg.isSelf && msg.status && (
-                                <MessageStatus status={msg.status} />
+                                <MessageStatus status={msg.status} isMiniApp={isMiniApp} />
                               )}
                             </div>
                             {msg.isSelf && (
@@ -773,7 +788,9 @@ export function XMTPChatInner({
                   className='bg-primary hover:bg-primary/90 h-9 px-3'
                 >
                   {isSending ? (
-                    <Loader2 className='w-4 h-4 animate-spin' />
+                    isMiniApp
+                      ? <Spinner className='w-4 h-4' />
+                      : <Loader2 className='w-4 h-4 animate-spin' />
                   ) : (
                     <Send className='w-4 h-4' />
                   )}
@@ -896,15 +913,15 @@ export function XMTPChatInner({
               >
                 <a 
                   href={`https://xmtp.chat/dm/${sellerAddress}`}
-                  target={MiniKit.isInstalled() ? undefined : '_blank'} 
+                  target={isMiniApp ? undefined : '_blank'} 
                   rel='noopener noreferrer'
-                  onClick={MiniKit.isInstalled() ? (e) => {
+                  onClick={isMiniApp ? (e) => {
                     e.preventDefault();
                     navigator.clipboard.writeText(`https://xmtp.chat/dm/${sellerAddress}`);
                     toast.success('XMTP link copied!');
                   } : undefined}
                 >
-                  {MiniKit.isInstalled()
+                  {isMiniApp
                     ? <><Copy className='w-4 h-4 mr-2' />Copy Link</>
                     : <><ExternalLink className='w-4 h-4 mr-2' />External</>
                   }
