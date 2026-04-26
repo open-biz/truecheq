@@ -58,7 +58,10 @@ bun lint             # ESLint
 ## Environment Variables
 ```
 NEXT_PUBLIC_WLD_APP_ID       # World ID app ID (from developer.worldcoin.org)
-WORLD_PRIVATE_KEY            # World ID RP signing key
+NEXT_PUBLIC_APP_ID           # World ID app ID (same as WLD_APP_ID, used by IDKit + MiniKitProvider)
+NEXT_PUBLIC_RP_ID            # World ID RP ID (from developer.worldcoin.org)
+WORLD_PRIVATE_KEY            # World ID 4.0 private key (RP signing)
+RP_SIGNING_KEY               # World ID 4.0 private key (same as WORLD_PRIVATE_KEY, used by rp-signature API)
 NEXT_PUBLIC_X402_PAY_TO      # Wallet address to receive x402 payments
 NEXT_PUBLIC_XMTP_ENV         # XMTP environment: 'dev' (default) or 'production'
 FILEBASE_ACCESS_KEY          # Filebase IPFS access

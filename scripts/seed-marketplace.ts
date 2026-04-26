@@ -4,9 +4,11 @@ import { Upload } from '@aws-sdk/lib-storage';
 
 const FILEBASE_BUCKET = 'trucheq';
 
-// XMTP agent address for demo listings (on dev network)
-// This is the address of the XMTP agent that responds to buyer messages
-const SELLER_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
+// Demo seller address — configurable via DEMO_SELLER_ADDRESS env var.
+// Falls back to the known demo address for backwards compatibility.
+const SELLER_ADDRESS =
+  process.env.DEMO_SELLER_ADDRESS ||
+  '0x8677e5831257e52a35d1463cfb414eda34344f4f';
 
 // Re-use the same seller address for all demo listings
 const SELLERS = [

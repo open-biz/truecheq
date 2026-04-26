@@ -18,6 +18,10 @@ export const STORAGE_KEYS = {
   SELLER: 'trucheq_user_data',
   /** Buyer data (World ID + wallet info) */
   BUYER: 'trucheq_buyer_data',
+  /** XMTP lazy activation flag — set when user first visits Chat tab */
+  XMTP_ACTIVATED: 'trucheq_xmtp_activated',
+  /** User-created listings — array of {cid, metadataUrl, seller, price, createdAt} */
+  USER_LISTINGS: 'trucheq_user_listings',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

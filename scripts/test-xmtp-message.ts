@@ -4,8 +4,11 @@ import { Client, IdentifierKind } from '@xmtp/browser-sdk';
 
 const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'dev';
 
-// Agent's wallet address (derived from the private key)
-const AGENT_ADDRESS = '0x8677e5831257e52a35d1463cfb414eda34344f4f';
+// Agent's wallet address — configurable via DEMO_SELLER_ADDRESS env var.
+// Falls back to the known demo address for backwards compatibility.
+const AGENT_ADDRESS =
+  process.env.DEMO_SELLER_ADDRESS ||
+  '0x8677e5831257e52a35d1463cfb414eda34344f4f';
 
 // Test wallet - you'll need to set TEST_WALLET_KEY in your env
 // Or use a wallet that's already connected in the browser
