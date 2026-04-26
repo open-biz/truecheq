@@ -148,7 +148,7 @@ function getX402Handler() {
     {
       cdpClientKey: process.env.NEXT_PUBLIC_CDP_CLIENT_KEY,
       appName: 'TruCheq',
-      appLogo: '/trucheq-logo-sz.jpeg',
+      appLogo: '/trucheq-logo.jpeg',
     }
   ) as (req: NextRequest) => Promise<NextResponse>;
   

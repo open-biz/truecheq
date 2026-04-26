@@ -57,7 +57,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
-              <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="w-full h-full object-cover" />
+              <img src="/trucheq-logo.jpeg" alt="TruCheq Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-2xl font-black tracking-tighter italic text-white">TruCheq</span>
           </div>
@@ -338,7 +338,7 @@ export default function LandingPage() {
 
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
           <div className="relative w-24 h-24 mb-12 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
-            <img src="/trucheq-logo-sz.jpeg" alt="TruCheq Logo" className="object-cover w-full h-full" />
+            <img src="/trucheq-logo.jpeg" alt="TruCheq Logo" className="object-cover w-full h-full" />
           </div>
 
           <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none text-white uppercase">Ready to Trade?</h3>

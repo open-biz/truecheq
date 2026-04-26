@@ -25,6 +25,18 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "TruCheq | Headless Web3 Commerce Protocol",
   description: "Sybil-resistant P2P commerce powered by World ID, XMTP, and Coinbase x402",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    images: "/og-image.png",
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({

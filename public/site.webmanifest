@@ -1,0 +1,21 @@
+{
+  "name": "TruCheq",
+  "short_name": "TruCheq",
+  "description": "Sybil-resistant P2P commerce powered by World ID, XMTP, and Coinbase x402",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0F14",
+  "theme_color": "#00D632",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

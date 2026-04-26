@@ -22,7 +22,7 @@ export default function DealPageContent({ id, meta }: { id: string; meta?: strin
           startAdornment={
             <Link href="/">
               <CircularIcon size="sm">
-                <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
+                <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
               </CircularIcon>
             </Link>
           }
@@ -32,7 +32,7 @@ export default function DealPageContent({ id, meta }: { id: string; meta?: strin
           <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
-                <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
+                <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
               </div>
               <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
             </Link>
