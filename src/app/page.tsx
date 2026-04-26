@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 
 // Disable SSR — MiniKit depends on window.WorldApp which only exists on the client.
