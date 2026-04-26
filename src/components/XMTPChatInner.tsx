@@ -26,6 +26,7 @@ import { useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
+import { getXMTPEnv } from '@/lib/xmtp';
 import {
   type ChatMessage,
   type X402InvoicePayload,
@@ -366,7 +367,7 @@ export function XMTPChatInner({
             identifier: sellerAddress!.toLowerCase() as `0x${string}`,
             identifierKind: IdentifierKind.Ethereum,
           }];
-          const canMessageResult = await Client.canMessage(identifiers, 'dev' as any);
+          const canMessageResult = await Client.canMessage(identifiers, getXMTPEnv() as any);
           isReachable = canMessageResult.get(sellerAddress!.toLowerCase()) ?? false;
         } catch {
           setSellerError('Failed to check seller reachability');
@@ -584,7 +585,7 @@ export function XMTPChatInner({
       itemName: itemName || 'Item',
       itemImage: itemImage,
       payTo: sellerAddress || '',
-      network: 'base-sepolia',
+      network: 'base',
       fallback: `🔒 TRUCHEQ SECURE CHECKOUT: The World ID Verified Seller has requested ${itemPrice || '1'} USDC. Complete safely: ${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${listingCid.slice(0, 12)}`,
     };
     

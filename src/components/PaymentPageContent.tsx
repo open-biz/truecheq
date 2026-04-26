@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { WorldWalletButton } from '@/components/WorldWalletButton';
 import { parseUnits, encodeFunctionData, type Hex, createPublicClient, http } from 'viem';
-import { worldChain, worldChainSepolia, baseSepolia } from '@/lib/chains';
+import { worldChain, base } from '@/lib/chains';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,23 +16,23 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { STORAGE_KEYS, cn, getProxiedImageUrl } from '@/lib/utils';
 import { useIsMiniApp } from '@/lib/use-mini-app';
-
-// USDC addresses by chain
-const USDC_ADDRESS_BASE = '0x036cbd53842c5426634e7929545ec598f828a2b5';
-const USDC_ADDRESS_WORLD = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1';
-const BASE_SEPOLIA_CHAIN_ID = 84532;
-const WORLD_CHAIN_ID = 480;
+import {
+  USDC_ADDRESS_BASE,
+  USDC_ADDRESS_WORLD,
+  WORLD_CHAIN_NUM as WORLD_CHAIN_ID,
+  BASE_CHAIN_NUM as BASE_CHAIN_ID,
+} from '@/lib/x402';
 
 // Chain names
 const CHAIN_NAMES: Record<number, string> = {
   [WORLD_CHAIN_ID]: 'World Chain',
-  [BASE_SEPOLIA_CHAIN_ID]: 'Base Sepolia',
+  [BASE_CHAIN_ID]: 'Base',
 };
 
 // Chain icons (emoji for now, could be images)
 const CHAIN_ICONS: Record<number, string> = {
   [WORLD_CHAIN_ID]: '🌍',
-  [BASE_SEPOLIA_CHAIN_ID]: '🔵',
+  [BASE_CHAIN_ID]: '🔵',
 };
 
 // USDC ABI for transfer (used by both wagmi writeContract and MiniKit encodeFunctionData)
@@ -151,9 +151,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
   const receiptPublicClient = useMemo(() => {
     const chainConfig = selectedChain === WORLD_CHAIN_ID
       ? worldChain
-      : selectedChain === BASE_SEPOLIA_CHAIN_ID
-        ? baseSepolia
-        : worldChainSepolia;
+      : base;
     return createPublicClient({ chain: chainConfig, transport: http() });
   }, [selectedChain]);
 
@@ -587,7 +585,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
                     <a 
                       href={selectedChain === WORLD_CHAIN_ID
                         ? `https://worldchain-mainnet.g.alchemy.com/explorer/tx/${displayTxHash}`
-                        : `https://sepolia.basescan.org/tx/${displayTxHash}`}
+                        : `https://basescan.org/tx/${displayTxHash}`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-[10px] font-mono text-primary flex items-center gap-1 hover:underline"
@@ -703,17 +701,17 @@ function PaymentPageContentInner({ id }: { id: string }) {
                     </div>
                   </button>
                   <button
-                    onClick={() => setSelectedChain(BASE_SEPOLIA_CHAIN_ID)}
+                    onClick={() => setSelectedChain(BASE_CHAIN_ID)}
                     className={cn(
                       'p-3 rounded-xl border transition-all',
-                      selectedChain === BASE_SEPOLIA_CHAIN_ID
+                      selectedChain === BASE_CHAIN_ID
                         ? 'bg-primary/10 border-primary/40 text-primary'
                         : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
                     )}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl">{CHAIN_ICONS[BASE_SEPOLIA_CHAIN_ID]}</span>
-                      <span className="text-[10px] font-black">Base Sepolia</span>
+                      <span className="text-xl">{CHAIN_ICONS[BASE_CHAIN_ID]}</span>
+                      <span className="text-[10px] font-black">Base</span>
                       <span className="text-[9px] text-muted-foreground">Standard</span>
                     </div>
                   </button>

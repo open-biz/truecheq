@@ -12,11 +12,11 @@
 
 /**
  * Get XMTP environment from env
- * Defaults to 'dev' (testnet) for development/testing
+ * Defaults to 'production' (mainnet) for production deployment.
+ * Set NEXT_PUBLIC_XMTP_ENV=dev for local development/testing.
  */
 export function getXMTPEnv(): 'dev' | 'production' {
   const env = process.env.NEXT_PUBLIC_XMTP_ENV;
-  // Default to 'dev' for testing, can be overridden to 'production'
-  if (env === 'production') return 'production';
-  return 'dev';
+  if (env === 'dev') return 'dev';
+  return 'production';
 }

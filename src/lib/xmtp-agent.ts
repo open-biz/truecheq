@@ -30,7 +30,7 @@
 import 'dotenv-defaults/config';
 import { Agent } from '@xmtp/agent-sdk';
 
-const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'dev';
+const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'production';
 
 // ============================================================================
 // TYPES
@@ -171,7 +171,7 @@ export async function startSellerAgent() {
   console.log(`[P2P Agent] ✅ P2P Seller agent started!`);
   console.log(`[P2P Agent] Address: ${agentAddress}`);
   console.log(`[P2P Agent] Listening for messages on ${XMTP_ENV} network`);
-  console.log(`[P2P Agent] Send a message to this address on XMTP (dev network) to test!`);
+  console.log(`[P2P Agent] Send a message to this address on XMTP (${XMTP_ENV} network) to test!`);
 
   return agent;
 }

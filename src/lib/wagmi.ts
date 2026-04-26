@@ -31,12 +31,12 @@ if (typeof window === 'undefined') {
  * when not running inside World App.
  */
 export const config = createConfig({
-  chains: [worldChain, worldChainSepolia, base, baseSepolia],
+  chains: [worldChain, base, worldChainSepolia, baseSepolia],
   ssr: true,
   transports: {
     [worldChain.id]: http(),
-    [worldChainSepolia.id]: http(),
     [base.id]: http(),
+    [worldChainSepolia.id]: http(),
     [baseSepolia.id]: http(),
   },
   storage: createStorage({

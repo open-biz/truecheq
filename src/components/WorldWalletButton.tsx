@@ -22,6 +22,7 @@ import { MiniKit } from '@worldcoin/minikit-js';
 import { toast } from 'sonner';
 
 import { worldChain, worldChainSepolia } from '@/lib/chains';
+import { BASE_CHAIN_NUM } from '@/lib/x402';
 
 // World Chain config
 const WORLD_CHAIN_ID = worldChain.id; // 480
@@ -35,7 +36,7 @@ function getExplorerUrl(chainId: number): string {
   if (chainId === WORLD_CHAIN_SEPOLIA_ID) {
     return 'https://worldchain-sepolia.g.alchemy.com/explorer';
   }
-  // Base
+  // Base mainnet + Sepolia
   if (chainId === 8453 || chainId === 84532) {
     return chainId === 8453 
       ? 'https://basescan.org' 
@@ -76,7 +77,7 @@ export function WorldWalletButton({
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   
-  const isCorrectChain = chain?.id === WORLD_CHAIN_ID || chain?.id === WORLD_CHAIN_SEPOLIA_ID;
+  const isCorrectChain = chain?.id === WORLD_CHAIN_ID || chain?.id === WORLD_CHAIN_SEPOLIA_ID || chain?.id === BASE_CHAIN_NUM;
   
   // Check if connected via World App deep link
   const isWorldApp = connector?.id === 'worldApp' || connector?.name.toLowerCase().includes('world');

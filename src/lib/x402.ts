@@ -1,27 +1,49 @@
 /**
  * TruCheq x402 Payment Utilities
  * 
- * Supports both World Chain and Base Sepolia via x402 protocol
+ * Supports World Chain and Base mainnet via x402 protocol.
+ * Testnet (Sepolia) chains are kept for development but are not the default.
  */
 
-// USDC on Base Sepolia (testnet)
-export const USDC_ADDRESS_BASE = '0x036cbd53842c5426634e7929545ec598f828a2b5';
-export const BASE_SEPOLIA_CHAIN_ID = 'eip155:84532';
-export const BASE_SEPOLIA_ID = 84532;
+// ----------------------------------------------------------------------------
+// Mainnet (Production)
+// ----------------------------------------------------------------------------
 
-// USDC on World Chain (testnet) - from AgentKit docs
-export const USDC_ADDRESS_WORLD = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1';
+// USDC on Base Mainnet — Circle native issuance
+export const USDC_ADDRESS_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+export const BASE_CHAIN_ID = 'eip155:8453';
+export const BASE_CHAIN_NUM = 8453;
+
+// USDC on World Chain Mainnet — Circle native issuance
+export const USDC_ADDRESS_WORLD = '0x75880D58C08A49C8281143878bC250882e75D304';
 export const WORLD_CHAIN_ID = 'eip155:480';
 export const WORLD_CHAIN_NUM = 480;
 
-// x402 Facilitator URLs
-export const FACILITATOR_BASE = 'https://x402-sepolia.vercel.app/facilitator';
-export const FACILITATOR_WORLD = 'https://x402-worldchain.vercel.app/facilitator';
+// x402 Facilitator URLs (production)
+// Production uses the CDP facilitator; testnet used the public demo facilitator.
+export const FACILITATOR_BASE = 'https://api.cdp.coinbase.com/platform/v2/x402';
+export const FACILITATOR_WORLD = 'https://api.cdp.coinbase.com/platform/v2/x402';
 
+// ----------------------------------------------------------------------------
+// Testnet (Sepolia) — kept for development
+// ----------------------------------------------------------------------------
+
+export const USDC_ADDRESS_BASE_SEPOLIA = '0x036cbd53842c5426634e7929545ec598f828a2b5';
+export const BASE_SEPOLIA_CHAIN_ID = 'eip155:84532';
+export const BASE_SEPOLIA_ID = 84532;
+
+export const USDC_ADDRESS_WORLD_SEPOLIA = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1';
+
+export const FACILITATOR_BASE_SEPOLIA = 'https://x402-sepolia.vercel.app/facilitator';
+export const FACILITATOR_WORLD_SEPOLIA = 'https://x402-worldchain.vercel.app/facilitator';
+
+// ----------------------------------------------------------------------------
 // Supported chains for x402 payments
+// ----------------------------------------------------------------------------
+
 export const SUPPORTED_CHAINS = [
   { id: WORLD_CHAIN_ID, name: 'World Chain', usdc: USDC_ADDRESS_WORLD, facilitator: FACILITATOR_WORLD },
-  { id: BASE_SEPOLIA_CHAIN_ID, name: 'Base Sepolia', usdc: USDC_ADDRESS_BASE, facilitator: FACILITATOR_BASE },
+  { id: BASE_CHAIN_ID, name: 'Base', usdc: USDC_ADDRESS_BASE, facilitator: FACILITATOR_BASE },
 ] as const;
 
 // Default chain (World Chain preferred for agent traffic)
@@ -63,8 +85,9 @@ export interface PaymentRequirement {
  */
 export function getUSDCAddress(chainId: string): string {
   if (chainId === WORLD_CHAIN_ID) return USDC_ADDRESS_WORLD;
-  if (chainId === BASE_SEPOLIA_CHAIN_ID) return USDC_ADDRESS_BASE;
-  return USDC_ADDRESS_BASE; // default to Base Sepolia
+  if (chainId === BASE_CHAIN_ID) return USDC_ADDRESS_BASE;
+  if (chainId === BASE_SEPOLIA_CHAIN_ID) return USDC_ADDRESS_BASE_SEPOLIA;
+  return USDC_ADDRESS_BASE; // default to Base mainnet
 }
 
 /**
@@ -72,6 +95,7 @@ export function getUSDCAddress(chainId: string): string {
  */
 export function getChainName(chainId: string): string {
   if (chainId === WORLD_CHAIN_ID) return 'World Chain';
+  if (chainId === BASE_CHAIN_ID) return 'Base';
   if (chainId === BASE_SEPOLIA_CHAIN_ID) return 'Base Sepolia';
   return 'Unknown Chain';
 }
@@ -81,8 +105,9 @@ export function getChainName(chainId: string): string {
  */
 export function getChainNumber(chainId: string): number {
   if (chainId === WORLD_CHAIN_ID) return WORLD_CHAIN_NUM;
+  if (chainId === BASE_CHAIN_ID) return BASE_CHAIN_NUM;
   if (chainId === BASE_SEPOLIA_CHAIN_ID) return BASE_SEPOLIA_ID;
-  return BASE_SEPOLIA_ID;
+  return BASE_CHAIN_NUM;
 }
 
 export interface ListingMetadata {

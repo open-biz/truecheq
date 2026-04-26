@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Client, type Signer, IdentifierKind, ConsentState } from '@xmtp/browser-sdk';
 import { useWalletClient, useAccount } from 'wagmi';
+import { getXMTPEnv } from './xmtp';
 
 // ============================================================================
 // Context
@@ -141,7 +142,7 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const xmtpClient = await Client.create(signer, { env: 'dev' } as any);
+      const xmtpClient = await Client.create(signer, { env: getXMTPEnv() } as any);
 
       if (!isMountedRef.current) {
         xmtpClient.close();

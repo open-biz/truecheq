@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withX402 } from 'x402-next';
-import { formatPriceForX402, BASE_SEPOLIA_CHAIN_ID } from '@/lib/x402';
+import { facilitator } from '@coinbase/x402';
+import { formatPriceForX402, BASE_CHAIN_ID } from '@/lib/x402';
 import type { RouteConfig } from 'x402/types';
 
 // The payTo address — all x402 agent payments are routed here.
@@ -43,7 +44,7 @@ async function paidHandler(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       paidVia: 'x402',
-      paidOn: BASE_SEPOLIA_CHAIN_ID,
+      paidOn: BASE_CHAIN_ID,
       listingId,
       seller: metadata.seller,
       metadataURI: metadataUrl,
@@ -70,7 +71,7 @@ async function getDynamicRouteConfig(request: NextRequest): Promise<RouteConfig>
   // Default fallback config
   const defaultConfig: RouteConfig = {
     price: '$1',
-    network: 'base-sepolia',
+    network: 'base',
     config: {
       description: 'TruCheq listing — payment required',
       maxTimeoutSeconds: 300,
@@ -93,7 +94,7 @@ async function getDynamicRouteConfig(request: NextRequest): Promise<RouteConfig>
     
     return {
       price: formatPriceForX402(price), // e.g., "$300"
-      network: 'base-sepolia',
+      network: 'base',
       config: {
         description: `TruCheq: ${metadata.itemName || 'Listing'} — ${price} USDC`,
         maxTimeoutSeconds: 300,
@@ -109,7 +110,7 @@ async function getDynamicRouteConfig(request: NextRequest): Promise<RouteConfig>
 // 
 // Agent flow (via AgentKit, x402-fetch, or any x402 client):
 //   1. Agent requests this endpoint → gets 402 with payment requirements
-//   2. Agent pays USDC on Base Sepolia via the x402 facilitator
+//   2. Agent pays USDC on Base via the x402 facilitator
 //   3. Agent retries with payment proof → gets listing data
 //
 // Human flow (via /pay/[id] page):
@@ -139,8 +140,10 @@ function getX402Handler() {
     paidHandler,
     PAY_TO,
     getDynamicRouteConfig,
-    // Facilitator: default x402.org facilitator for testnet (no CDP credentials needed)
-    undefined,
+    // Facilitator: @coinbase/x402 facilitator (auto-configures for mainnet via CDP credentials)
+    // Requires CDP_API_KEY_NAME + CDP_API_KEY_PRIVATE_KEY env vars for mainnet.
+    // On testnet (base-sepolia) it falls back to the public demo facilitator.
+    facilitator as any,
     // Paywall config
     {
       cdpClientKey: process.env.NEXT_PUBLIC_CDP_CLIENT_KEY,
