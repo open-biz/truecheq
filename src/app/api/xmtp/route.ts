@@ -1,126 +1,48 @@
 import { NextResponse } from 'next/server';
-import { getRandomValues } from 'node:crypto';
-import { privateKeyToAccount } from 'viem/accounts';
-
-// Dynamic import to avoid native binding issues at build time
-let Client: any = null;
-async function getClient() {
-  if (!Client) {
-    const xmtpModule = await import('@xmtp/node-sdk');
-    Client = xmtpModule.Client;
-  }
-  return Client;
-}
-
-// IdentifierKind enum value for Ethereum
-const IDENTIFIER_KIND_ETHEREUM = 1;
-
-// Get signer from environment
-function getXmtpSigner() {
-  const privateKey = process.env.XMTP_SELLER_PRIVATE_KEY;
-  const sellerAddress = process.env.XMTP_SELLER_ADDRESS;
-  
-  if (!privateKey || !sellerAddress) {
-    return null;
-  }
-  
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
-  
-  return {
-    type: 'EOA' as const,
-    getIdentifier: async () => ({
-      identifier: sellerAddress as `0x${string}`,
-      identifierKind: IDENTIFIER_KIND_ETHEREUM,
-    }),
-    signMessage: async (message: string): Promise<Uint8Array> => {
-      const signature = await account.signMessage({ message });
-      const hex = (signature as string).slice(2);
-      return new Uint8Array(hex.match(/.{2}/g)?.map((byte: string) => parseInt(byte, 16)) || []);
-    },
-  };
-}
-
-const XMTP_SIGNER = getXmtpSigner();
+import { getXMTPClient, getOrCreateDm } from '@/lib/xmtp-server';
 
 export const runtime = 'nodejs';
-
-// Initialize XMTP client (singleton)
-let xmtpClient: any = null;
-
-async function getXMTPClient(): Promise<any> {
-  if (!XMTP_SIGNER) {
-    console.error('[XMTP API] Signer not configured - missing XMTP_SELLER_PRIVATE_KEY or XMTP_SELLER_ADDRESS');
-    return null;
-  }
-  
-  if (xmtpClient) {
-    return xmtpClient;
-  }
-  
-  const ClientClass = await getClient();
-  const dbEncryptionKey = getRandomValues(new Uint8Array(32));
-  
-  xmtpClient = await ClientClass.create(XMTP_SIGNER, {
-    dbEncryptionKey,
-    dbPath: './xmtp-db',
-  });
-  
-  return xmtpClient;
-}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, buyerAddress, message, conversationId } = body;
+    const { action, recipientAddress, message, conversationId } = body;
     
     const client = await getXMTPClient();
     
     if (!client) {
       return NextResponse.json(
-        { error: 'XMTP not configured - server missing seller key' },
+        { error: 'XMTP not configured - server missing system key' },
         { status: 503 }
       );
     }
     
-    // Use type assertions for XMTP SDK properties
-    const xmtp = client as any;
-    
     switch (action) {
       case 'send': {
-        if (!buyerAddress || !message) {
+        if (!recipientAddress || !message) {
           return NextResponse.json(
-            { error: 'Missing buyerAddress or message' },
+            { error: 'Missing recipientAddress or message' },
             { status: 400 }
           );
         }
         
-        // Create or get DM conversation with buyer
-        let conversation: any;
-        try {
-          conversation = await xmtp.conversations.newConversation(buyerAddress);
-        } catch {
-          // Try to find existing conversation
-          const conversations = await xmtp.conversations.list();
-          conversation = conversations.find(
-            (c: any) => c.peerAddress?.toLowerCase() === buyerAddress.toLowerCase()
-          );
-        }
+        const conversation = await getOrCreateDm(client, recipientAddress);
         
         if (!conversation) {
           return NextResponse.json(
-            { error: 'Could not create conversation' },
+            { error: 'Could not create conversation with recipient' },
             { status: 500 }
           );
         }
         
-        // Send message
         await conversation.sendText(message);
         
-        return NextResponse.json({ success: true, conversationId: conversation.id });
+        return NextResponse.json({ success: true });
       }
       
       case 'list-conversations': {
-        const conversations = await xmtp.conversations.list();
+        await client.conversations.sync();
+        const conversations = await client.conversations.list();
         return NextResponse.json({
           conversations: conversations.map((c: any) => ({
             id: c.id,
@@ -137,8 +59,8 @@ export async function POST(request: Request) {
           );
         }
         
-        // Get conversation by ID
-        const conversations = await xmtp.conversations.list();
+        await client.conversations.sync();
+        const conversations = await client.conversations.list();
         const conversation: any = conversations.find((c: any) => c.id === conversationId);
         
         if (!conversation) {
@@ -181,11 +103,11 @@ export async function GET() {
     if (!client) {
       return NextResponse.json({
         status: 'not_configured',
-        message: 'XMTP seller key not configured on server',
+        message: 'XMTP system key not configured on server',
       });
     }
     return NextResponse.json({
-      address: (client as any).address,
+      address: process.env.XMTP_SYSTEM_ADDRESS || process.env.XMTP_SELLER_ADDRESS,
       status: 'connected',
     });
   } catch (error) {

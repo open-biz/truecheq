@@ -5,410 +5,318 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Copy, Send, Loader2, X, AlertCircle, User, Bot, ExternalLink } from 'lucide-react';
+import { 
+  MessageCircle, 
+  Copy, 
+  Send, 
+  Loader2, 
+  X, 
+  AlertCircle, 
+  User, 
+  ExternalLink,
+  CheckCircle2,
+  DollarSign,
+  ShieldCheck,
+  Smartphone,
+  ChevronRight,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Client, type Signer, IdentifierKind, ConsentState, type Dm } from '@xmtp/browser-sdk';
-import { useWalletClient, useAccount } from 'wagmi';
+import { Client, IdentifierKind, type Dm } from '@xmtp/browser-sdk';
+import { useAccount } from 'wagmi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
+import {
+  type ChatMessage,
+  type X402InvoicePayload,
+  type SystemMessagePayload,
+  parseMessageContent,
+} from '@/lib/xmtp-types';
+import { useXMTP } from '@/lib/xmtp-provider';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface XMTPChatInnerProps {
   sellerAddress?: string;
+  sellerName?: string;
+  sellerPfp?: string;
+  isOrbVerified?: boolean;
+  listingCid?: string;
+  itemName?: string;
+  itemPrice?: string;
+  itemImage?: string;
+  /** Bottom offset for floating elements (default: "1.5rem"). Use "5rem" when a sticky CTA bar is present. */
+  bottomOffset?: string;
 }
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  senderAddress: string;
-  timestamp: Date;
-  isSelf: boolean;
+// ============================================================================
+// COMPONENT: Trust Header
+// ============================================================================
+
+interface TrustHeaderProps {
+  sellerName: string;
+  sellerAddress: string;
+  sellerPfp?: string;
+  isOrbVerified: boolean;
+  isConnected: boolean;
 }
 
-// Type alias for Dm conversation
+function TrustHeader({ sellerName, sellerAddress, sellerPfp, isOrbVerified, isConnected }: TrustHeaderProps) {
+  return (
+    <div className='flex items-center gap-3 p-4 border-b border-white/10 bg-gradient-to-r from-black via-black/80 to-transparent'>
+      {/* Seller Avatar with World ID Badge */}
+      <div className='relative'>
+        {sellerPfp ? (
+          <img
+            src={getProxiedImageUrl(sellerPfp)}
+            alt={sellerName}
+            className='w-12 h-12 rounded-full border-2 border-white/20 object-cover'
+          />
+        ) : (
+          <div className='w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 border-2 border-white/20 flex items-center justify-center'>
+            <User className='w-6 h-6 text-white/60' />
+          </div>
+        )}
+        {/* World ID Verification Glow */}
+        <div className={cn(
+          'absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-black shadow-lg flex items-center justify-center',
+          isOrbVerified 
+            ? 'bg-primary shadow-[0_0_12px_rgba(0,214,50,0.8)]' 
+            : 'bg-blue-500'
+        )}>
+          {isOrbVerified ? (
+            <ShieldCheck className='w-3 h-3 text-black' />
+          ) : (
+            <Smartphone className='w-3 h-3 text-white' />
+          )}
+        </div>
+      </div>
+      
+      {/* Seller Info */}
+      <div className='flex-1 min-w-0'>
+        <h3 className='text-sm font-bold text-white truncate'>
+          {sellerName || `Seller ${sellerAddress?.slice(0, 6)}...${sellerAddress?.slice(-4)}`}
+        </h3>
+        <span className={cn(
+          'text-[10px] font-black uppercase tracking-widest flex items-center gap-1',
+          isOrbVerified ? 'text-primary' : 'text-blue-400'
+        )}>
+          {isOrbVerified ? (
+            <ShieldCheck className='w-3 h-3' />
+          ) : (
+            <Smartphone className='w-3 h-3' />
+          )}
+          {isOrbVerified ? 'Orb' : 'Device'} Verified
+        </span>
+      </div>
+      
+      {/* Connection Status */}
+      {isConnected && (
+        <div className='flex items-center gap-1.5'>
+          <span className='relative flex h-2 w-2'>
+            <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75'></span>
+            <span className='relative inline-flex rounded-full h-2 w-2 bg-primary'></span>
+          </span>
+          <span className='text-[10px] text-muted-foreground'>Live</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
-export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
+// ============================================================================
+// COMPONENT: Message Status Indicator
+// ============================================================================
+
+function MessageStatus({ status }: { status: 'sending' | 'sent' | 'delivered' }) {
+  const icons = {
+    sending: <Loader2 className='w-3 h-3 text-muted-foreground animate-spin' />,
+    sent: <span className='w-3 h-3 text-muted-foreground text-xs'>✓</span>,
+    delivered: <CheckCircle2 className='w-3 h-3 text-primary' />,
+  };
+  
+  return <div className='flex items-center gap-1 ml-2'>{icons[status]}</div>;
+}
+
+// ============================================================================
+// COMPONENT: System Message
+// ============================================================================
+
+function SystemMessage({ content, payload }: { content: string; payload?: SystemMessagePayload }) {
+  const getIcon = () => {
+    return <CheckCircle2 className='w-4 h-4 text-primary' />;
+  };
+
+  const getLabel = () => {
+    if (payload?.event === 'payment_confirmed') {
+      return `Payment of ${payload.amount || ''} USDC Confirmed on Base`;
+    }
+    if (payload?.event === 'payment_sent') {
+      return `Payment of ${payload.amount || ''} USDC Sent`;
+    }
+    return content;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className='flex justify-center my-4'
+    >
+      <div className='bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 flex items-center gap-2'>
+        {getIcon()}
+        <span className='text-[10px] font-black uppercase tracking-widest text-primary'>
+          {getLabel()}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// COMPONENT: x402 Invoice Card
+// ============================================================================
+
+interface InvoiceCardProps {
+  payload: X402InvoicePayload;
+  onPay: (cid: string, metadataUrl?: string) => void;
+  isBuyer?: boolean;
+}
+
+function InvoiceCard({ payload, onPay, isBuyer = true }: InvoiceCardProps) {
+  const handlePay = () => {
+    const gateway = typeof window !== 'undefined' 
+      ? (process.env.NEXT_PUBLIC_FILEBASE_GATEWAY || 'https://parallel-pink-stork.myfilebase.com')
+      : 'https://parallel-pink-stork.myfilebase.com';
+    const metadataUrl = `${gateway}/ipfs/${payload.cid}`;
+    onPay(payload.cid, metadataUrl);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className='w-full my-3'
+    >
+      {/* Glassmorphism Invoice Card */}
+      <div className='bg-[#101820] border border-primary/30 rounded-2xl p-4 shadow-[0_8px_24px_rgba(0,214,50,0.15)] relative overflow-hidden'>
+        {/* Glow effect */}
+        <div className='absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent' />
+        
+        {/* Header */}
+        <div className='flex justify-between items-center mb-4 relative'>
+          <div className='flex items-center gap-2'>
+            <DollarSign className='w-4 h-4 text-primary' />
+            <span className='text-[10px] font-black uppercase tracking-widest text-muted-foreground'>
+              Official TruCheq Invoice
+            </span>
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='text-[10px] text-muted-foreground'>Base</span>
+            <div className='w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center'>
+              <span className='text-[8px]'>🔵</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Item Details */}
+        <div className='flex items-center gap-3 mb-4 relative'>
+          {payload.itemImage ? (
+            <img 
+              src={getProxiedImageUrl(payload.itemImage)} 
+              alt={payload.itemName}
+              className='w-12 h-12 rounded-lg object-cover border border-white/10'
+            />
+          ) : (
+            <div className='w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center'>
+              <DollarSign className='w-6 h-6 text-primary/40' />
+            </div>
+          )}
+          <div className='flex-1'>
+            <h4 className='text-sm font-bold text-white'>{payload.itemName}</h4>
+            <p className='text-xl font-black italic tracking-tighter text-primary'>
+              {payload.amount} USDC
+            </p>
+          </div>
+        </div>
+        
+        {/* Secure Pay Button */}
+        {isBuyer && (
+          <Button
+            onClick={handlePay}
+            className='w-full bg-primary text-black font-bold py-3 rounded-xl hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(0,214,50,0.4)] active:scale-[0.98] relative'
+          >
+            <ShieldCheck className='w-4 h-4 mr-2' />
+            Pay Now
+            <ChevronRight className='w-4 h-4 ml-2' />
+          </Button>
+        )}
+        
+        {/* Fallback for non-TruCheq apps */}
+        <div className='mt-3 pt-3 border-t border-white/5 relative'>
+          <p className='text-[9px] text-muted-foreground/60 font-mono truncate'>
+            {payload.fallback}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// MAIN COMPONENT: XMTPChatInner
+// ============================================================================
+
+export function XMTPChatInner({ 
+  sellerAddress, 
+  sellerName,
+  sellerPfp,
+  isOrbVerified = false,
+  listingCid,
+  itemName = 'Item',
+  itemPrice = '1',
+  itemImage,
+  bottomOffset = '1.5rem',
+}: XMTPChatInnerProps) {
+  const router = useRouter();
+  const { address: userAddress, isConnected } = useAccount();
+  const { client, isLoading: isProviderLoading, error: providerError, initClient, activateClient } = useXMTP();
+
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [client, setClient] = useState<Client | null>(null);
   const [conversation, setConversation] = useState<Dm | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [sellerError, setSellerError] = useState<string | null>(null);
+  const [isSellerLoading, setIsSellerLoading] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const [isHydrated, setIsHydrated] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
   const streamCleanupRef = useRef<(() => void) | null>(null);
   const isStreamingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Wait for client-side hydration before checking wallet
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  // Get wallet client and account from wagmi
-  const { data: walletClient } = useWalletClient();
-  const { address: userAddress, isConnected, chainId } = useAccount();
+  // Track DM initialization
+  const hasDmInitializedRef = useRef(false);
+  const dmInitializedWithSellerRef = useRef<string | null>(null);
   
-
-
-  // Debug logging
-  useEffect(() => {
-    console.log('[XMTP V7] Wallet state:', 
-      'isConnected:', isConnected,
-      'userAddress:', userAddress,
-      'chainId:', chainId,
-      'hasWalletClient:', !!walletClient
-    );
-  }, [isConnected, userAddress, chainId, walletClient]);
-
-  // Create custom XMTP signer for browser-sdk v7
-  const getXmtpSigner = useCallback((): Signer | null => {
-    if (!walletClient || !userAddress) return null;
-    
-    try {
-      const signer: Signer = {
-        type: 'EOA',
-        getIdentifier: async () => ({
-          identifier: userAddress.toLowerCase() as `0x${string}`,
-          identifierKind: IdentifierKind.Ethereum,
-        }),
-        signMessage: async (message: string): Promise<Uint8Array> => {
-          const signature = await walletClient.signMessage({ message });
-          const hex = signature.slice(2);
-          const bytes = new Uint8Array(hex.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []);
-          return bytes;
-        },
-      };
-      
-      return signer;
-    } catch (error) {
-      console.error('[XMTP] Failed to create XMTP signer:', error);
-      return null;
-    }
-  }, [walletClient, userAddress]);
-
-  // Track initialization
-  const hasInitializedRef = useRef(false);
-  const initializedWithRef = useRef<string | null>(null);
-  const initializedWithSellerRef = useRef<string | null>(null);
-  
-  // Check if seller address is valid (not a placeholder)
+  // Check if seller address is valid
   const isSellerAddressValid = sellerAddress && sellerAddress.startsWith('0x') && !sellerAddress.includes('abcdef');
 
-  // Initialize XMTP client when wallet connects
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Activate XMTP client on first mount (lazy init)
   useEffect(() => {
-    async function initXMTP() {
-      // Skip if already initialized for this wallet AND seller combination
-      if (hasInitializedRef.current && 
-          initializedWithRef.current === userAddress && 
-          initializedWithSellerRef.current === sellerAddress) {
-        console.log('[XMTP V7] Already initialized for this wallet+seller, skipping');
-        return;
-      }
-      
-      // Reset if wallet or seller changed
-      if (initializedWithRef.current !== userAddress || initializedWithSellerRef.current !== sellerAddress) {
-        console.log('[XMTP V7] Wallet or seller changed, resetting initialization state');
-        hasInitializedRef.current = false;
-      }
+    activateClient();
+  }, [activateClient]);
 
-      // Check prerequisites
-      if (!isHydrated || !isConnected || !userAddress) {
-        console.log('[XMTP V7] Skipping init - wallet not ready', {
-          isHydrated,
-          isConnected,
-          userAddress,
-          sellerAddress
-        });
-        return;
-      }
-      
-      // Check if seller address is valid
-      if (!isSellerAddressValid) {
-        console.log('[XMTP V7] Skipping init - seller address not loaded yet (placeholder:', sellerAddress, ')');
-        return;
-      }
-
-      // Check if we have wallet client, if not try to get it
-      if (!walletClient) {
-        console.log('[XMTP V7] No walletClient from hook, will try to get it differently');
-      } else {
-        console.log('[XMTP V7] Wallet client available:', walletClient.account.address);
-      }
-
-      console.log('[XMTP V7] All checks passed, proceeding with init...');
-      
-      try {
-        setIsLoading(true);
-        setError(null);
-        console.log('[XMTP V7] Initializing with wallet:', userAddress);
-        
-        // Create XMTP signer - use walletClient if available, otherwise try to create from userAddress
-        let xmtpSigner: Signer | null = null;
-        
-        if (walletClient) {
-          xmtpSigner = getXmtpSigner();
-        } else {
-          // Try to create a simple EOA signer from the address
-          console.log('[XMTP V7] Creating signer from address directly (no walletClient)');
-          xmtpSigner = {
-            type: 'EOA',
-            getIdentifier: async () => ({
-              identifier: userAddress.toLowerCase() as `0x${string}`,
-              identifierKind: IdentifierKind.Ethereum,
-            }),
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            signMessage: async (_message: string): Promise<Uint8Array> => {
-              // Without walletClient, we can't sign - this is a limitation
-              throw new Error('Wallet client not available for signing. Please reconnect your wallet.');
-            },
-          };
-        }
-        
-        if (!xmtpSigner) {
-          throw new Error('Failed to create XMTP signer from wallet');
-        }
-        
-        // Create XMTP client with v7 API - use dev network to match agent
-        console.log('[XMTP V7] Creating client on dev network...');
-         
-        const xmtpClient = await Client.create(xmtpSigner, { env: 'dev' } as any);
-        
-        if (!isMountedRef.current) {
-          xmtpClient.close();
-          return;
-        }
-        
-        console.log('[XMTP V7] ✅ Client created, inboxId:', xmtpClient.inboxId);
-        setClient(xmtpClient);
-        
-        // Check if seller can be messaged (v7 API)
-        if (!sellerAddress) {
-          setError('No seller address provided');
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('[XMTP V7] Checking if seller is reachable:', sellerAddress);
-        console.log('[XMTP V7] Calling Client.canMessage...');
-        console.log('[XMTP V7] Seller address lower:', sellerAddress.toLowerCase());
-        console.log('[XMTP V7] About to call Client.canMessage with:', sellerAddress.toLowerCase());
-        
-        let isReachable = false;
-        try {
-          // Use v7 canMessage API with Identifier array - returns Map<identifier, boolean>
-          const identifiers = [{
-            identifier: sellerAddress.toLowerCase() as `0x${string}`,
-            identifierKind: IdentifierKind.Ethereum,
-          }];
-          // Use the static canMessage with XmtpEnv parameter (deprecated but works)
-          const canMessageResult = await Client.canMessage(identifiers, 'dev' as any);
-          console.log('[XMTP V7] canMessage completed, result:', canMessageResult);
-          // Extract result from Map
-          isReachable = canMessageResult.get(sellerAddress.toLowerCase()) ?? false;
-        } catch (canMsgError) {
-          console.error('[XMTP V7] canMessage failed:', canMsgError);
-          setError('Failed to check if seller can receive messages: ' + (canMsgError instanceof Error ? canMsgError.message : 'Unknown error'));
-          setIsLoading(false);
-          return;
-        }
-        console.log('[XMTP V7] Seller reachable result:', isReachable);
-        
-        if (!isReachable) {
-          console.log('[XMTP V7] 💡 Seller has not registered on XMTP yet.');
-          console.log('[XMTP V7] 💡 They need to use an XMTP app (like xmtp.chat) first to receive messages.');
-          setError('Seller has not registered on XMTP yet. They need to use an XMTP app first.');
-          setIsLoading(false);
-          return;
-        }
-        
-        // Sync conversations (v7 uses syncAll for DMs)
-        console.log('[XMTP V7] ✅ Seller is reachable, proceeding to sync...');
-        console.log('[XMTP V7] Syncing conversations...');
-        await xmtpClient.conversations.syncAll([ConsentState.Allowed]);
-        
-        // Find or create DM using v7 API 
-        console.log('[XMTP V7] Finding or creating DM...');
-        console.log('[XMTP V7] Current user inboxId:', xmtpClient.inboxId);
-        console.log('[XMTP V7] Seller address for DM:', sellerAddress.toLowerCase());
-        
-        let dm: Dm | undefined;
-        
-        try {
-          // First try to find existing DM
-          console.log('[XMTP V7] Listing existing DMs...');
-          const existingDms = await xmtpClient.conversations.listDms();
-          console.log('[XMTP V7] Found', existingDms.length, 'existing DMs');
-          
-          // Find DM with matching peer by checking canMessage result
-          for (const d of existingDms) {
-            // Try to find by checking if we can message this peer
-            try {
-              // peerInboxId is a function in v7
-              const peerIdFn = (d as { peerInboxId?: () => Promise<string> }).peerInboxId;
-              if (peerIdFn) {
-                const peerId = await peerIdFn();
-                if (peerId.toLowerCase() === sellerAddress.toLowerCase()) {
-                  dm = d;
-                  break;
-                }
-              }
-            } catch {
-              continue;
-            }
-          }
-          
-          // If no existing DM found, create new one
-          if (!dm) {
-            console.log('[XMTP V7] Creating new DM with address:', sellerAddress.toLowerCase());
-            try {
-              dm = await xmtpClient.conversations.createDm(
-                sellerAddress.toLowerCase() as `0x${string}`
-              );
-              console.log('[XMTP V7] ✅ Created new DM with topic:', dm?.topic);
-            } catch (createError) {
-              console.error('[XMTP V7] ❌ Failed to create DM:', createError);
-              throw createError;
-            }
-          } else {
-            console.log('[XMTP V7] Found existing DM');
-          }
-        } catch (dmError) {
-          console.error('[XMTP V7] DM error:', dmError);
-          throw dmError;
-        }
-        
-        if (!dm || !isMountedRef.current) {
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log('[XMTP V7] ✅ DM ready, topic:', dm.topic);
-        setConversation(dm);
-        
-        // Load messages using v7 API
-        try {
-          const msgs = await dm.messages();
-          console.log('[XMTP V7] Loaded', msgs.length, 'messages');
-          
-          if (!isMountedRef.current) return;
-          
-          // Use type assertion for message properties
-          const formattedMessages = msgs.map((msg) => {
-            const msgAny = msg as { id?: string; content?: unknown; senderInboxId?: string; sentAt?: Date };
-            return {
-              id: msgAny.id || Date.now().toString(),
-              content: typeof msgAny.content === 'string' ? msgAny.content : JSON.stringify(msgAny.content),
-              senderAddress: msgAny.senderInboxId || '',
-              timestamp: msgAny.sentAt ? new Date(msgAny.sentAt) : new Date(),
-              isSelf: (msgAny.senderInboxId || '').toLowerCase() === (userAddress || '').toLowerCase()
-            };
-          });
-          setMessages(formattedMessages);
-        } catch (msgError) {
-          console.error('[XMTP V7] Error loading messages:', msgError);
-        }
-        
-        toast.success('Connected to XMTP!');
-        console.log('[XMTP V7] 🎉 XMTP initialization complete! Ready to send/receive messages.');
-        
-        // Set up message streaming for real-time incoming messages
-        // Only set up if not already streaming to prevent duplicates
-        if (!isStreamingRef.current) {
-          console.log('[XMTP V7] Setting up message stream...');
-          
-          // Create abort controller for cancellation
-          abortControllerRef.current = new AbortController();
-          
-          try {
-            // Use the conversation's stream method
-            const messageStream = await dm.stream();
-            isStreamingRef.current = true;
-            
-            // Create an async iterator handler
-            const handleStream = async () => {
-              try {
-                for await (const msg of messageStream) {
-                  // Check if streaming was cancelled
-                  if (abortControllerRef.current?.signal.aborted || !isMountedRef.current) break;
-                  
-                  const msgAny = msg as { id?: string; content?: unknown; senderInboxId?: string; sentAt?: Date };
-                  const senderId = msgAny.senderInboxId || '';
-                  const msgId = msgAny.id || `${Date.now()}-${Math.random()}`;
-                  
-                  // Only add messages from the other party (not from ourselves)
-                  if (senderId.toLowerCase() !== (userAddress || '').toLowerCase()) {
-                    console.log('[XMTP V7] Received new message:', msgAny.content);
-                    setMessages(prev => {
-                      // Avoid duplicates by checking ID or content+timestamp
-                      const exists = prev.some(m => 
-                        m.id === msgId || 
-                        (m.content === msgAny.content && 
-                         Math.abs(m.timestamp.getTime() - (msgAny.sentAt?.getTime() || Date.now())) < 2000)
-                      );
-                      if (exists) return prev;
-                      return [...prev, {
-                        id: msgId,
-                        content: typeof msgAny.content === 'string' ? msgAny.content : JSON.stringify(msgAny.content),
-                        senderAddress: senderId,
-                        timestamp: msgAny.sentAt ? new Date(msgAny.sentAt) : new Date(),
-                        isSelf: false
-                      }];
-                    });
-                  }
-                }
-              } catch (streamError) {
-                if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-                  console.log('[XMTP V7] Message stream ended or error:', streamError);
-                }
-              } finally {
-                isStreamingRef.current = false;
-              }
-            };
-            
-            // Start the stream handler
-            handleStream();
-            
-            // Store cleanup function
-            streamCleanupRef.current = () => {
-              if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-              }
-              isStreamingRef.current = false;
-              console.log('[XMTP V7] Message stream cleanup');
-            };
-            
-            console.log('[XMTP V7] Message stream set up successfully');
-          } catch (streamError) {
-            console.error('[XMTP V7] Error setting up message stream:', streamError);
-            isStreamingRef.current = false;
-          }
-        }
-        
-        // Mark as initialized
-        hasInitializedRef.current = true;
-        initializedWithRef.current = userAddress;
-        initializedWithSellerRef.current = sellerAddress;
-      } catch (error) {
-        console.error('[XMTP V7] Init error:', error);
-        if (isMountedRef.current) {
-          const errorMsg = error instanceof Error ? error.message : 'Failed to connect to XMTP';
-          setError(errorMsg);
-          toast.error('Failed to connect: ' + errorMsg.substring(0, 100));
-        }
-      } finally {
-        if (isMountedRef.current) setIsLoading(false);
-      }
-    }
-    
-    initXMTP();
-    
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      // Cleanup message stream
       if (streamCleanupRef.current) {
         streamCleanupRef.current();
         streamCleanupRef.current = null;
@@ -419,274 +327,594 @@ export function XMTPChatInner({ sellerAddress }: XMTPChatInnerProps) {
       }
       isStreamingRef.current = false;
     };
-  }, [walletClient, userAddress, sellerAddress, isConnected, retryKey, isHydrated, getXmtpSigner]);
+  }, []);
 
-  // Scroll to bottom when messages change
+  // ============================================================================
+  // SELLER-SPECIFIC DM INIT (uses shared client from provider)
+  // ============================================================================
+
+  useEffect(() => {
+    async function initSellerDM() {
+      // Skip if already initialized for this seller
+      if (hasDmInitializedRef.current && dmInitializedWithSellerRef.current === sellerAddress) {
+        return;
+      }
+
+      // Reset if seller changed
+      if (dmInitializedWithSellerRef.current !== sellerAddress) {
+        hasDmInitializedRef.current = false;
+      }
+
+      if (!isConnected || !userAddress || !client) {
+        return;
+      }
+      
+      if (!isSellerAddressValid) {
+        return;
+      }
+
+      try {
+        setIsSellerLoading(true);
+        setSellerError(null);
+        
+        // Client is already synced by the provider
+        
+        // Check if seller can receive messages
+        let isReachable = false;
+        try {
+          const identifiers = [{
+            identifier: sellerAddress!.toLowerCase() as `0x${string}`,
+            identifierKind: IdentifierKind.Ethereum,
+          }];
+          const canMessageResult = await Client.canMessage(identifiers, 'dev' as any);
+          isReachable = canMessageResult.get(sellerAddress!.toLowerCase()) ?? false;
+        } catch {
+          setSellerError('Failed to check seller reachability');
+          setIsSellerLoading(false);
+          return;
+        }
+        
+        if (!isReachable) {
+          setSellerError('Seller not on XMTP network yet');
+          setIsSellerLoading(false);
+          return;
+        }
+        
+        // Find or create DM with seller
+        let dm: Dm | undefined;
+        const existingDms = await client.conversations.listDms();
+        
+        for (const d of existingDms) {
+          try {
+            const peerIdFn = (d as { peerInboxId?: () => Promise<string> }).peerInboxId;
+            if (peerIdFn) {
+              const peerId = await peerIdFn();
+              if (peerId.toLowerCase() === sellerAddress!.toLowerCase()) {
+                dm = d;
+                break;
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
+        
+        if (!dm) {
+          dm = await client.conversations.createDm(
+            sellerAddress!.toLowerCase() as `0x${string}`
+          );
+        }
+        
+        if (!dm || !isMountedRef.current) {
+          setIsSellerLoading(false);
+          return;
+        }
+        
+        setConversation(dm);
+        
+        // Load existing messages
+        const msgs = await dm.messages({ limit: BigInt(50) });
+        
+        if (!isMountedRef.current) return;
+        
+        const formattedMessages: ChatMessage[] = msgs.map((msg) => {
+          const msgAny = msg as { id?: string; content?: unknown; senderInboxId?: string; sentAt?: Date };
+          const content = typeof msgAny.content === 'string' ? msgAny.content : JSON.stringify(msgAny.content);
+          const { type: messageType, payload } = parseMessageContent(content);
+          
+          return {
+            id: msgAny.id || Date.now().toString(),
+            content: content,
+            senderAddress: msgAny.senderInboxId || '',
+            timestamp: msgAny.sentAt ? new Date(msgAny.sentAt) : new Date(),
+            isSelf: (msgAny.senderInboxId || '').toLowerCase() === (userAddress || '').toLowerCase(),
+            status: 'delivered' as const,
+            type: messageType,
+            payload,
+          };
+        });
+        setMessages(formattedMessages);
+        
+        toast.success('Connected to XMTP!');
+        
+        // Set up real-time message streaming
+        if (!isStreamingRef.current) {
+          abortControllerRef.current = new AbortController();
+          
+          try {
+            const messageStream = await dm.stream();
+            isStreamingRef.current = true;
+            
+            const handleStream = async () => {
+              try {
+                for await (const msg of messageStream) {
+                  if (abortControllerRef.current?.signal.aborted || !isMountedRef.current) break;
+                  
+                  const msgAny = msg as { id?: string; content?: unknown; senderInboxId?: string; sentAt?: Date };
+                  const senderId = msgAny.senderInboxId || '';
+                  const msgId = msgAny.id || `${Date.now()}-${Math.random()}`;
+                  
+                  if (senderId.toLowerCase() !== (userAddress || '').toLowerCase()) {
+                    const content = typeof msgAny.content === 'string' ? msgAny.content : JSON.stringify(msgAny.content);
+                    const { type: messageType, payload } = parseMessageContent(content);
+                    
+                    setMessages(prev => {
+                      const exists = prev.some(m => 
+                        m.id === msgId || 
+                        (m.content === content && 
+                         Math.abs(m.timestamp.getTime() - (msgAny.sentAt?.getTime() || Date.now())) < 2000)
+                      );
+                      if (exists) return prev;
+                      return [...prev, {
+                        id: msgId,
+                        content,
+                        senderAddress: senderId,
+                        timestamp: msgAny.sentAt ? new Date(msgAny.sentAt) : new Date(),
+                        isSelf: false,
+                        status: 'delivered',
+                        type: messageType,
+                        payload,
+                      }];
+                    });
+                  }
+                }
+              } catch (streamError) {
+                if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+                  console.log('[XMTP] Stream ended:', streamError);
+                }
+              } finally {
+                isStreamingRef.current = false;
+              }
+            };
+            
+            handleStream();
+            
+            streamCleanupRef.current = () => {
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+              }
+              isStreamingRef.current = false;
+            };
+          } catch (streamError) {
+            console.error('[XMTP] Stream setup error:', streamError);
+            isStreamingRef.current = false;
+          }
+        }
+        
+        hasDmInitializedRef.current = true;
+        dmInitializedWithSellerRef.current = sellerAddress;
+      } catch (error) {
+        console.error('[XMTP] DM init error:', error);
+        if (isMountedRef.current) {
+          const errorMsg = error instanceof Error ? error.message : 'Failed to connect';
+          setSellerError(errorMsg);
+          toast.error('Failed to connect: ' + errorMsg.substring(0, 100));
+        }
+      } finally {
+        if (isMountedRef.current) setIsSellerLoading(false);
+      }
+    }
+    
+    initSellerDM();
+  }, [client, userAddress, sellerAddress, isConnected, retryKey, isSellerAddressValid]);
+
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = useCallback(async () => {
-    if (!inputValue.trim() || isSending) return;
-    
-    if (!conversation) {
-      toast.error('XMTP not connected. Please wait or refresh.');
-      return;
-    }
+  // ============================================================================
+  // SEND MESSAGE
+  // ============================================================================
+  
+  const sendMessage = useCallback(async (text?: string) => {
+    const messageContent = text || inputValue.trim();
+    if (!messageContent || isSending || !conversation) return;
     
     try {
       setIsSending(true);
-      await conversation.sendText(inputValue);
+      setInputValue('');
       
+      const tempId = Date.now().toString();
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        content: inputValue,
+        id: tempId,
+        content: messageContent,
         senderAddress: userAddress || '',
         timestamp: new Date(),
-        isSelf: true
+        isSelf: true,
+        status: 'sending',
+        type: 'text',
       }]);
-      setInputValue('');
-      toast.success('Message sent!');
+      
+      await conversation.sendText(messageContent);
+      
+      setMessages(prev => prev.map(m => 
+        m.id === tempId ? { ...m, status: 'sent' as const } : m
+      ));
+      
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => 
+          m.id === tempId ? { ...m, status: 'delivered' as const } : m
+        ));
+      }, 1000);
+      
     } catch (error) {
-      console.error('[XMTP V7] Send error:', error);
-      toast.error('Failed to send: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('[XMTP] Send error:', error);
+      toast.error('Failed to send message');
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsSending(false);
     }
   }, [inputValue, conversation, isSending, userAddress]);
 
-  function handleKeyPress(e: React.KeyboardEvent) {
+  // ============================================================================
+  // SEND x402 INVOICE (Seller action)
+  // ============================================================================
+  
+  const sendInvoiceRequest = useCallback(async () => {
+    if (!conversation || !listingCid) {
+      toast.error('Cannot send invoice - missing listing info');
+      return;
+    }
+    
+    const invoicePayload: X402InvoicePayload = {
+      customType: 'x402-invoice',
+      cid: listingCid,
+      amount: itemPrice || '1',
+      itemName: itemName || 'Item',
+      itemImage: itemImage,
+      payTo: sellerAddress || '',
+      network: 'base-sepolia',
+      fallback: `🔒 TRUCHEQ SECURE CHECKOUT: The World ID Verified Seller has requested ${itemPrice || '1'} USDC. Complete safely: ${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${listingCid.slice(0, 12)}`,
+    };
+    
+    try {
+      setIsSending(true);
+      
+      // Send as JSON string
+      await conversation.sendText(JSON.stringify(invoicePayload));
+      
+      toast.success('Invoice sent to buyer!');
+    } catch (error) {
+      console.error('[XMTP] Invoice send error:', error);
+      toast.error('Failed to send invoice');
+    } finally {
+      setIsSending(false);
+    }
+  }, [conversation, listingCid, itemPrice, itemName, itemImage, sellerAddress]);
+
+  // ============================================================================
+  // HANDLE PAY BUTTON CLICK (from Invoice Card)
+  // ============================================================================
+  
+  const handlePayFromInvoice = useCallback((cid: string, metaUrl?: string) => {
+    const payUrl = `/pay/${cid.slice(0, 12)}${metaUrl ? `?meta=${encodeURIComponent(metaUrl)}` : ''}`;
+    router.push(payUrl);
+  }, [router]);
+
+  // ============================================================================
+  // KEY HANDLERS
+  // ============================================================================
+  
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
-  }
+  };
 
   async function copyAddress() {
     if (!sellerAddress) return;
     await navigator.clipboard.writeText(sellerAddress);
     setCopied(true);
-    toast.success('Seller address copied!');
+    toast.success('Address copied!');
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // Ready state - check if we have both client and conversation
+  // Combined loading/error states
+  const isLoading = isProviderLoading || isSellerLoading;
+  const error = providerError || sellerError;
   const isReady = client !== null && conversation !== null;
 
-  // Chat window open
+  // ============================================================================
+  // RENDER: Chat Open
+  // ============================================================================
+  
   if (isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 w-80 md:w-96">
-        <Card className="border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
-          <CardHeader className="pb-3 border-b border-white/10 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <div className="relative">
-                  <MessageCircle className="w-4 h-4 text-primary" />
-                  {isReady && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  )}
-                </div>
-                <span className="font-bold">Chat with Seller</span>
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsOpen(false)}
-                className="h-6 w-6 p-0 hover:bg-white/10"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex -space-x-1">
-                <div className="w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center border border-black">
-                  <User className="w-3 h-3 text-primary-foreground" />
-                </div>
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-green-400 flex items-center justify-center border border-black">
-                  <Bot className="w-3 h-3 text-black" />
-                </div>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                You • AI Agent
-              </p>
-              {error && (
-                <Badge variant="destructive" className="text-[8px] py-0 px-1">
-                  <AlertCircle className="w-2 h-2 mr-1" />
-                  Error
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
+      <div className='fixed right-4 z-50 w-80 md:w-96' style={{ bottom: `calc(${bottomOffset} + env(safe-area-inset-bottom, 0px))` }}>
+        <Card className='border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden'>
+          {/* Trust Header */}
+          <TrustHeader 
+            sellerName={sellerName || ''}
+            sellerAddress={sellerAddress || ''}
+            sellerPfp={sellerPfp}
+            isOrbVerified={isOrbVerified}
+            isConnected={isReady}
+          />
           
-          <CardContent className="p-0">
-            <div className="h-72 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-black/60 to-black/40">
-              {!isConnected ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
-                  <p className="text-sm font-medium text-white mb-1">Wallet Not Connected</p>
-                  <p className="text-xs text-muted-foreground">Connect your wallet to start chatting</p>
-                </div>
-              ) : isLoading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
-                  <p className="text-xs text-muted-foreground mt-3">Connecting to XMTP...</p>
+          {/* Messages Area */}
+          <CardContent className='p-0'>
+            <div className='h-80 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-black/60 to-black/40'>
+              {isLoading ? (
+                <div className='text-center py-8'>
+                  <Loader2 className='w-8 h-8 mx-auto animate-spin text-primary' />
+                  <p className='text-xs text-muted-foreground mt-3'>Connecting...</p>
                 </div>
               ) : error ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-3 text-red-500" />
-                  <p className="text-sm font-medium text-white mb-1">Connection Failed</p>
-                  <p className="text-xs text-red-400 mb-3">{error}</p>
+                <div className='text-center py-8'>
+                  <AlertCircle className='w-10 h-10 mx-auto mb-3 text-red-500' />
+                  <p className='text-sm font-medium text-white mb-1'>Connection Failed</p>
+                  <p className='text-xs text-red-400 mb-3'>{error}</p>
                   <Button 
-                    size="sm" 
-                    variant="outline"
+                    size='sm' 
+                    variant='outline'
                     onClick={() => {
-                      setClient(null);
                       setConversation(null);
-                      hasInitializedRef.current = false;
-                      initializedWithRef.current = null;
+                      hasDmInitializedRef.current = false;
+                      dmInitializedWithSellerRef.current = null;
                       setRetryKey(k => k + 1);
+                      // Also retry provider if it had an error
+                      if (providerError) initClient();
                     }}
-                    className="border-white/20"
+                    className='border-white/20'
                   >
-                    Retry Connection
+                    Retry
                   </Button>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bot className="w-12 h-12 mx-auto mb-3 text-primary" />
-                  <p className="text-sm font-medium text-white mb-1">AI Seller Agent</p>
-                  <p className="text-xs text-muted-foreground mb-3">Ask me about watches, prices, or anything!</p>
+                <div className='text-center py-8'>
+                  <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center'>
+                    <MessageCircle className='w-8 h-8 text-primary/60' />
+                  </div>
+                  <p className='text-sm font-medium text-white mb-1'>Start a Conversation</p>
+                  <p className='text-xs text-muted-foreground'>
+                    Chat directly with the World ID verified seller
+                  </p>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div 
-                    key={msg.id} 
-                    className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'} items-end gap-2`}
-                  >
-                    {!msg.isSelf && (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-green-400 flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-3 h-3 text-black" />
-                      </div>
-                    )}
-                    <div 
-                      className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
-                        msg.isSelf 
-                          ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-sm' 
-                          : 'bg-white/10 text-white rounded-bl-sm border border-white/5'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                    {msg.isSelf && (
-                      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                        <User className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ))
+                <>
+                  <AnimatePresence>
+                    {messages.map((msg) => (
+                      <motion.div 
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className='flex items-end gap-2'
+                      >
+                        {/* System Messages - Centered */}
+                        {msg.type === 'system' && (
+                          <SystemMessage 
+                            content={msg.content}
+                            payload={msg.payload as SystemMessagePayload}
+                          />
+                        )}
+                        
+                        {/* x402 Invoice Cards */}
+                        {msg.type === 'x402-invoice' && msg.payload && (
+                          <div className='w-full'>
+                            <InvoiceCard 
+                              payload={msg.payload as X402InvoicePayload}
+                              onPay={handlePayFromInvoice}
+                              isBuyer={!msg.isSelf}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Regular Text Messages */}
+                        {msg.type === 'text' && (
+                          <div className={cn(
+                            'flex w-full',
+                            msg.isSelf ? 'justify-end' : 'justify-start',
+                            'items-end gap-2'
+                          )}>
+                            {!msg.isSelf && (
+                              <div className={cn(
+                                'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
+                                isOrbVerified 
+                                  ? 'bg-gradient-to-br from-primary/80 to-primary/40' 
+                                  : 'bg-blue-500/80'
+                              )}>
+                                <User className='w-3 h-3 text-white' />
+                              </div>
+                            )}
+                            <div className='max-w-[75%]'>
+                              <div 
+                                className={cn(
+                                  'px-4 py-3 rounded-2xl text-sm',
+                                  msg.isSelf 
+                                    ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-sm' 
+                                    : 'bg-white/10 text-white rounded-bl-sm border border-white/5'
+                                )}
+                              >
+                                <span className='whitespace-pre-wrap break-words'>{msg.content}</span>
+                              </div>
+                              {msg.isSelf && msg.status && (
+                                <MessageStatus status={msg.status} />
+                              )}
+                            </div>
+                            {msg.isSelf && (
+                              <div className='w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0'>
+                                <User className='w-3 h-3 text-white' />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </>
               )}
               <div ref={messagesEndRef} />
             </div>
             
-            <div className="p-3 border-t border-white/10 bg-black/80">
-              <div className="flex gap-2 items-center">
+            {/* Input Area */}
+            <div className='p-3 border-t border-white/10 bg-black/80'>
+              <div className='flex gap-2 items-center'>
                 <Input
+                  ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder={isReady ? "Type a message..." : "Connecting..."}
+                  placeholder={isReady ? 'Type a message...' : 'Connecting...'}
                   disabled={isSending || !isReady}
-                  className="bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9"
+                  className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9'
                 />
                 <Button 
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={!inputValue.trim() || isSending || !isReady}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 h-9 px-3"
+                  size='sm'
+                  className='bg-primary hover:bg-primary/90 h-9 px-3'
                 >
                   {isSending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className='w-4 h-4 animate-spin' />
                   ) : (
-                    <Send className="w-4 h-4" />
+                    <Send className='w-4 h-4' />
                   )}
                 </Button>
               </div>
+              
+              {/* Seller Invoice Button */}
+              {isReady && sellerAddress?.toLowerCase() === userAddress?.toLowerCase() && (
+                <Button
+                  onClick={sendInvoiceRequest}
+                  disabled={isSending || !listingCid}
+                  className='w-full mt-2 bg-gradient-to-r from-primary to-primary/80 text-black font-bold h-10 rounded-xl border-0'
+                >
+                  <DollarSign className='w-4 h-4 mr-2' />
+                  Send x402 Invoice
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
+        
+        {/* Close Button */}
+        <Button
+          onClick={() => setIsOpen(false)}
+          variant='ghost'
+          size='sm'
+          className='absolute -top-3 -left-3 h-8 w-8 p-0 bg-black/80 border border-white/20 rounded-full hover:bg-white/10'
+        >
+          <X className='w-4 h-4' />
+        </Button>
       </div>
     );
   }
 
-  // Chat closed - show launcher button
+  // ============================================================================
+  // RENDER: Chat Closed - Launcher Card
+  // ============================================================================
+  
   return (
     <>
+      {/* Floating Launcher Button */}
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 z-50"
+        className='fixed right-4 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 z-50'
+        style={{ bottom: `calc(${bottomOffset} + env(safe-area-inset-bottom, 0px))` }}
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className='w-6 h-6' />
+        {isReady && (
+          <span className='absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black animate-pulse' />
+        )}
       </Button>
 
-      <Card className="w-full max-w-md mx-auto border-white/10 bg-black/60 backdrop-blur-xl">
-        <CardHeader className="pb-3 border-b border-white/5">
-          <CardTitle className="text-lg flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary" />
+      {/* Collapsed Card (shown in page) */}
+      <Card className='w-full max-w-md mx-auto border-white/10 bg-black/60 backdrop-blur-xl'>
+        <CardHeader className='pb-3 border-b border-white/5'>
+          <CardTitle className='text-lg flex items-center justify-between'>
+            <span className='flex items-center gap-2'>
+              <MessageCircle className='w-5 h-5 text-primary' />
               Chat with Seller
             </span>
-            <Badge variant="secondary" className="bg-primary/20 text-primary text-xs">
+            <Badge variant='secondary' className='bg-primary/20 text-primary text-xs'>
               XMTP
             </Badge>
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="p-4 space-y-4">
-          <div className="text-center py-4">
-            <MessageCircle className="w-12 h-12 mx-auto mb-3 text-primary/60" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Chat directly with the seller's AI agent
-            </p>
-            <Button 
-              onClick={() => setIsOpen(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Open Chat
-            </Button>
+        <CardContent className='p-4 space-y-4'>
+          {/* Trust Indicators */}
+          <div className='flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10'>
+            <div className={cn(
+              'w-10 h-10 rounded-full flex items-center justify-center',
+              isOrbVerified 
+                ? 'bg-primary/20 text-primary' 
+                : 'bg-blue-500/20 text-blue-400'
+            )}>
+              {isOrbVerified ? (
+                <ShieldCheck className='w-5 h-5' />
+              ) : (
+                <Smartphone className='w-5 h-5' />
+              )}
+            </div>
+            <div>
+              <p className='text-sm font-bold text-white'>World ID Verified</p>
+              <p className='text-xs text-muted-foreground'>
+                {isOrbVerified ? 'Orb Verification' : 'Device Verification'}
+              </p>
+            </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Seller XMTP Address
+          <Button 
+            onClick={() => setIsOpen(true)}
+            className='w-full bg-primary hover:bg-primary/90'
+          >
+            <MessageCircle className='w-4 h-4 mr-2' />
+            Open Chat
+          </Button>
+
+          <div className='p-4 rounded-xl bg-white/5 border border-white/10 space-y-3'>
+            <p className='text-xs font-bold text-muted-foreground uppercase tracking-wider'>
+              Seller Address
             </p>
-            <p className="font-mono text-xs text-primary break-all">
+            <p className='font-mono text-xs text-primary break-all'>
               {sellerAddress}
             </p>
-            <div className="flex gap-2">
+            <div className='flex gap-2'>
               <Button 
                 onClick={copyAddress}
-                variant="outline" 
-                size="sm" 
-                className="flex-1 border-white/10 hover:bg-white/10"
+                variant='outline' 
+                size='sm' 
+                className='flex-1 border-white/10 hover:bg-white/10'
               >
-                <Copy className="w-4 h-4 mr-2" />
+                <Copy className='w-4 h-4 mr-2' />
                 {copied ? 'Copied!' : 'Copy'}
               </Button>
               <Button 
                 asChild
-                variant="outline" 
-                size="sm" 
-                className="flex-1 border-white/10 hover:bg-white/10"
+                variant='outline' 
+                size='sm' 
+                className='flex-1 border-white/10 hover:bg-white/10'
               >
                 <a 
                   href={`https://xmtp.chat/dm/${sellerAddress}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  target='_blank' 
+                  rel='noopener noreferrer'
                 >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Open in XMTP
+                  <ExternalLink className='w-4 h-4 mr-2' />
+                  External
                 </a>
               </Button>
             </div>

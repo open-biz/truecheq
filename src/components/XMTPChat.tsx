@@ -9,6 +9,15 @@ import dynamic from 'next/dynamic';
 
 interface XMTPChatProps {
   sellerAddress?: string;
+  sellerName?: string;
+  sellerPfp?: string;
+  isOrbVerified?: boolean;
+  listingCid?: string;
+  itemName?: string;
+  itemPrice?: string;
+  itemImage?: string;
+  /** Bottom offset for floating chat button (default: "1.5rem"). Use "5rem" when a sticky CTA bar is present. */
+  bottomOffset?: string;
 }
 
 // Dynamically import the XMTP chat component to avoid SSR issues with WASM
@@ -41,14 +50,32 @@ function XMTPChatLoading() {
   );
 }
 
-export function XMTPChat({ sellerAddress }: XMTPChatProps) {
+export function XMTPChat({ 
+  sellerAddress,
+  sellerName,
+  sellerPfp,
+  isOrbVerified,
+  listingCid,
+  itemName,
+  itemPrice,
+  itemImage,
+  bottomOffset,
+}: XMTPChatProps) {
   if (!sellerAddress) {
     return null;
   }
 
-  // The XMTPChatInner component includes:
-  // 1. A floating chat button (bottom-right corner)
-  // 2. A card with embedded chat UI (when opened)
-  // 3. XMTP address with Copy button and "Open in XMTP" external link
-  return <XMTPChatInner sellerAddress={sellerAddress} />;
+  return (
+    <XMTPChatInner 
+      sellerAddress={sellerAddress}
+      sellerName={sellerName}
+      sellerPfp={sellerPfp}
+      isOrbVerified={isOrbVerified}
+      listingCid={listingCid}
+      itemName={itemName}
+      itemPrice={itemPrice}
+      itemImage={itemImage}
+      bottomOffset={bottomOffset}
+    />
+  );
 }

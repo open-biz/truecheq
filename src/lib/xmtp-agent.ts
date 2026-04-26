@@ -1,309 +1,177 @@
-// XMTP Agent for TruCheq seller automation
-// This runs as a standalone process to handle buyer messages
+/**
+ * TruCheq P2P XMTP Agent (Demo Seller)
+ * 
+ * This runs as a standalone process to handle a DEMO seller's XMTP identity.
+ * It's a lightweight relay — NOT an AI chatbot. The seller is a real human
+ * who responds via their XMTP client (Converse, Coinbase Wallet, World App).
+ * 
+ * Architecture note:
+ * - This agent is for the DEMO seller only. In production, each real seller
+ *   uses their own XMTP identity (via World App, Converse, etc.) directly.
+ * - The server-side system relay (xmtp-server.ts) sends notifications
+ *   (welcome messages, payment confirmations) to ANY seller or buyer —
+ *   it's multi-tenant and uses XMTP_SYSTEM_PRIVATE_KEY, not a specific seller key.
+ * 
+ * What this agent does:
+ * 1. Sends a welcome message when a new buyer starts a DM
+ * 2. Relays system messages (payment confirmations, invoice notifications)
+ * 3. Logs incoming messages for the seller's dashboard
+ * 
+ * What this agent does NOT do:
+ * - AI-generated responses (removed — this is P2P, not bot-mediated)
+ * - Automatic invoice sending (seller does this manually from the UI)
+ * 
+ * Environment variables:
+ * - XMTP_WALLET_KEY: Private key of the demo seller wallet
+ * - XMTP_DB_ENCRYPTION_KEY: 32-byte hex key for DB encryption
+ * - NEXT_PUBLIC_XMTP_ENV: 'dev' or 'production'
+ * - NEXT_PUBLIC_BASE_URL: Base URL for generating payment links
+ */
 import 'dotenv-defaults/config';
 import { Agent } from '@xmtp/agent-sdk';
-import OpenAI from 'openai';
-
-// Conversation history storage (in production, use Redis/Postgres)
-const conversationHistories: Map<string, Array<{role: string, content: string}>> = new Map();
-
-// Required environment variables:
-// - XMTP_WALLET_KEY: Private key of the seller wallet
-// - XMTP_DB_ENCRYPTION_KEY: 32-byte hex key for DB encryption
-// - NEXT_PUBLIC_XMTP_ENV: 'dev' or 'production'
-// Note: Seller address will be obtained from the agent after initialization
 
 const XMTP_ENV = process.env.NEXT_PUBLIC_XMTP_ENV || 'dev';
 
-// NVIDIA OpenAI client for DeepSeek AI
-const openai = new OpenAI({
-  apiKey: process.env.NVIDIA_API_KEY || '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',
-  baseURL: 'https://integrate.api.nvidia.com/v1',
-});
+// ============================================================================
+// TYPES
+// ============================================================================
 
-// Build context from listings for AI
-function buildListingsContext(): string {
-  let context = 'Available listings:\n';
-  for (const [cid, listing] of Object.entries(LISTINGS)) {
-    context += `- ${listing.name}: ${listing.price} USDC. ${listing.description}\n`;
-  }
-  return context;
+/** System message payloads sent programmatically (e.g., payment confirmations) */
+interface SystemPaymentConfirmedPayload {
+  customType: 'system';
+  event: 'payment_confirmed';
+  amount: string;
+  txHash: string;
+  timestamp: number;
 }
 
-// Get conversation history for context
-function getConversationHistory(conversationId: string): Array<{role: string, content: string}> {
-  return conversationHistories.get(conversationId) || [];
+interface SystemPaymentSentPayload {
+  customType: 'system';
+  event: 'payment_sent';
+  amount: string;
+  txHash: string;
+  timestamp: number;
 }
 
-// Add message to history
-function addToHistory(conversationId: string, role: string, content: string) {
-  const history = conversationHistories.get(conversationId) || [];
-  history.push({ role, content });
-  // Keep only last 10 messages to stay within token limits
-  if (history.length > 10) {
-    history.shift();
-  }
-  conversationHistories.set(conversationId, history);
-}
+type SystemPayload = SystemPaymentConfirmedPayload | SystemPaymentSentPayload;
 
-// AI response function using DeepSeek with conversation history
-async function getAIResponse(userMessage: string, conversationId: string): Promise<string> {
-  const listingsContext = buildListingsContext();
-  const history = getConversationHistory(conversationId);
-  
-  const systemPrompt = `You are a helpful seller assistant for TruCheq, a Web3 P2P marketplace on Base Sepolia. 
-Sellers are verified via World ID (sybil resistance). Payments are handled via x402 protocol.
+// ============================================================================
+// HELPERS
+// ============================================================================
 
-${listingsContext}
-
-Instructions:
-- Be helpful, friendly, and concise
-- When users ask about products, provide details and offer purchase links
-- When users want to buy, give them the proper command or link  
-- If they ask about verification, explain World ID
-- If they ask about payment, explain x402 on Base Sepolia
-- Always offer to show the list with \`list\` command
-- Format responses with emoji and be conversational
-- Use markdown for formatting (bold, bullet points, etc.)
-- Include direct purchase links when relevant
-- Remember context from previous messages in this conversation`;
-
+/** Parse a message to check if it's a structured system payload */
+function parseSystemPayload(content: string): SystemPayload | null {
   try {
-    // Build messages including history - cast to any to avoid strict OpenAI type issues
-    const messages: any = [
-      { role: 'system', content: systemPrompt },
-      ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
-      { role: 'user', content: userMessage }
-    ];
-    
-    const completion = await openai.chat.completions.create({
-      model: "deepseek-ai/deepseek-v3.1",
-      messages,
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
-    
-    const response = completion.choices[0]?.message?.content || 'Sorry, I could not process your request.';
-    
-    // Add to history
-    addToHistory(conversationId, 'user', userMessage);
-    addToHistory(conversationId, 'assistant', response);
-    
-    return response;
-  } catch (error) {
-    console.error('[Agent] AI error:', error);
-    return 'Sorry, I encountered an error. Try using `list` to see available items or `help` for commands.';
+    const parsed = JSON.parse(content);
+    if (parsed.customType === 'system') {
+      return parsed as SystemPayload;
+    }
+  } catch {
+    // Not JSON, regular text
+  }
+  return null;
+}
+
+/** Check if a message is an x402 invoice payload */
+function isInvoicePayload(content: string): boolean {
+  try {
+    const parsed = JSON.parse(content);
+    return parsed.customType === 'x402-invoice';
+  } catch {
+    return false;
   }
 }
 
-interface ListingInfo {
-  cid: string;
-  price: string;
-  name: string;
-  description: string;
-}
-
-// Known listings (in production, fetch from IPFS or database)
-const LISTINGS: Record<string, ListingInfo> = {
-  'QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ': {
-    cid: 'QmVaTcgW2rqEjNRGsUSGi75D1YRhgtbya7SJhdQqjF9mbQ',
-    price: '1',
-    name: 'Luxury Watch',
-    description: 'Premium timepiece - World ID verified seller'
-  },
-  'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp': {
-    cid: 'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
-    price: '1',
-    name: 'Designer Watch',
-    description: 'Authentic designer watch - verified seller'
-  },
-  'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR': {
-    cid: 'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
-    price: '1',
-    name: 'Vintage Watch',
-    description: 'Classic vintage piece - verified seller'
-  },
-  'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN': {
-    cid: 'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
-    price: '1',
-    name: 'Sport Watch',
-    description: 'Premium sports watch - device verified'
-  },
-  'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ': {
-    cid: 'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
-    price: '1',
-    name: 'Classic Watch',
-    description: 'Timeless classic - device verified'
-  },
-};
+// ============================================================================
+// AGENT CREATION
+// ============================================================================
 
 async function createAgent() {
-  console.log(`[Agent] Environment: ${XMTP_ENV}`);
+  console.log(`[P2P Agent] Environment: ${XMTP_ENV}`);
 
-  // Create agent from environment variables (XMTP_WALLET_KEY, XMTP_DB_ENCRYPTION_KEY)
-  // Use persistent database path to avoid creating new installations on restart
-  // This is critical for production - hitting installation limits (10 max) causes issues
-  const dbPath = process.env.XMTP_DB_PATH || `./xmtp-${XMTP_ENV}-${process.env.XMTP_WALLET_KEY?.slice(0, 10) || 'default'}.db3`;
-  console.log(`[Agent] Database path: ${dbPath}`);
+  const dbPath = process.env.XMTP_DB_PATH || `./xmtp-p2p-${XMTP_ENV}-${process.env.XMTP_WALLET_KEY?.slice(0, 10) || 'default'}.db3`;
+  console.log(`[P2P Agent] Database path: ${dbPath}`);
 
   const agent = await Agent.createFromEnv({
-    appVersion: 'trucheq-seller-v1',
+    appVersion: 'trucheq-p2p-v1',
     env: XMTP_ENV as 'dev' | 'production',
-    dbPath, // Persistent storage to prevent installation limit issues
+    dbPath,
   });
 
   return agent;
 }
 
+// ============================================================================
+// MAIN: Start P2P Agent
+// ============================================================================
+
 export async function startSellerAgent() {
   const agent = await createAgent();
+  
+  const agentAddress = (agent as any).address;
+  console.log(`[P2P Agent] Seller address: ${agentAddress}`);
+  console.log(`[P2P Agent] Mode: Human-to-Human P2P (no AI responses)`);
 
-  // Handle text messages
+  // ---- Handle incoming text messages ----
+  // Log them for the seller; no AI auto-response
   agent.on('text', async (ctx) => {
-    const message = ctx.message.content.toLowerCase();
+    const message = ctx.message.content;
     const sender = (ctx.message as any).senderAddress || 'unknown';
     
-    console.log(`[Agent] Received message from ${sender}: ${ctx.message.content}`);
-
-    // Help command
-    if (message === 'help' || message === '?' || message === '/help') {
-      await ctx.conversation.sendText(
-        `🏪 **TruCheq Seller Assistant**\n\n` +
-        `Available commands:\n` +
-        `• \`list\` - View available listings\n` +
-        `• \`price <cid>\` - Get price for a specific item\n` +
-        `• \`buy <cid>\` - Get purchase link for an item\n` +
-        `• \`status\` - Check seller verification status\n\n` +
-        `Just send a message to start a conversation!`
-      );
+    // Check if this is a system message (from our own server)
+    const systemPayload = parseSystemPayload(message);
+    if (systemPayload) {
+      console.log(`[P2P Agent] System message relayed: ${systemPayload.event} from ${sender}`);
+      // System messages are already visible in the chat — no action needed
       return;
     }
 
-    // List command
-    if (message === 'list' || message === '/list') {
-      let response = '📦 **Available Listings:**\n\n';
-      for (const [cid, listing] of Object.entries(LISTINGS)) {
-        response += `• **${listing.name}** - ${listing.price} USDC\n`;
-        response += `  CID: \`${cid.slice(0, 12)}...\`\n\n`;
-      }
-      response += `Use \`price <cid>\` for details or \`buy <cid>\` to purchase.`;
-      await ctx.conversation.sendText(response);
+    // Check if this is an x402 invoice (from seller via UI)
+    if (isInvoicePayload(message)) {
+      console.log(`[P2P Agent] x402 invoice relayed from ${sender}`);
       return;
     }
 
-    // Price command
-    if (message.startsWith('price ')) {
-      const cid = message.replace('price ', '').trim();
-      const listing = LISTINGS[cid];
-      
-      if (listing) {
-        await ctx.conversation.sendText(
-          `💰 **${listing.name}**\n` +
-          `Price: ${listing.price} USDC\n` +
-          `Description: ${listing.description}\n\n` +
-          `To purchase: \`buy ${cid}\``
-        );
-      } else {
-        await ctx.conversation.sendText(
-          `❌ Listing not found. Use \`list\` to see available items.`
-        );
-      }
-      return;
-    }
-
-    // Buy command
-    if (message.startsWith('buy ')) {
-      const cid = message.replace('buy ', '').trim();
-      const listing = LISTINGS[cid];
-      
-      if (listing) {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const purchaseUrl = `${baseUrl}/pay/${cid.slice(0, 12)}?meta=https://parallel-pink-stork.myfilebase.com/ipfs/${cid}`;
-        await ctx.conversation.sendText(
-          `🛒 **Purchase ${listing.name}**\n\n` +
-          `Price: ${listing.price} USDC\n\n` +
-          `[Click here to pay](${purchaseUrl})\n\n` +
-          `Payment processed via x402 on Base Sepolia.`
-        );
-      } else {
-        await ctx.conversation.sendText(
-          `❌ Listing not found. Use \`list\` to see available items.`
-        );
-      }
-      return;
-    }
-
-    // Status command
-    if (message === 'status' || message === '/status') {
-      // Get agent address from the agent instance
-      const agentAddress = (agent as any).address || 'Unknown';
-      await ctx.conversation.sendText(
-        `✅ **Seller Status**\n\n` +
-        `Address: \`${agentAddress}\`\n` +
-        `Verification: Orb Verified (World ID)\n` +
-        `Network: Base Sepolia (Testnet)\n\n` +
-        `All listings are verified via World ID sybil resistance.`
-      );
-      return;
-    }
-
-    // Get conversation ID for history
-    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
+    // Regular buyer message — just log it
+    console.log(`[P2P Agent] Buyer message from ${sender}: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
     
-    // Default response - use AI for natural conversation with history
-    const aiResponse = await getAIResponse(ctx.message.content, conversationId);
-    await ctx.conversation.sendText(aiResponse);
+    // Do NOT auto-respond. The seller is a real human who will reply manually
+    // via their XMTP client (Converse, Coinbase Wallet, World App, etc.)
   });
 
-  // Handle DMs (new conversations) - clear history and send welcome
+  // ---- Handle new DMs (first message from a buyer) ----
+  // Send a brief welcome message so the buyer knows they're connected
   agent.on('dm', async (ctx) => {
     const dmCtx = ctx as any;
     const sender = dmCtx.message?.senderAddress || 'unknown';
-    console.log(`[Agent] New DM from ${sender}`);
-    
-    // Clear old history for new conversation
-    const conversationId = ctx.conversation.id || ctx.conversation.topic || sender;
-    conversationHistories.delete(conversationId);
-    
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    
-    // Get agent address for status
-    const agentAddress = (agent as any).address || 'Unknown';
+    console.log(`[P2P Agent] New DM from buyer: ${sender}`);
     
     await ctx.conversation.sendText(
-      `🤖 **AI Agent - TruCheq Seller Assistant**\n\n` +
-      `I'm an AI agent, not a human. I'm here to help you find the perfect watch!\n\n` +
-      `📋 **What I can do:**\n` +
-      `• \`list\` - View all available watches\n` +
-      `• \`help\` - See all commands\n` +
-      `• \`status\` - Check seller verification\n\n` +
-      `💬 Chat naturally - I'll help you find what you're looking for!\n\n` +
-      `🔒 **Payment:** All transactions protected via x402 on **Base Sepolia**\n\n` +
-      `[View Listings](${baseUrl}/marketplace)`
+      `👋 Welcome to TruCheq! You're now connected with a World ID verified seller.\n\n` +
+      `They'll respond to your messages shortly. If they send a payment request, ` +
+      `you'll see a secure x402 invoice card right here in the chat.\n\n` +
+      `🔒 All messages are end-to-end encrypted via XMTP.`
     );
   });
 
-  // Handle group messages
+  // ---- Handle group messages ----
   agent.on('group', async (ctx) => {
     const groupCtx = ctx as any;
-    console.log(`[Agent] New group message from ${groupCtx.message?.senderAddress || 'unknown'}`);
-    // Optionally handle group chats
+    console.log(`[P2P Agent] Group message from ${groupCtx.message?.senderAddress || 'unknown'}`);
   });
 
-  // Handle errors
+  // ---- Handle errors ----
   agent.on('unhandledError', (error) => {
-    console.error('[Agent] Unhandled error:', error);
+    console.error('[P2P Agent] Unhandled error:', error);
   });
 
-  // Start the agent
+  // ---- Start the agent ----
   await agent.start();
   
-  // Get the agent's wallet address
-  const agentAddress = (agent as any).address;
-  console.log(`[Agent] ✅ Seller agent started!`);
-  console.log(`[Agent] Address: ${agentAddress}`);
-  console.log(`[Agent] Listening for messages on ${XMTP_ENV} network`);
-  console.log(`[Agent] Send a message to this address on XMTP (dev network) to test!`);
+  console.log(`[P2P Agent] ✅ P2P Seller agent started!`);
+  console.log(`[P2P Agent] Address: ${agentAddress}`);
+  console.log(`[P2P Agent] Listening for messages on ${XMTP_ENV} network`);
+  console.log(`[P2P Agent] Send a message to this address on XMTP (dev network) to test!`);
 
   return agent;
 }
