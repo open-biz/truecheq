@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Import @worldcoin/mini-apps-ui-kit-react styles in a CSS layer for lower cascade priority.
-   This provides the pre-compiled utility classes (bg-gray-0, text-gray-900, etc.)
-   that the UI kit components depend on, while keeping our Tailwind v4 styles dominant. */
-@import "@worldcoin/mini-apps-ui-kit-react/dist/globals.css" layer(worldcoin-ui-kit);
+/* @worldcoin/mini-apps-ui-kit-react styles are NOT imported as a CSS file because:
+   1. PostCSS can't resolve the package's CSS export path
+   2. The globals.css contains @tailwind base/utilities (v3) which conflicts with our v4 setup
+   Instead, we define the UI kit's color palette in @theme inline (below) so Tailwind v4
+   generates the utility classes that the components depend on (fill-gray-0, bg-info-600, etc.)
+   and re-assert the :root CSS variables for components that use var() references. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -12,6 +14,58 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* ---- @worldcoin/mini-apps-ui-kit-react color palette ---- */
+  --color-gray-0: 255 255 255;
+  --color-gray-50: 249 250 251;
+  --color-gray-100: 243 244 245;
+  --color-gray-200: 235 236 239;
+  --color-gray-300: 214 217 221;
+  --color-gray-350: 177 184 194;
+  --color-gray-400: 155 163 174;
+  --color-gray-500: 113 118 128;
+  --color-gray-700: 60 66 75;
+  --color-gray-900: 24 24 24;
+  --color-success-100: 230 249 236;
+  --color-success-200: 204 243 217;
+  --color-success-300: 153 232 179;
+  --color-success-400: 102 220 141;
+  --color-success-500: 51 209 103;
+  --color-success-600: 0 194 48;
+  --color-success-700: 0 155 38;
+  --color-success-800: 0 116 29;
+  --color-success-900: 0 77 19;
+  --color-error-100: 254 233 231;
+  --color-error-200: 253 211 207;
+  --color-error-300: 251 167 159;
+  --color-error-400: 249 123 111;
+  --color-error-500: 247 80 63;
+  --color-error-600: 242 40 13;
+  --color-error-700: 194 32 10;
+  --color-error-800: 145 24 8;
+  --color-error-900: 97 16 5;
+  --color-warning-100: 255 246 230;
+  --color-warning-200: 255 237 204;
+  --color-warning-300: 255 219 153;
+  --color-warning-400: 255 201 102;
+  --color-warning-500: 255 184 51;
+  --color-warning-600: 255 174 0;
+  --color-warning-700: 204 139 0;
+  --color-warning-800: 153 104 0;
+  --color-warning-900: 102 70 0;
+  --color-info-100: 230 240 255;
+  --color-info-200: 204 225 255;
+  --color-info-300: 153 195 255;
+  --color-info-400: 102 164 255;
+  --color-info-500: 51 133 255;
+  --color-info-600: 0 92 255;
+  --color-info-700: 0 74 204;
+  --color-info-800: 0 55 153;
+  --color-info-900: 0 37 102;
+  --color-brand-primary: 0 194 48;
+  --color-brand-secondary: 230 249 236;
+  --color-world-blue-primary: 63 219 237;
+  --color-world-blue-secondary: 236 251 253;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -129,37 +183,9 @@
   --sidebar-border: #1E293B;
   --sidebar-ring: #00D632;
 
-  /* ---- @worldcoin/mini-apps-ui-kit-react CSS variables ---- */
-  /* These variables are needed by UI kit components. They're also provided by the
-     globals.css import (in a lower-priority layer), but we re-assert them here so
-     our dark theme palette takes precedence. */
-  --gray-0: 255 255 255;
-  --gray-50: 249 250 251;
-  --gray-100: 243 244 245;
-  --gray-200: 235 236 239;
-  --gray-300: 214 217 221;
-  --gray-350: 177 184 194;
-  --gray-400: 155 163 174;
-  --gray-500: 113 118 128;
-  --gray-700: 60 66 75;
-  --gray-900: 24 24 24;
-  --success-100: 230 249 236;
-  --success-500: 51 209 103;
-  --success-600: 0 194 48;
-  --error-500: 247 80 63;
-  --error-600: 242 40 13;
-  --warning-500: 255 184 51;
-  --warning-600: 255 174 0;
-  --info-500: 51 133 255;
-  --info-600: 0 92 255;
-  --green-primary: 0 194 48;
-  --green-secondary: 230 249 236;
-  --blue-primary: 0 92 255;
-  --blue-secondary: 230 240 255;
-  --world-blue-primary: 63 219 237;
-  --world-blue-secondary: 236 251 253;
-  --worldcoin-primary: 24 24 24;
-  --worldcoin-secondary: 243 244 245;
+  /* @worldcoin/mini-apps-ui-kit-react color variables are now defined in
+     @theme inline as --color-* entries. Tailwind v4 auto-generates the
+     corresponding :root CSS custom properties from @theme inline entries. */
 }
 
 @layer base {
