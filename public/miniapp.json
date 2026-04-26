@@ -5,7 +5,7 @@
   "description": "Sybil-resistant P2P commerce protocol with World ID verification, encrypted XMTP chat, and Coinbase x402 payments on Base",
   "icon": "/android-chrome-512x512.png",
   "link": "https://trucheq.com",
-  "category": "DeFi",
+  "category": "Shopping",
   "color": "#00D632",
   "hero_image": "/og-image.png",
   "permissions": ["notifications", "contacts"],
