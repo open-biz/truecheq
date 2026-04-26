@@ -39,6 +39,7 @@ export function useXMTP(): XMTPContextValue {
 // localStorage key for lazy XMTP activation persistence (shared in STORAGE_KEYS)
 import { STORAGE_KEYS } from './utils';
 const LAZY_KEY = STORAGE_KEYS.XMTP_ACTIVATED;
+const WALLET_CLIENT_ERROR = 'Wallet client unavailable — please reconnect your wallet';
 
 export function XMTPProvider({ children }: { children: React.ReactNode }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -131,8 +132,8 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
     if (!signer) {
       // signer is null when walletClient is unavailable — common after page refresh
       // when address is cached but the wallet provider hasn't reconnected yet.
-      // Set a clear error so the user knows to reconnect rather than seeing a silent failure.
-      setError('Wallet client unavailable — please reconnect your wallet');
+      // Don't set a permanent error immediately: the effect will re-fire once
+      // walletClient becomes available (getXmtpSigner → initClient identity changes).
       return;
     }
 
@@ -182,11 +183,28 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
         }
         hasInitializedRef.current = false;
       }
+
+      // If walletClient is not ready yet, show a delayed error instead of
+      // failing silently forever. initClient will silently return early when
+      // signer is null, and this effect re-fires when walletClient arrives.
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      if (!walletClient) {
+        timeoutId = setTimeout(() => {
+          if (isMountedRef.current && !clientRef.current) {
+            setError(WALLET_CLIENT_ERROR);
+          }
+        }, 5000);
+      } else {
+        // walletClient is available — clear any stale reconnect error
+        setError(prev => prev === WALLET_CLIENT_ERROR ? null : prev);
+      }
+
       initClient();
+      return () => { if (timeoutId) clearTimeout(timeoutId); };
     }
     // activatedVersion ensures this re-runs when activateClient() fires
     // for the first time, even if wallet state hasn't changed.
-  }, [isHydrated, isConnected, userAddress, initClient, activatedVersion]);
+  }, [isHydrated, isConnected, userAddress, walletClient, initClient, activatedVersion]);
 
   // Cleanup on unmount
   useEffect(() => {
