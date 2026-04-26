@@ -1,22 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LucideLock, LucideShieldCheck, LucideSmartphone, LucideImage, LucideXCircle, LucideExternalLink, LucideBot } from 'lucide-react';
-import { cn, getProxiedImageUrl } from '@/lib/utils';
+import { cn, getProxiedImageUrl, STORAGE_KEYS } from '@/lib/utils';
 import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
+import { WorldIDBuyerAuth, type WorldIDBuyer } from '@/components/WorldIDBuyerAuth';
 import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WorldWalletButton } from './WorldWalletButton';
 import Link from 'next/link';
 
 export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string }) {
   const [mounted, setMounted] = useState(false);
   const [metadata, setMetadata] = useState<DealMetadata | null>(null);
+  const [worldBuyer, setWorldBuyer] = useState<WorldIDBuyer | null>(null);
   
-  const { isConnected } = useAccount();
+  const { address: walletAddress, isConnected } = useAccount();
 
   const isOrbVerified = metadata?.isOrbVerified ?? false;
   // Use seller's actual address from metadata for XMTP chat
@@ -40,10 +42,121 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
     fetchMetadata();
   }, [metadataUrl, id]);
 
+  // Load buyer from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.BUYER);
+    if (stored) {
+      try {
+        const buyerData = JSON.parse(stored);
+        setWorldBuyer(buyerData);
+      } catch (e) {
+        console.error('Failed to load buyer from storage', e);
+      }
+    }
+  }, []);
+
+  // Save buyer to localStorage when changed
+  useEffect(() => {
+    if (worldBuyer) {
+      localStorage.setItem(STORAGE_KEYS.BUYER, JSON.stringify(worldBuyer));
+    }
+  }, [worldBuyer]);
+
+  const handleBuyerSuccess = useCallback((buyer: WorldIDBuyer, address?: string) => {
+    setWorldBuyer(buyer);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setWorldBuyer(null);
+    localStorage.removeItem(STORAGE_KEYS.BUYER);
+  }, []);
+
   if (!mounted) return null;
 
+  // ---- Not authenticated - show World ID sign-in ----
+  if (!worldBuyer) {
+    return (
+      <div className="max-w-md mx-auto py-12 space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-black italic tracking-tighter text-white mb-2">
+            Sign in to Purchase
+          </h2>
+          <p className="text-sm text-muted-foreground font-bold">
+            Verify with World ID to buy this listing
+          </p>
+        </div>
+        
+        <WorldIDBuyerAuth onSuccess={handleBuyerSuccess} />
+        
+        <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground">
+          Your World ID is used for identity verification - not linked to your wallet
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Authenticated but no wallet - show connect wallet ----
+  if (worldBuyer && !isConnected) {
+    return (
+      <div className="max-w-md mx-auto py-12 space-y-6">
+        <Card className="border-primary/20 bg-black/80 backdrop-blur-xl overflow-hidden rounded-[2rem]">
+          <CardHeader className="text-center pb-2">
+            <Badge variant='outline' className={cn(
+              'mx-auto mb-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest',
+              worldBuyer.isOrbVerified
+                ? 'bg-primary/20 text-primary border-primary/40'
+                : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+            )}>
+              {worldBuyer.isOrbVerified ? <LucideShieldCheck className='w-3 h-3 mr-1.5' /> : <LucideSmartphone className='w-3 h-3 mr-1.5' />}
+              {worldBuyer.isOrbVerified ? 'Orb' : 'Device'} Verified
+            </Badge>
+            <CardTitle className="text-2xl font-black italic tracking-tighter">
+              Connect Wallet to Pay
+            </CardTitle>
+            <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-50 mt-1">
+              World ID verified • Connect World App or any wallet
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-4">
+            <div className="flex justify-center">
+              <WorldWalletButton size='md' />
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full text-muted-foreground text-xs"
+            >
+              Use different World ID
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ---- Fully authenticated with wallet - show listing ----
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-8">
+      {/* Buyer Status Bar */}
+      <div className="flex items-center justify-center gap-4 p-4 rounded-2xl bg-black/40 border border-white/10">
+        <Badge variant='outline' className={cn(
+          'px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest',
+          worldBuyer.isOrbVerified
+            ? 'bg-primary/20 text-primary border-primary/40'
+            : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+        )}>
+          {worldBuyer.isOrbVerified ? <LucideShieldCheck className='w-3 h-3 mr-1' /> : <LucideSmartphone className='w-3 h-3 mr-1' />}
+          {worldBuyer.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
+        </Badge>
+        <div className="h-4 w-px bg-white/20" />
+        <span className="text-xs font-mono text-muted-foreground">
+          {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+        </span>
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px]">
+          Logout
+        </Button>
+      </div>
+
       {/* Listing Details Card */}
       <Card className="border-white/10 bg-black/80 backdrop-blur-3xl shadow-2xl relative overflow-hidden rounded-[2.5rem] border-t-primary/20">
         <CardHeader className="text-center pb-2">
@@ -133,38 +246,13 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         </CardContent>
       </Card>
 
-      {/* XMTP Chat - only show if wallet connected */}
+      {/* XMTP Chat - show when wallet connected */}
       {metadata && isConnected && (
         <XMTPChat
           sellerAddress={sellerAddress}
         />
       )}
       
-      {/* Chat prompt when wallet not connected */}
-      {metadata && !isConnected && (
-        <Card className="w-full max-w-md mx-auto border-white/10 bg-black/60 backdrop-blur-xl">
-          <CardHeader className="pb-3 border-b border-white/5">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <LucideBot className="w-5 h-5 text-primary" />
-                Chat with Seller
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="text-center py-4">
-              <LucideBot className="w-12 h-12 mx-auto mb-3 text-primary/60" />
-              <p className="text-sm text-muted-foreground mb-4">
-                Connect your wallet to chat with the seller's AI agent
-              </p>
-              <ConnectButton 
-                showBalance={false}
-                accountStatus="address"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

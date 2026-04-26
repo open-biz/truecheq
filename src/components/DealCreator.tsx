@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WorldWalletButton } from './WorldWalletButton';
 import { useAccount } from 'wagmi';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -245,11 +245,7 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
               Connect your wallet to create listings and receive USDC payments
             </p>
             <div className="flex justify-center">
-              <ConnectButton 
-                chainStatus="icon"
-                accountStatus="address"
-                showBalance={false}
-              />
+              <WorldWalletButton size='md' />
             </div>
           </div>
         )}

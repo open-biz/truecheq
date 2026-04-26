@@ -11,3 +11,13 @@ export function getProxiedImageUrl(url?: string): string {
   if (url.startsWith('/') || url.startsWith('blob:')) return url;
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
+
+// Shared localStorage keys for TruCheq user data
+export const STORAGE_KEYS = {
+  /** Seller data (World ID + wallet info) */
+  SELLER: 'trucheq_user_data',
+  /** Buyer data (World ID + wallet info) */
+  BUYER: 'trucheq_buyer_data',
+} as const;
+
+export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

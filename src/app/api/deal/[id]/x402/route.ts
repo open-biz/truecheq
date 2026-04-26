@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { formatPriceForX402, BASE_SEPOLIA_CHAIN_ID } from '@/lib/x402';
+import { formatPriceForX402, BASE_SEPOLIA_CHAIN_ID, WORLD_CHAIN_ID, getUSDCAddress } from '@/lib/x402';
+
+// Supported chains in order of preference (World Chain first for agent traffic)
+const SUPPORTED_NETWORKS = [WORLD_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID];
 
 // Type for the handler response
 type HandlerResponse = {
@@ -45,17 +48,22 @@ export async function GET(request: NextRequest) {
     const paymentProof = request.headers.get('x402-payment-proof');
     
     if (!paymentProof) {
-      // No payment - return 402 with proper x402 header format
-      // The x402 header tells the client what payment is required
-      // Format: x402 scheme=exact, network=eip155:84532, amount=$price, asset=USDC, payTo=seller
-      const x402Header = `x402 scheme=exact, network=${BASE_SEPOLIA_CHAIN_ID}, amount=${priceFormatted}, asset=USDC, payTo=${sellerAddress}`;
+      // No payment - return 402 with MULTIPLE x402 headers for both supported chains
+      // Client can choose which chain to pay on
+      // Format: x402 scheme=exact, network=eip155:480, amount=$price, asset=USDC, payTo=seller
+      
+      // Build WWW-Authenticate with multiple schemes (one per chain)
+      const x402Headers = SUPPORTED_NETWORKS.map(network => 
+        `x402 scheme=exact, network=${network}, amount=${priceFormatted}, asset=${getUSDCAddress(network)}, payTo=${sellerAddress}`
+      ).join(', ');
       
       return new NextResponse(JSON.stringify({
         error: 'Payment required',
         scheme: 'exact',
         price: priceFormatted,
-        network: BASE_SEPOLIA_CHAIN_ID,
-        asset: 'USDC',
+        networks: SUPPORTED_NETWORKS,
+        networkNames: ['World Chain', 'Base Sepolia'],
+        assets: SUPPORTED_NETWORKS.map(n => ({ network: n, asset: getUSDCAddress(n) })),
         payTo: sellerAddress,
         maxTimeoutSeconds: 300,
         description: `TruCheq listing: ${metadata.itemName} - ${price} USDC`,
@@ -63,7 +71,8 @@ export async function GET(request: NextRequest) {
         status: 402,
         headers: {
           'Content-Type': 'application/json',
-          'WWW-Authenticate': x402Header,
+          'WWW-Authenticate': x402Headers,
+          'X-Accepted-Networks': SUPPORTED_NETWORKS.join(','),
         },
       });
     }
@@ -72,9 +81,13 @@ export async function GET(request: NextRequest) {
     // In production, you'd verify the proof with the facilitator
     // For now, we assume proof is valid if present
     
+    // Determine which chain was used from the proof
+    const paidChain = paymentProof.includes('world') ? WORLD_CHAIN_ID : BASE_SEPOLIA_CHAIN_ID;
+    
     return NextResponse.json({
       success: true,
       paidVia: 'x402',
+      paidOn: paidChain,
       listingId: url.pathname.split('/')[3] || 'unknown',
       seller: metadata.seller,
       metadataURI: metadataUrl,

@@ -3,9 +3,8 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
 import { config } from '@/lib/wagmi';
-import '@rainbow-me/rainbowkit/styles.css';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -15,22 +14,21 @@ export function Providers({ children }: { children: ReactNode }) {
     setIsClient(true);
   }, []);
 
-  // Always wrap with WagmiProvider (supports SSR with ssr: true config)
-  // RainbowKit is client-only so wrap that conditionally
+  // Custom World-focused wallet UI - no RainbowKit needed
+  // MiniKitProvider enables native World App wallet via deep links
+  // The worldApp() connector in wagmi config handles the fallback
   return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiProvider config={config}>
-        {isClient ? (
-          <RainbowKitProvider 
-            theme={darkTheme()}
-            initialChain={84532} // Base Sepolia
-          >
-            {children}
-          </RainbowKitProvider>
-        ) : (
-          children
-        )}
-      </WagmiProvider>
-    </QueryClientProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <MiniKitProvider
+          props={{
+            appId: process.env.NEXT_PUBLIC_APP_ID || 'app_trucheq',
+            wagmiConfig: config,
+          }}
+        >
+          {children}
+        </MiniKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

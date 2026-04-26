@@ -3,18 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WorldWalletButton } from '@/components/WorldWalletButton';
 import { parseUnits } from 'viem';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LucideCheckCircle, LucideArrowLeft, LucideWallet, LucideLoader2, LucideExternalLink, LucideShieldCheck, LucideCoins, LucideCreditCard } from 'lucide-react';
+import { LucideCheckCircle, LucideArrowLeft, LucideWallet, LucideLoader2, LucideExternalLink, LucideShieldCheck, LucideCoins, LucideCreditCard, LucideSmartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { STORAGE_KEYS, cn } from '@/lib/utils';
 
-// USDC on Base Sepolia
-const USDC_ADDRESS = '0x036cbd53842c5426634e7929545ec598f828a2b5';
+// USDC addresses by chain
+const USDC_ADDRESS_BASE = '0x036cbd53842c5426634e7929545ec598f828a2b5';
+const USDC_ADDRESS_WORLD = '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1';
 const BASE_SEPOLIA_CHAIN_ID = 84532;
+const WORLD_CHAIN_ID = 480;
+
+// Chain names
+const CHAIN_NAMES: Record<number, string> = {
+  [WORLD_CHAIN_ID]: 'World Chain',
+  [BASE_SEPOLIA_CHAIN_ID]: 'Base Sepolia',
+};
+
+// Chain icons (emoji for now, could be images)
+const CHAIN_ICONS: Record<number, string> = {
+  [WORLD_CHAIN_ID]: '🌍',
+  [BASE_SEPOLIA_CHAIN_ID]: '🔵',
+};
 
 // USDC ABI for transfer
 const USDC_ABI = [
@@ -48,6 +63,8 @@ interface X402PaymentRequirement {
   payTo: string;
   maxTimeoutSeconds?: number;
 }
+
+// Types are used inline when parsing multi-chain x402 responses
 
 function parseX402Header(authHeader: string): X402PaymentRequirement | null {
   try {
@@ -84,7 +101,23 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
     hash: txHash 
   });
   
-  const isCorrectChain = chain?.id === BASE_SEPOLIA_CHAIN_ID;
+  // Load buyer data from localStorage
+  const [buyerData, setBuyerData] = useState<{ isOrbVerified: boolean; nullifierHash: string } | null>(null);
+  
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.BUYER);
+    if (stored) {
+      try {
+        setBuyerData(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to load buyer data', e);
+      }
+    }
+  }, []);
+  
+  // Track selected payment chain (World Chain by default)
+  const [selectedChain, setSelectedChain] = useState<number>(WORLD_CHAIN_ID);
+  const isCorrectChain = chain?.id === selectedChain;
   
   const [metadata, setMetadata] = useState<ListingMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,7 +168,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
   }, [isConfirmed, txHash, metadata?.price]);
 
   const handleSwitchChain = () => {
-    switchChain({ chainId: BASE_SEPOLIA_CHAIN_ID });
+    switchChain({ chainId: selectedChain });
   };
 
   // Handle x402 payment flow
@@ -168,6 +201,37 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
       if (initialResponse.status === 402) {
         const authHeader = initialResponse.headers.get('WWW-Authenticate');
         if (authHeader && authHeader.startsWith('x402')) {
+        // Try to parse as multi-chain response first
+        try {
+          const data = JSON.parse(await initialResponse.text());
+          if (data.networks?.length > 1) {
+            // Multi-chain response - set default to selected chain
+            const networkIndex = selectedChain === WORLD_CHAIN_ID ? 0 : 1;
+            const network = data.networks[networkIndex] || data.networks[0];
+            const assetEntry = data.assets?.find((a: { network: string }) => a.network === network) || (data.assets?.[0] ?? null);
+            if (assetEntry) {
+              setX402Requirement({
+                scheme: data.scheme,
+                network,
+                amount: data.price,
+                asset: assetEntry.asset,
+                payTo: data.payTo,
+                maxTimeoutSeconds: data.maxTimeoutSeconds,
+              });
+            }
+            console.log('[x402] Multi-chain payment options:', data.networks, data.networkNames);
+          } else if (data.network) {
+            setX402Requirement({
+              scheme: data.scheme,
+              network: data.network,
+              amount: data.price,
+              asset: data.asset,
+              payTo: data.payTo,
+              maxTimeoutSeconds: data.maxTimeoutSeconds,
+            });
+          }
+        } catch {
+          // Fallback to header parsing
           const req = parseX402Header(authHeader);
           if (req) {
             setX402Requirement(req);
@@ -175,12 +239,14 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
           }
         }
       }
+    }
 
-      // Step 2: Make the USDC payment via wallet
+      // Step 2: Make the USDC payment via wallet on selected chain
       const amountUSDC = parseUnits(metadata.price, 6);
+      const usdcAddress = selectedChain === WORLD_CHAIN_ID ? USDC_ADDRESS_WORLD : USDC_ADDRESS_BASE;
       
       writeContract({
-        address: USDC_ADDRESS,
+        address: usdcAddress,
         abi: USDC_ABI,
         functionName: 'transfer',
         args: [metadata.seller as `0x${string}`, amountUSDC],
@@ -262,6 +328,48 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Buyer Verification Status */}
+              {buyerData && (
+                <div className={cn(
+                  'p-4 rounded-2xl border',
+                  buyerData.isOrbVerified
+                    ? 'bg-primary/10 border-primary/20'
+                    : 'bg-blue-500/10 border-blue-500/20'
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        'p-2 rounded-xl',
+                        buyerData.isOrbVerified
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-blue-500/20 text-blue-400'
+                      )}>
+                        {buyerData.isOrbVerified
+                          ? <LucideShieldCheck className="w-4 h-4" />
+                          : <LucideSmartphone className="w-4 h-4" />
+                        }
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest">
+                          {buyerData.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          World ID: {buyerData.nullifierHash.slice(0, 8)}...
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={cn(
+                      'text-[10px] font-black uppercase',
+                      buyerData.isOrbVerified
+                        ? 'bg-primary/20 text-primary border-primary/40'
+                        : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                    )}>
+                      Verified
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
               <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Item</span>
@@ -269,7 +377,16 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Seller</span>
-                  <span className="text-xs font-mono text-primary">{metadata.seller.slice(0, 6)}...{metadata.seller.slice(-4)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-white">{metadata.seller.slice(0, 8)}...</span>
+                    {metadata.isOrbVerified && (
+                      <LucideShieldCheck className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Buyer Wallet</span>
+                  <span className="text-xs font-mono text-muted-foreground">{address?.slice(0, 8)}...{address?.slice(-6)}</span>
                 </div>
                 {txHash && (
                   <div className="flex items-center justify-between">
@@ -288,7 +405,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 {paymentProof && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Payment Proof</span>
-                    <span className="text-xs font-mono text-green-400">Verified</span>
+                    <span className="text-xs font-mono text-green-400">x402 Verified</span>
                   </div>
                 )}
               </div>
@@ -298,7 +415,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 </Button>
               </Link>
               <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Payment via x402 Protocol on Base Sepolia
+                Payment via x402 Protocol on {CHAIN_NAMES[selectedChain]}
               </p>
             </CardContent>
           </Card>
@@ -363,14 +480,40 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 <Badge variant="outline" className="text-[10px] font-black uppercase bg-purple-500/10 text-purple-400 border-purple-500/20">
                   x402
                 </Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Network</span>
-                <Badge variant="outline" className="text-[10px] font-black uppercase bg-blue-500/10 text-blue-400 border-blue-500/20">
-                  Base Sepolia
-                </Badge>
-              </div>
+              </div>                {/* Chain Selector */}
+                <div className="space-y-3">
+                  <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Select Network</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setSelectedChain(WORLD_CHAIN_ID)}
+                      className={`p-3 rounded-xl border transition-all ${
+                        selectedChain === WORLD_CHAIN_ID
+                          ? 'bg-primary/10 border-primary/40 text-primary'
+                          : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xl">{CHAIN_ICONS[WORLD_CHAIN_ID]}</span>
+                        <span className="text-xs font-black">World Chain</span>
+                        <span className="text-[10px] text-muted-foreground">Agent-ready</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setSelectedChain(BASE_SEPOLIA_CHAIN_ID)}
+                      className={`p-3 rounded-xl border transition-all ${
+                        selectedChain === BASE_SEPOLIA_CHAIN_ID
+                          ? 'bg-primary/10 border-primary/40 text-primary'
+                          : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xl">{CHAIN_ICONS[BASE_SEPOLIA_CHAIN_ID]}</span>
+                        <span className="text-xs font-black">Base Sepolia</span>
+                        <span className="text-[10px] text-muted-foreground">Standard</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
             </div>
 
             {/* Payment Error */}
@@ -398,11 +541,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
               <div className="space-y-4">
                 {!isConnected ? (
                   <div className="flex justify-center">
-                    <ConnectButton 
-                      chainStatus="icon"
-                      accountStatus="address"
-                      showBalance={false}
-                    />
+                    <WorldWalletButton size='lg' />
                   </div>
                 ) : chain === undefined ? (
                   <div className="flex justify-center py-6">
@@ -412,7 +551,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                   <div className="space-y-3">
                     <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20">
                       <p className="text-xs text-yellow-400 font-bold">
-                        Please switch to Base Sepolia for x402 payments
+                        Please switch to {CHAIN_NAMES[selectedChain]} for x402 payments
                       </p>
                     </div>
                     <Button 
@@ -420,16 +559,20 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                       className="w-full py-6 text-lg font-black bg-yellow-500 text-black hover:bg-yellow-400 rounded-2xl"
                     >
                       <LucideWallet className="w-5 h-5 mr-3" />
-                      Switch to Base Sepolia
+                      Switch to {CHAIN_NAMES[selectedChain]}
                     </Button>
                   </div>
                 ) : (
                   <Button 
                     onClick={() => setPaymentStep('review')}
-                    className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)]"
+                    className={`w-full py-8 text-xl font-black rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] ${
+                        selectedChain === WORLD_CHAIN_ID
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'bg-blue-500 text-white hover:bg-blue-400'
+                      }`}
                   >
                     <LucideWallet className="w-6 h-6 mr-3" />
-                    Continue to Pay
+                    Continue to Pay via {CHAIN_NAMES[selectedChain]}
                   </Button>
                 )}
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -460,17 +603,21 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 <Button 
                   onClick={handlePay}
                   disabled={isSigning}
-                  className="w-full py-8 text-xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] disabled:opacity-50"
+                  className={`w-full py-8 text-xl font-black rounded-2xl shadow-[0_20px_40px_rgba(0,214,50,0.3)] disabled:opacity-50 ${
+                    selectedChain === WORLD_CHAIN_ID
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'bg-blue-500 text-white hover:bg-blue-400'
+                  }`}
                 >
                   {isSigning ? (
                     <>
                       <LucideLoader2 className="w-6 h-6 mr-3 animate-spin" />
-                      Confirm in Wallet...
+                      Confirm on {CHAIN_NAMES[selectedChain]}...
                     </>
                   ) : (
                     <>
                       <LucideCoins className="w-6 h-6 mr-3" />
-                      Pay {metadata.price} USDC
+                      Pay {metadata.price} USDC on {CHAIN_NAMES[selectedChain]}
                     </>
                   )}
                 </Button>

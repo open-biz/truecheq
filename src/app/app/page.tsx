@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/sonner";
+import { STORAGE_KEYS } from '@/lib/utils';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { WorldIDAuth, type WorldIDUser } from '@/components/WorldIDAuth';
@@ -46,7 +47,7 @@ export default function AppPage() {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEYS.SELLER);
     if (stored) {
       try {
         const userData = JSON.parse(stored);
@@ -60,13 +61,13 @@ export default function AppPage() {
   // Save user to localStorage when changed
   useEffect(() => {
     if (worldUser) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(worldUser));
+      localStorage.setItem(STORAGE_KEYS.SELLER, JSON.stringify(worldUser));
     }
   }, [worldUser]);
 
   const handleLogout = () => {
     setWorldUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.SELLER);
     setAppSubView('create');
     setMode('seller');
   };  // Demo listings - same as marketplace, loaded from IPFS

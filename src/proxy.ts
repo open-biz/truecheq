@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toUSDCUnits } from '@/lib/x402';
+import { toUSDCUnits, WORLD_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID, getUSDCAddress, getChainName } from '@/lib/x402';
 
 // Dynamic x402 proxy - fetches listing metadata and routes payment to seller
 export async function proxy(request: NextRequest) {
@@ -39,17 +39,22 @@ export async function proxy(request: NextRequest) {
       // Convert price to USDC units (6 decimal places)
       const priceUSDC = toUSDCUnits(metadata.price || '0');
       
-      const x402Header = `x402 payTo=${sellerAddress}, amount=${priceUSDC}, asset=USDC, network=base-sepolia, description="TruCheq listing payment - ${metadata.price} USDC goes directly to seller ${sellerAddress.slice(0, 6)}..."`;
+      // Support both World Chain and Base Sepolia
+      const x402Headers = [
+        `x402 scheme=exact, network=${WORLD_CHAIN_ID}, amount=${priceUSDC}, asset=${getUSDCAddress(WORLD_CHAIN_ID)}, payTo=${sellerAddress}, description="Pay via World Chain"`,
+        `x402 scheme=exact, network=${BASE_SEPOLIA_CHAIN_ID}, amount=${priceUSDC}, asset=${getUSDCAddress(BASE_SEPOLIA_CHAIN_ID)}, payTo=${sellerAddress}, description="Pay via Base Sepolia"`,
+      ].join(', ');
       
       return new NextResponse('Payment required', {
         status: 402,
         headers: {
-          'WWW-Authenticate': x402Header,
+          'WWW-Authenticate': x402Headers,
           'X-Pay-To': sellerAddress,
           'X-Amount': priceUSDC,
           'X-Amount-Display': metadata.price,
-          'X-Asset': 'USDC',
-          'X-Network': 'base-sepolia',
+          'X-Asset': getUSDCAddress(BASE_SEPOLIA_CHAIN_ID),
+          'X-Network': BASE_SEPOLIA_CHAIN_ID,
+          'X-Accepted-Networks': `${WORLD_CHAIN_ID},${BASE_SEPOLIA_CHAIN_ID}`,
         },
       });
     }
