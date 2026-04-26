@@ -34,6 +34,7 @@ import {
   parseMessageContent,
 } from '@/lib/xmtp-types';
 import { useXMTP } from '@/lib/xmtp-provider';
+import { VerificationBadge } from '@worldcoin/mini-apps-ui-kit-react';
 
 // ============================================================================
 // TYPES
@@ -80,18 +81,9 @@ function TrustHeader({ sellerName, sellerAddress, sellerPfp, isOrbVerified, isCo
             <User className='w-6 h-6 text-white/60' />
           </div>
         )}
-        {/* World ID Verification Glow */}
-        <div className={cn(
-          'absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-black shadow-lg flex items-center justify-center',
-          isOrbVerified 
-            ? 'bg-primary shadow-[0_0_12px_rgba(0,214,50,0.8)]' 
-            : 'bg-blue-500'
-        )}>
-          {isOrbVerified ? (
-            <ShieldCheck className='w-3 h-3 text-black' />
-          ) : (
-            <Smartphone className='w-3 h-3 text-white' />
-          )}
+        {/* World ID Verification — native VerificationBadge overlay */}
+        <div className='absolute -bottom-0.5 -right-0.5'>
+          <VerificationBadge verified={isOrbVerified} />
         </div>
       </div>
       
@@ -100,15 +92,7 @@ function TrustHeader({ sellerName, sellerAddress, sellerPfp, isOrbVerified, isCo
         <h3 className='text-sm font-bold text-white truncate'>
           {sellerName || `Seller ${sellerAddress?.slice(0, 6)}...${sellerAddress?.slice(-4)}`}
         </h3>
-        <span className={cn(
-          'text-[10px] font-black uppercase tracking-widest flex items-center gap-1',
-          isOrbVerified ? 'text-primary' : 'text-blue-400'
-        )}>
-          {isOrbVerified ? (
-            <ShieldCheck className='w-3 h-3' />
-          ) : (
-            <Smartphone className='w-3 h-3' />
-          )}
+        <span className='text-[10px] font-black uppercase tracking-widest text-muted-foreground'>
           {isOrbVerified ? 'Orb' : 'Device'} Verified
         </span>
       </div>

@@ -18,6 +18,11 @@ import {
   LucideGlobe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  TopBar,
+  VerificationBadge,
+  CircularIcon,
+} from '@worldcoin/mini-apps-ui-kit-react';
 
 import {
   type TruCheqUser,
@@ -379,8 +384,17 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
       <div className="min-h-screen bg-[#0A0F14] text-foreground">
         <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
 
-        {/* Mini App: no header. Standalone: minimal header */}
-        {!isMiniApp && (
+        {/* Mini App: World App TopBar. Standalone: custom header */}
+        {isMiniApp ? (
+          <TopBar
+            title="TruCheq"
+            startAdornment={
+              <CircularIcon size="sm">
+                <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
+              </CircularIcon>
+            }
+          />
+        ) : (
           <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
             <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -413,8 +427,22 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
     <div className="min-h-screen bg-[#0A0F14] text-foreground">
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
 
-      {/* Header: only in standalone mode */}
-      {!isMiniApp && <StandaloneHeader user={user} onLogout={handleLogout} />}
+      {/* Header: Mini App gets TopBar with native VerificationBadge, standalone gets custom header */}
+      {isMiniApp ? (
+        <TopBar
+          title="TruCheq"
+          startAdornment={
+            <CircularIcon size="sm">
+              <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
+            </CircularIcon>
+          }
+          endAdornment={
+            <VerificationBadge verified={user.isOrbVerified} />
+          }
+        />
+      ) : (
+        <StandaloneHeader user={user} onLogout={handleLogout} />
+      )}
 
       {/* Main content area with padding for bottom tabs */}
       <div className={cn('max-w-lg mx-auto px-4 pt-4 pb-24', !isMiniApp && 'pt-4')}>

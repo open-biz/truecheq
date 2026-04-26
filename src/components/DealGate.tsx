@@ -28,6 +28,9 @@ import { type TruCheqUser, loadTruCheqUser, saveTruCheqUser, clearTruCheqUser, m
 import { useAccount, useDisconnect } from 'wagmi';
 import { WorldWalletButton } from './WorldWalletButton';
 import Link from 'next/link';
+import {
+  VerificationBadge,
+} from '@worldcoin/mini-apps-ui-kit-react';
 
 // ============================================================================
 // Component: Image Gallery (horizontal swipe carousel)
@@ -287,25 +290,41 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
     <div className="space-y-5 pb-4">
       {miniAppBack}
 
-      {/* Seller Identity Badge — compact inline */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className={cn(
-          'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest',
-          isOrbVerified
-            ? 'bg-primary/20 text-primary border-primary/40'
-            : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-        )}>
-          {isOrbVerified ? <LucideShieldCheck className="w-3 h-3 mr-1" /> : <LucideSmartphone className="w-3 h-3 mr-1" />}
-          {isOrbVerified ? 'Orb Verified Seller' : 'Device Verified Seller'}
-        </Badge>
-        <span className="text-[10px] font-mono text-muted-foreground">
-          {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
-        </span>
-        <div className="flex-1" />
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
-          Logout
-        </Button>
-      </div>
+      {/* Seller Identity Badge — World App native components in Mini App mode */}
+      {isMiniApp ? (
+        <div className="flex items-center gap-2">
+          <VerificationBadge verified={isOrbVerified} />
+          <span className="text-xs font-medium text-foreground">
+            {isOrbVerified ? 'Orb Verified' : 'Device Verified'} Seller
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
+          </span>
+          <div className="flex-1" />
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
+            Logout
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn(
+            'px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest',
+            isOrbVerified
+              ? 'bg-primary/20 text-primary border-primary/40'
+              : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+          )}>
+            {isOrbVerified ? <LucideShieldCheck className="w-3 h-3 mr-1" /> : <LucideSmartphone className="w-3 h-3 mr-1" />}
+            {isOrbVerified ? 'Orb Verified Seller' : 'Device Verified Seller'}
+          </Badge>
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
+          </span>
+          <div className="flex-1" />
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
+            Logout
+          </Button>
+        </div>
+      )}
 
       {/* Image Gallery — horizontal swipe carousel */}
       {metadata && metadata.images && metadata.images.length > 0 && (
@@ -336,20 +355,33 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         </div>
       )}
 
-      {/* Buyer Identity Chip — subtle */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
-        <div className={cn(
-          'w-2 h-2 rounded-full',
-          trucheqUser.isOrbVerified ? 'bg-primary' : 'bg-blue-400',
-        )} />
-        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-          {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
-        </span>
-        <div className="h-3 w-px bg-white/10" />
-        <span className="text-[10px] font-mono text-muted-foreground/60">
-          {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
-        </span>
-      </div>
+      {/* Buyer Identity Chip — World App native in Mini App mode */}
+      {isMiniApp ? (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+          <VerificationBadge verified={trucheqUser.isOrbVerified} />
+          <span className="text-xs font-medium text-foreground">
+            {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
+          </span>
+          <div className="h-3 w-px bg-white/10" />
+          <span className="text-[10px] font-mono text-muted-foreground/60">
+            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+          <div className={cn(
+            'w-2 h-2 rounded-full',
+            trucheqUser.isOrbVerified ? 'bg-primary' : 'bg-blue-400',
+          )} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
+          </span>
+          <div className="h-3 w-px bg-white/10" />
+          <span className="text-[10px] font-mono text-muted-foreground/60">
+            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+          </span>
+        </div>
+      )}
 
       {/* Chat with Seller — compact expandable */}
       {metadata && isConnected && (

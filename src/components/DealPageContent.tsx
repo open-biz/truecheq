@@ -4,6 +4,7 @@ import React from 'react';
 import { DealGate } from '@/components/DealGate';
 import { Toaster } from '@/components/ui/sonner';
 import { useIsMiniApp } from '@/lib/use-mini-app';
+import { TopBar, CircularIcon } from '@worldcoin/mini-apps-ui-kit-react';
 import Link from 'next/link';
 
 export default function DealPageContent({ id, meta }: { id: string; meta?: string }) {
@@ -13,9 +14,20 @@ export default function DealPageContent({ id, meta }: { id: string; meta?: strin
     <main className="min-h-screen bg-[#0A0F14] text-foreground selection:bg-primary selection:text-primary-foreground">
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
 
-      {/* Mini App: World App provides native back/close — no custom header needed.
-          Standalone: compact header matching AppShell style */}
-      {!isMiniApp && (
+      {/* Mini App: World App TopBar with back navigation.
+          Standalone: custom header matching AppShell style */}
+      {isMiniApp ? (
+        <TopBar
+          title="Listing"
+          startAdornment={
+            <Link href="/">
+              <CircularIcon size="sm">
+                <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
+              </CircularIcon>
+            </Link>
+          }
+        />
+      ) : (
         <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
           <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">

@@ -22,6 +22,10 @@ import {
   WORLD_CHAIN_NUM as WORLD_CHAIN_ID,
   BASE_CHAIN_NUM as BASE_CHAIN_ID,
 } from '@/lib/x402';
+import {
+  TopBar,
+  CircularIcon,
+} from '@worldcoin/mini-apps-ui-kit-react';
 
 // Chain names
 const CHAIN_NAMES: Record<number, string> = {
@@ -94,7 +98,20 @@ function parseX402Header(authHeader: string): X402PaymentRequirement | null {
 // ============================================================================
 
 function PageHeader({ isMiniApp }: { isMiniApp: boolean }) {
-  if (isMiniApp) return null;
+  if (isMiniApp) {
+    return (
+      <TopBar
+        title="Payment"
+        startAdornment={
+          <Link href="/">
+            <CircularIcon size="sm">
+              <img src="/trucheq-logo-sz.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
+            </CircularIcon>
+          </Link>
+        }
+      />
+    );
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
