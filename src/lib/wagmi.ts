@@ -22,13 +22,13 @@ if (typeof window === 'undefined') {
  * Supports World Chain (eip155:480) and Base networks.
  * 
  * Wallet Support:
- * - World App via deep links (worldApp() connector - auto-handles MiniKit fallback)
- * - MetaMask and other injected wallets (via window.ethereum)
+ * - World App native connector (worldApp() — only works inside World App WebView)
+ * - MetaMask and other injected wallets (injected() — works in standalone browsers)
  * 
- * The worldApp() connector automatically:
- * - Opens World App via deep link when on mobile
- * - Falls back to wagmi wallet connection on desktop
- * - Registers the wagmi fallback for commands without native support
+ * The worldApp() connector only works when window.WorldApp exists (inside World App).
+ * In standalone browsers, injected() handles MetaMask, Rabby, etc.
+ * The wagmi-fallback module allows MiniKit commands to delegate to wagmi
+ * when not running inside World App.
  */
 export const config = createConfig({
   chains: [worldChain, worldChainSepolia, base, baseSepolia],
@@ -43,7 +43,7 @@ export const config = createConfig({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
   connectors: [
-    worldApp(),        // World App deep links (mobile) + wagmi fallback (desktop)
+    worldApp(),        // World App native connector (only works inside World App WebView)
     injected(),        // MetaMask, Rabby, and other injected wallets
   ],
 });

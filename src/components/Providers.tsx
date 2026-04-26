@@ -1,18 +1,14 @@
 'use client';
 
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { MiniKitProvider } from '@worldcoin/minikit-js/minikit-provider';
 import { config } from '@/lib/wagmi';
+import { XMTPProvider } from '@/lib/xmtp-provider';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Custom World-focused wallet UI - no RainbowKit needed
   // MiniKitProvider enables native World App wallet via deep links
@@ -26,7 +22,9 @@ export function Providers({ children }: { children: ReactNode }) {
             wagmiConfig: config,
           }}
         >
-          {children}
+          <XMTPProvider>
+            {children}
+          </XMTPProvider>
         </MiniKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

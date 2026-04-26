@@ -18,6 +18,7 @@ import {
   LucideCopy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MiniKit } from '@worldcoin/minikit-js';
 import { toast } from 'sonner';
 
 import { worldChain, worldChainSepolia } from '@/lib/chains';
@@ -267,11 +268,12 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
     });
   }, [connect, onConnect]);
 
-  // Find World App connector (deep links)
-  const worldAppConnector = connectors.find(c => 
-    c.id === 'worldApp' || 
-    c.name.toLowerCase().includes('world')
-  );
+  const isInsideWorldApp = MiniKit.isInstalled();
+
+  // worldApp() connector only works inside World App WebView (requires window.WorldApp)
+  const worldAppConnector = isInsideWorldApp
+    ? connectors.find(c => c.id === 'worldApp')
+    : null;
 
   return (
     <motion.div
@@ -304,7 +306,7 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
           </CardHeader>
           
           <CardContent className='space-y-4 pt-4'>
-            {/* World App Option */}
+            {/* World App Option — only available inside World App WebView */}
             {worldAppConnector && (
               <div className='space-y-3'>
                 <p className='text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center'>
@@ -337,8 +339,8 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
               </div>
             )}
 
-            {/* Other wallets */}
-            {connectors.filter(c => c.id !== 'worldApp' && !c.name.toLowerCase().includes('world')).length > 0 && (
+            {/* Other wallets (injected — MetaMask, Rabby, etc.) */}
+            {connectors.filter(c => c.id !== 'worldApp').length > 0 && (
               <>
                 <div className='relative'>
                   <div className='absolute inset-0 flex items-center'>
@@ -353,7 +355,7 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
 
                 <div className='space-y-2'>
                   {connectors
-                    .filter(c => c.id !== 'worldApp' && !c.name.toLowerCase().includes('world'))
+                    .filter(c => c.id !== 'worldApp')
                     .map((connector) => (
                       <Button
                         key={connector.id}
