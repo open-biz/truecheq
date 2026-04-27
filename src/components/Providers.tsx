@@ -18,7 +18,17 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // When running inside World App, add a CSS class to the body so we can scope
   // Mini App-specific styles (e.g. bottom safe zone) without affecting standalone.
+  // Also log MiniKit init status for debugging.
   useEffect(() => {
+    // Log full MiniKit state for debugging
+    console.log('[MiniKit] isInstalled():', MiniKit.isInstalled(true));
+    console.log('[MiniKit] isInWorldApp():', MiniKit.isInWorldApp());
+    console.log('[MiniKit] user:', MiniKit.user);
+    console.log('[MiniKit] deviceProperties:', MiniKit.deviceProperties);
+    console.log('[MiniKit] location:', MiniKit.location);
+    console.log('[MiniKit] window.WorldApp:', (window as unknown as { WorldApp?: unknown }).WorldApp);
+    console.log('[MiniKit] window.MiniKit:', (window as unknown as { MiniKit?: unknown }).MiniKit);
+
     if (MiniKit.isInstalled()) {
       document.body.classList.add('is-mini-app');
     }
