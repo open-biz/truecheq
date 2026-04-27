@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useAccount, useDisconnect, useSwitchChain } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  LucideWallet, 
-  LucideCheck, 
-  LucideX, 
-  LucideLoader2, 
+import {
+  LucideCheck,
+  LucideX,
+  LucideLoader2,
   LucideExternalLink,
   LucideGlobe,
   LucideChevronDown,
@@ -20,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { toast } from 'sonner';
+import { walletAuth } from '@/auth/wallet';
 
 import { worldChain, worldChainSepolia } from '@/lib/chains';
 import { BASE_CHAIN_NUM } from '@/lib/x402';
@@ -62,27 +62,52 @@ interface WorldWalletButtonProps {
   className?: string;
 }
 
-export function WorldWalletButton({ 
-  variant = 'primary', 
+export function WorldWalletButton({
+  variant = 'primary',
   size = 'md',
   showChainStatus = true,
-  className 
+  className
 }: WorldWalletButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  
-  // Wagmi wallet connection
-  const { address, isConnected, chain, connector } = useAccount();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Wagmi wallet connection (for address display and chain switching)
+  const { address, isConnected, chain } = useAccount();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
-  
+
   const isCorrectChain = chain?.id === WORLD_CHAIN_ID || chain?.id === WORLD_CHAIN_SEPOLIA_ID || chain?.id === BASE_CHAIN_NUM;
-  
+
   // Check if running inside World App webview
   const isInsideWorldApp = MiniKit.isInstalled();
-  
-  // Check if connected via World App deep link
-  const isWorldApp = connector?.id === 'worldApp' || connector?.name.toLowerCase().includes('world');
+
+  const handleWalletAuth = useCallback(async () => {
+    if (!isInsideWorldApp || isAuthenticating) return;
+
+    setIsAuthenticating(true);
+    try {
+      const result = await walletAuth();
+      // Store the auth result for later use
+      localStorage.setItem('trucheq_wallet_auth', JSON.stringify(result));
+      toast.success('Wallet authenticated!');
+      setShowModal(false);
+    } catch (error) {
+      console.error('Wallet auth error:', error);
+      toast.error('Authentication failed', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }, [isInsideWorldApp, isAuthenticating]);
+
+  // Auto-connect on mount when inside World App
+  useEffect(() => {
+    if (isInsideWorldApp && !isConnected && !isAuthenticating) {
+      handleWalletAuth();
+    }
+  }, [isInsideWorldApp, isConnected, isAuthenticating, handleWalletAuth]);
 
   // Size classes
   const sizeClasses = {
@@ -118,7 +143,7 @@ export function WorldWalletButton({
                 isCorrectChain ? 'bg-primary' : 'bg-yellow-400'
               )} />
             )}
-            {isWorldApp && <span>🌍</span>}
+            {isInsideWorldApp && <span>🌍</span>}
             <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
             <LucideChevronDown className={cn('w-4 h-4 transition-transform', showDropdown && 'rotate-180')} />
           </Button>
@@ -135,7 +160,7 @@ export function WorldWalletButton({
                 )}
               >
                 {/* Wallet Type */}
-                {isWorldApp && (
+                {isInsideWorldApp && (
                   <div className='p-4 border-b border-white/10'>
                     <Badge variant='outline' className='px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary border-primary/40'>
                       🌏 World App
@@ -146,7 +171,7 @@ export function WorldWalletButton({
                 {/* Address */}
                 <div className='p-4 border-b border-white/10'>
                   <p className='text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2'>
-                    {isWorldApp ? 'World App Wallet' : 'Connected Wallet'}
+                    {isInsideWorldApp ? 'World App Wallet' : 'Connected Wallet'}
                   </p>
                   <div className='flex items-center gap-2'>
                     <span className='text-sm font-mono text-white'>{address}</span>
@@ -261,26 +286,30 @@ interface WorldConnectModalProps {
 }
 
 function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
-  const { connectors, connect, isPending, error } = useConnect();
-  
-  const handleConnect = useCallback((connector: typeof connectors[0]) => {
-    connect({ connector }, {
-      onSuccess: () => {
-        toast.success('Wallet connected!');
-        onConnect();
-      },
-      onError: (err) => {
-        toast.error('Connection failed', { description: err.message });
-      }
-    });
-  }, [connect, onConnect]);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isInsideWorldApp = MiniKit.isInstalled();
 
-  // worldApp() connector only works inside World App WebView (requires window.WorldApp)
-  const worldAppConnector = isInsideWorldApp
-    ? connectors.find(c => c.id === 'worldApp')
-    : null;
+  const handleWalletAuth = async () => {
+    if (!isInsideWorldApp || isAuthenticating) return;
+
+    setIsAuthenticating(true);
+    setError(null);
+
+    try {
+      const result = await walletAuth();
+      localStorage.setItem('trucheq_wallet_auth', JSON.stringify(result));
+      toast.success('Wallet authenticated!');
+      onConnect();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+      setError(errorMessage);
+      toast.error('Authentication failed', { description: errorMessage });
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
 
   return (
     <motion.div
@@ -311,30 +340,30 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
               Connect Your Wallet
             </CardTitle>
           </CardHeader>
-          
+
           <CardContent className='space-y-4 pt-4'>
             {/* World App Option — only available inside World App WebView */}
-            {worldAppConnector && (
+            {isInsideWorldApp && (
               <div className='space-y-3'>
                 <p className='text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center'>
                   Recommended
                 </p>
-                
+
                 <Button
-                  onClick={() => handleConnect(worldAppConnector)}
-                  disabled={isPending}
+                  onClick={handleWalletAuth}
+                  disabled={isAuthenticating}
                   className={cn(
                     'w-full py-6 rounded-2xl font-black text-lg',
                     'bg-primary text-primary-foreground hover:bg-primary/90',
                     'shadow-[0_16px_32px_rgba(0,214,50,0.25)]',
                     'transition-all active:scale-[0.98]',
-                    isPending && 'opacity-50'
+                    isAuthenticating && 'opacity-50'
                   )}
                 >
-                  {isPending ? (
+                  {isAuthenticating ? (
                     <>
                       <LucideLoader2 className='w-5 h-5 mr-3 animate-spin' />
-                      Opening World App...
+                      Authenticating...
                     </>
                   ) : (
                     <>
@@ -346,42 +375,10 @@ function WorldConnectModal({ onClose, onConnect }: WorldConnectModalProps) {
               </div>
             )}
 
-            {/* Other wallets (injected — MetaMask, Rabby, etc.) */}
-            {connectors.filter(c => c.id !== 'worldApp').length > 0 && (
-              <>
-                <div className='relative'>
-                  <div className='absolute inset-0 flex items-center'>
-                    <div className='w-full border-t border-white/10' />
-                  </div>
-                  <div className='relative flex justify-center'>
-                    <span className='bg-black px-3 text-[10px] uppercase tracking-widest text-muted-foreground'>
-                      or
-                    </span>
-                  </div>
-                </div>
-
-                <div className='space-y-2'>
-                  {connectors
-                    .filter(c => c.id !== 'worldApp')
-                    .map((connector) => (
-                      <Button
-                        key={connector.id}
-                        onClick={() => handleConnect(connector)}
-                        variant='secondary'
-                        className='w-full py-4 rounded-xl font-black text-sm bg-white/5 border-white/10 hover:bg-white/10'
-                      >
-                        <LucideWallet className='w-4 h-4 mr-2' />
-                        {connector.name}
-                      </Button>
-                    ))}
-                </div>
-              </>
-            )}
-
             {/* Error */}
             {error && (
               <div className='p-3 rounded-xl bg-red-500/10 border border-red-500/20'>
-                <p className='text-xs text-red-400 text-center'>{error.message}</p>
+                <p className='text-xs text-red-400 text-center'>{error}</p>
               </div>
             )}
 

@@ -1,6 +1,5 @@
 import { http, createConfig, createStorage } from 'wagmi';
 import { worldChain, worldChainSepolia, base, baseSepolia } from './chains';
-import { worldApp } from '@worldcoin/minikit-js/wagmi';
 import '@worldcoin/minikit-js/wagmi-fallback'; // Register wagmi fallback for MiniKit commands on web
 
 const noopStorage = {
@@ -17,13 +16,13 @@ if (typeof window === 'undefined') {
 
 /**
  * TruCheq Wagmi Configuration
- * 
+ *
  * Supports World Chain (eip155:480) and Base networks.
- * 
+ *
  * Wallet Support:
- * - World App native connector only (mini app mode)
- * 
- * The worldApp() connector only works when window.WorldApp exists (inside World App).
+ * - MiniKit.walletAuth() for authentication (mini app mode)
+ * - Wagmi for chain operations and transaction handling
+ *
  * The wagmi-fallback module allows MiniKit commands to delegate to wagmi
  * when not running inside World App.
  */
@@ -39,7 +38,5 @@ export const config = createConfig({
   storage: createStorage({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
-  connectors: [
-    worldApp(), // World App native connector (mini app only)
-  ],
+  connectors: [],
 });
