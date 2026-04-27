@@ -19,12 +19,12 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // Sign request - format: signRequest(action, signingKeyHex, ttl?)
-    const { sig, nonce, createdAt, expiresAt } = signRequest(
+    // IDKit 4.1+ expects a single options object.
+    const { sig, nonce, createdAt, expiresAt } = signRequest({
       action,
-      signingKey,
-      body.ttl
-    );
+      signingKeyHex: signingKey,
+      ttl: body.ttl,
+    });
 
     console.log('[RP-Signature] Generated:', { action, nonce, expiresAt });
 

@@ -12,6 +12,7 @@ import { XMTPProvider } from '@/lib/xmtp-provider';
 // Fail loudly at runtime if missing — the TypeScript `!` assertion only hides the type error.
 const APP_ID = process.env.NEXT_PUBLIC_APP_ID || process.env.NEXT_PUBLIC_WLD_APP_ID;
 if (!APP_ID) throw new Error('NEXT_PUBLIC_APP_ID is required — get it from https://developer.world.org');
+const REQUIRED_APP_ID = APP_ID as `app_${string}`;
 
 type MiniKitDiagnostics = {
   appId: string;
@@ -41,7 +42,7 @@ export function Providers({ children }: { children: ReactNode }) {
     const miniKitBridge = (window as unknown as { MiniKit?: unknown }).MiniKit;
     const params = new URLSearchParams(window.location.search);
     const diag: MiniKitDiagnostics = {
-      appId: APP_ID,
+      appId: REQUIRED_APP_ID,
       isInstalled: MiniKit.isInstalled(true),
       isInWorldApp: MiniKit.isInWorldApp(),
       hasWorldAppBridge: Boolean(worldAppBridge),
@@ -106,7 +107,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <MiniKitProvider
           props={{
-            appId: APP_ID as `app_${string}`,
+            appId: REQUIRED_APP_ID,
             wagmiConfig: config,
           }}
         >
