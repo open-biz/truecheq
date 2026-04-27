@@ -13,9 +13,11 @@ import { XMTPProvider } from '@/lib/xmtp-provider';
 const APP_ID = process.env.NEXT_PUBLIC_APP_ID || process.env.NEXT_PUBLIC_WLD_APP_ID;
 if (!APP_ID) throw new Error('NEXT_PUBLIC_APP_ID is required — get it from https://developer.world.org');
 const REQUIRED_APP_ID = APP_ID as `app_${string}`;
+const FORCE_MINI_APP = process.env.NEXT_PUBLIC_FORCE_MINI_APP === 'true';
 
 type MiniKitDiagnostics = {
   appId: string;
+  forcedMiniApp: boolean;
   isInstalled: boolean;
   isInWorldApp: boolean;
   hasWorldAppBridge: boolean;
@@ -38,11 +40,24 @@ export function Providers({ children }: { children: ReactNode }) {
   // Mini App-specific styles (e.g. bottom safe zone) without affecting standalone.
   // Also log MiniKit init status for debugging.
   useEffect(() => {
+    // Debug mode: force mini app semantics without removing any UI flows.
+    // This is useful when isolating web vs World App behavior.
+    if (FORCE_MINI_APP) {
+      const mk = MiniKit as unknown as {
+        isInstalled: (strict?: boolean) => boolean;
+        isInWorldApp: () => boolean;
+      };
+      mk.isInstalled = () => true;
+      mk.isInWorldApp = () => true;
+      (window as unknown as { __TRUCHEQ_FORCE_MINI_APP__?: boolean }).__TRUCHEQ_FORCE_MINI_APP__ = true;
+    }
+
     const worldAppBridge = (window as unknown as { WorldApp?: unknown }).WorldApp;
     const miniKitBridge = (window as unknown as { MiniKit?: unknown }).MiniKit;
     const params = new URLSearchParams(window.location.search);
     const diag: MiniKitDiagnostics = {
       appId: REQUIRED_APP_ID,
+      forcedMiniApp: FORCE_MINI_APP,
       isInstalled: MiniKit.isInstalled(true),
       isInWorldApp: MiniKit.isInWorldApp(),
       hasWorldAppBridge: Boolean(worldAppBridge),

@@ -4,6 +4,8 @@ import { worldApp } from '@worldcoin/minikit-js/wagmi';
 import '@worldcoin/minikit-js/wagmi-fallback'; // Register wagmi fallback for MiniKit commands on web
 import { injected } from 'wagmi/connectors';
 
+const FORCE_MINI_APP = process.env.NEXT_PUBLIC_FORCE_MINI_APP === 'true';
+
 const noopStorage = {
   getItem: () => null,
   setItem: () => {},
@@ -49,6 +51,8 @@ export const config = createConfig({
   }),
   connectors: [
     worldApp(), // World App native connector (active only inside World App webview)
-    injected(), // Browser wallets for standalone mode
+    // In force-mini mode, disable injected wallets so wallet calls stay
+    // on the World App connector path during diagnostics.
+    ...(FORCE_MINI_APP ? [] : [injected()]),
   ],
 });
