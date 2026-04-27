@@ -27,6 +27,11 @@ if (typeof window === 'undefined') {
  * 
  * The worldApp() connector only works when window.WorldApp exists (inside World App).
  * In standalone browsers, injected() handles MetaMask, Rabby, etc.
+ * 
+ * Important: keep both connectors registered unconditionally.
+ * MiniKitProvider performs installation/initialization at runtime, so checking
+ * window.WorldApp at module-load time is too early and can lead to inconsistent
+ * connector availability across environments.
  * The wagmi-fallback module allows MiniKit commands to delegate to wagmi
  * when not running inside World App.
  */
@@ -43,12 +48,7 @@ export const config = createConfig({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
   connectors: [
-    worldApp(),        // World App native connector (only works inside World App WebView)
-    // Only add injected() connector outside World App to prevent deep-link
-    // triggers that open Safari from within the World App webview.
-    // MiniKit.isInstalled() checks window.WorldApp internally.
-    ...(typeof window !== 'undefined' && !(window as unknown as { WorldApp?: unknown }).WorldApp
-      ? [injected()]
-      : []),
+    worldApp(), // World App native connector (active only inside World App webview)
+    injected(), // Browser wallets for standalone mode
   ],
 });
