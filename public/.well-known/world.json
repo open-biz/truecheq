@@ -1,0 +1,10 @@
+{
+  "app_id": "app_81f193f79b966a9a337e2db2d560dfbc",
+  "name": "TruCheq",
+  "description": "Sybil-resistant P2P commerce protocol with World ID verification, encrypted XMTP chat, and Coinbase x402 payments",
+  "logo": "https://trucheq.com/android-chrome-512x512.png",
+  "url": "https://trucheq.com",
+  "version": "1.0.0",
+  "terms_url": "https://trucheq.com",
+  "privacy_url": "https://trucheq.com"
+}
