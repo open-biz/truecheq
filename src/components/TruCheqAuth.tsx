@@ -8,12 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   LucideShieldCheck, LucideSmartphone, LucideCopy, LucideCheck,
-  LucideWallet, LucideQrCode, LucideLoader2, LucideGlobe
+  LucideWallet, LucideQrCode, LucideLoader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { WorldWalletButton } from './WorldWalletButton';
 import { 
   type TruCheqUser, 
   createTruCheqUser, 
@@ -30,8 +29,6 @@ import {
 interface TruCheqAuthProps {
   /** Called when user is authenticated (either fresh or restored from storage) */
   onSuccess: (user: TruCheqUser) => void;
-  /** If true, skip the wallet connection step (e.g., when auto-connected via Mini App) */
-  skipWalletStep?: boolean;
   className?: string;
 }
 
@@ -94,7 +91,7 @@ async function getMiniAppWalletAddress(): Promise<string | null> {
 // Component
 // ============================================================================
 
-export function TruCheqAuth({ onSuccess, skipWalletStep = false, className }: TruCheqAuthProps) {
+export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
   const [user, setUser] = useState<TruCheqUser | null>(null);
   const [step, setStep] = useState<'world_id' | 'wallet' | 'complete'>('world_id');
   const [widgetOpen, setWidgetOpen] = useState(false);
@@ -114,9 +111,6 @@ export function TruCheqAuth({ onSuccess, skipWalletStep = false, className }: Tr
       setUser(existing);
       // If wallet is already connected, go straight to complete
       if (existing.walletAddress || isConnected) {
-        setStep('complete');
-        onSuccess(existing);
-      } else if (skipWalletStep) {
         setStep('complete');
         onSuccess(existing);
       } else {
@@ -209,28 +203,21 @@ export function TruCheqAuth({ onSuccess, skipWalletStep = false, className }: Tr
       description: hasOrb ? 'Orb verified' : 'Device verified' 
     });
 
-    // Mini App: wallet auto-connected via walletAuth → skip wallet step
-    if (skipWalletStep || isConnected || miniAppWallet) {
+    // Mini app only: continue once wallet is connected or recovered.
+    if (isConnected || miniAppWallet) {
       setStep('complete');
       onSuccess(trucheqUser);
     } else {
       setStep('wallet');
     }
-  }, [onSuccess, skipWalletStep, isConnected]);
+  }, [onSuccess, isConnected]);
 
   const handleConnectWallet = () => {
-    // Inside World App: use native worldApp() connector
-    // Standalone browser: use first available connector (injected — MetaMask, etc.)
-    const isInsideWorldApp = MiniKit.isInstalled();
-    const worldAppConnector = isInsideWorldApp
-      ? connectors.find(c => c.id === 'worldApp')
-      : null;
+    const worldAppConnector = connectors.find(c => c.id === 'worldApp');
     if (worldAppConnector) {
       connect({ connector: worldAppConnector });
-    } else if (connectors.length > 0) {
-      connect({ connector: connectors[0] });
     } else {
-      toast.error('No wallet connectors available');
+      toast.error('World App connector unavailable');
     }
   };
 
@@ -377,23 +364,11 @@ export function TruCheqAuth({ onSuccess, skipWalletStep = false, className }: Tr
             onClick={handleConnectWallet}
             className="w-full py-6 text-lg font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_16px_32px_rgba(0,214,50,0.25)]"
           >
-            <LucideGlobe className="w-5 h-5 mr-3" />
+            <LucideWallet className="w-5 h-5 mr-3" />
             Connect World App
           </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
-            <div className="relative flex justify-center text-[10px] uppercase">
-              <span className="bg-black px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            <WorldWalletButton size="lg" />
-          </div>
-
           <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground">
-            Accepts World App, MetaMask, and other EVM wallets
+            Wallet connection is available only in World App
           </p>
         </CardContent>
       </Card>

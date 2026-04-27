@@ -14,7 +14,6 @@ import {
 import {
   LucideArrowLeft,
   LucideShieldCheck,
-  LucideSmartphone,
   LucideExternalLink,
   LucideMessageCircle,
 } from 'lucide-react';
@@ -29,7 +28,6 @@ import { WorldWalletButton } from './WorldWalletButton';
 import Link from 'next/link';
 import {
   VerificationBadge,
-  Chip,
   Token,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
@@ -236,7 +234,6 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
 
         <TruCheqAuth
           onSuccess={handleAuthSuccess}
-          skipWalletStep={isMiniApp}
         />
 
         <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -253,17 +250,14 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         {miniAppBack}
         <Card className="border-primary/20 bg-black/80 backdrop-blur-xl overflow-hidden rounded-2xl">
           <CardHeader className="text-center pb-2">
-            <Chip
-              label={`${trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified`}
-              variant={trucheqUser.isOrbVerified ? 'success' : 'default'}
-              icon={trucheqUser.isOrbVerified ? <LucideShieldCheck className='w-3 h-3' /> : <LucideSmartphone className='w-3 h-3' />}
-              className='mx-auto mb-3'
-            />
+            <div className="mx-auto mb-3">
+              <VerificationBadge verified={trucheqUser.isOrbVerified} />
+            </div>
             <CardTitle className="text-xl font-black italic tracking-tighter">
               Connect Wallet to Pay
             </CardTitle>
             <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-50 mt-1">
-              Connect World App or any wallet
+              Connect World App wallet
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
@@ -288,37 +282,20 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
     <div className="space-y-5 pb-4">
       {miniAppBack}
 
-      {/* Seller Identity Badge — World App native components in Mini App mode */}
-      {isMiniApp ? (
-        <div className="flex items-center gap-2">
-          <VerificationBadge verified={isOrbVerified} />
-          <span className="text-xs font-medium text-foreground">
-            {isOrbVerified ? 'Orb Verified' : 'Device Verified'} Seller
-          </span>
-          <span className="text-[10px] font-mono text-muted-foreground">
-            {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
-          </span>
-          <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
-            Logout
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <Chip
-            label={isOrbVerified ? 'Orb Verified Seller' : 'Device Verified Seller'}
-            variant={isOrbVerified ? 'success' : 'default'}
-            icon={isOrbVerified ? <LucideShieldCheck className="w-3 h-3" /> : <LucideSmartphone className="w-3 h-3" />}
-          />
-          <span className="text-[10px] font-mono text-muted-foreground">
-            {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
-          </span>
-          <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
-            Logout
-          </Button>
-        </div>
-      )}
+      {/* Seller Identity Badge */}
+      <div className="flex items-center gap-2">
+        <VerificationBadge verified={isOrbVerified} />
+        <span className="text-xs font-medium text-foreground">
+          {isOrbVerified ? 'Orb Verified' : 'Device Verified'} Seller
+        </span>
+        <span className="text-[10px] font-mono text-muted-foreground">
+          {sellerAddress ? `${sellerAddress.slice(0, 6)}...${sellerAddress.slice(-4)}` : ''}
+        </span>
+        <div className="flex-1" />
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-[10px] text-muted-foreground h-7 px-2">
+          Logout
+        </Button>
+      </div>
 
       {/* Image Gallery — horizontal swipe carousel */}
       {metadata && metadata.images && metadata.images.length > 0 && (
@@ -332,7 +309,7 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         </h1>
         <div className="flex items-center gap-3 mt-1">
           <div className="flex items-center gap-2">
-            {isMiniApp && <Token value='USDC' size={24} />}
+            <Token value='USDC' size={24} />
             <span className="text-3xl font-black italic tracking-tighter text-primary">
               {metadata?.price || '0'} <span className="text-[10px] font-bold text-primary/60 not-italic">USDC</span>
             </span>
@@ -352,33 +329,17 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
         </div>
       )}
 
-      {/* Buyer Identity Chip — World App native in Mini App mode */}
-      {isMiniApp ? (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
-          <VerificationBadge verified={trucheqUser.isOrbVerified} />
-          <span className="text-xs font-medium text-foreground">
-            {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
-          </span>
-          <div className="h-3 w-px bg-white/10" />
-          <span className="text-[10px] font-mono text-muted-foreground/60">
-            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
-          </span>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
-          <div className={cn(
-            'w-2 h-2 rounded-full',
-            trucheqUser.isOrbVerified ? 'bg-primary' : 'bg-blue-400',
-          )} />
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
-          </span>
-          <div className="h-3 w-px bg-white/10" />
-          <span className="text-[10px] font-mono text-muted-foreground/60">
-            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
-          </span>
-        </div>
-      )}
+      {/* Buyer Identity Chip */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+        <VerificationBadge verified={trucheqUser.isOrbVerified} />
+        <span className="text-xs font-medium text-foreground">
+          {trucheqUser.isOrbVerified ? 'Orb' : 'Device'} Verified Buyer
+        </span>
+        <div className="h-3 w-px bg-white/10" />
+        <span className="text-[10px] font-mono text-muted-foreground/60">
+          {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+        </span>
+      </div>
 
       {/* Chat with Seller — compact expandable */}
       {metadata && isConnected && (

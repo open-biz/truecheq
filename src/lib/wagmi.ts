@@ -2,9 +2,6 @@ import { http, createConfig, createStorage } from 'wagmi';
 import { worldChain, worldChainSepolia, base, baseSepolia } from './chains';
 import { worldApp } from '@worldcoin/minikit-js/wagmi';
 import '@worldcoin/minikit-js/wagmi-fallback'; // Register wagmi fallback for MiniKit commands on web
-import { injected } from 'wagmi/connectors';
-
-const FORCE_MINI_APP = process.env.NEXT_PUBLIC_FORCE_MINI_APP === 'true';
 
 const noopStorage = {
   getItem: () => null,
@@ -24,16 +21,9 @@ if (typeof window === 'undefined') {
  * Supports World Chain (eip155:480) and Base networks.
  * 
  * Wallet Support:
- * - World App native connector (worldApp() — only works inside World App WebView)
- * - MetaMask and other injected wallets (injected() — works in standalone browsers)
+ * - World App native connector only (mini app mode)
  * 
  * The worldApp() connector only works when window.WorldApp exists (inside World App).
- * In standalone browsers, injected() handles MetaMask, Rabby, etc.
- * 
- * Important: keep both connectors registered unconditionally.
- * MiniKitProvider performs installation/initialization at runtime, so checking
- * window.WorldApp at module-load time is too early and can lead to inconsistent
- * connector availability across environments.
  * The wagmi-fallback module allows MiniKit commands to delegate to wagmi
  * when not running inside World App.
  */
@@ -50,9 +40,6 @@ export const config = createConfig({
     storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
   }),
   connectors: [
-    worldApp(), // World App native connector (active only inside World App webview)
-    // In force-mini mode, disable injected wallets so wallet calls stay
-    // on the World App connector path during diagnostics.
-    ...(FORCE_MINI_APP ? [] : [injected()]),
+    worldApp(), // World App native connector (mini app only)
   ],
 });
