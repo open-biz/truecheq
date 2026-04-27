@@ -5,6 +5,6 @@
   "logo": "https://trucheq.com/android-chrome-512x512.png",
   "url": "https://trucheq.com",
   "version": "1.0.0",
-  "terms_url": "https://trucheq.com",
-  "privacy_url": "https://trucheq.com"
+  "terms_url": "https://trucheq.com/terms",
+  "privacy_url": "https://trucheq.com/privacy"
 }
