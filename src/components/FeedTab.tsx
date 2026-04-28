@@ -161,7 +161,7 @@ function CreateListingSheet({ isOpen, onClose, user }: { isOpen: boolean; onClos
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Listing creation form goes here. (Re-use DealCreator logic)
+            Listing creation form goes here. (Re-use existing upload + listing logic)
           </p>
         </motion.div>
       </motion.div>

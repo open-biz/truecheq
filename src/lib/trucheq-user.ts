@@ -60,7 +60,7 @@ export function clearTruCheqUser(): void {
   localStorage.removeItem(STORAGE_KEYS.XMTP_ACTIVATED);
   // NOTE: USER_LISTINGS is NOT cleared here — listings persist across sessions
   // since they're tied to the seller's wallet address, not the browser session.
-  // DealDashboard filters by connected wallet address, so there's no leak.
+  // FeedTab/ProfileTab filter by connected wallet address, so there's no leak.
 }
 
 // ============================================================================

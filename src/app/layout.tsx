@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 // user into Safari instead of staying inside the mini app shell.
 export const metadata: Metadata = {
   title: "TruCheq",
-  description: "Sybil-resistant P2P commerce powered by World ID, XMTP, and Coinbase x402",
+  description: "Sybil-resistant P2P commerce powered by World ID, XMTP, and AgentKit",
 };
 
 export default function RootLayout({
