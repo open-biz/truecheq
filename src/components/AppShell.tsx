@@ -100,7 +100,7 @@ function BottomTabBar({
               onClick={() => handleTabChange(tab.id)}
               className={cn(
                 'flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative',
-                isActive ? 'text-primary' : 'text-muted-foreground hover:text-white/70',
+                isActive ? 'text-primary' : 'text-white/40 hover:text-white/70',
               )}
             >
               <div className="relative">
@@ -194,6 +194,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
   const [mounted, setMounted] = useState(false);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [startChatWith, setStartChatWith] = useState<string | null>(null);
+  const [showWalletAuth, setShowWalletAuth] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -292,6 +293,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
               onUnreadChange={setChatUnreadCount}
               startChatWith={startChatWith}
               onChatStarted={() => setStartChatWith(null)}
+              onRequireAuth={() => setShowWalletAuth(true)}
             />
           </motion.div>
         </div>
@@ -318,6 +320,18 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
       </div>
 
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
+
+      {/* Wallet auth overlay — triggered from ChatTab when wallet not connected */}
+      {showWalletAuth && (
+        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full">
+            <TruCheqAuth
+              onSuccess={(u) => { handleAuthSuccess(u); setShowWalletAuth(false); }}
+              skipWalletStep={isMiniApp}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

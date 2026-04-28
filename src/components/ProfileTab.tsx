@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { TruCheqUser } from '@/lib/trucheq-user';
-import { SEED_LISTINGS } from '@/lib/seed-listings';
+import { SEED_LISTINGS, type Listing } from '@/lib/seed-listings';
 import { loadAgentRules, saveAgentRules, type AgentRules, DEFAULT_RULES } from '@/lib/agent';
 
 interface ProfileTabProps {
@@ -43,7 +43,15 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 }
 
 export function ProfileTab({ user, onLogout }: ProfileTabProps) {
-  const myListings = SEED_LISTINGS.filter((l) => l.seller.toLowerCase() === (user.walletAddress || '').toLowerCase());
+  const [userListings, setUserListings] = useState<Listing[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem('trucheq_user_listings');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  const allListings = [...SEED_LISTINGS, ...userListings];
+  const myListings = allListings.filter((l) => l.seller.toLowerCase() === (user.walletAddress || '').toLowerCase());
   const [rules, setRules] = useState<AgentRules>(loadAgentRules);
 
   const updateRule = (patch: Partial<AgentRules>) => {
@@ -60,9 +68,9 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Identity Card */}
-      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#121212] p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             {user.isOrbVerified ? (
@@ -80,7 +88,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
         </div>
 
         {user.walletAddress && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/5">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
             <Wallet className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="text-xs font-mono text-white/70 truncate flex-1">
               {user.walletAddress}
@@ -94,12 +102,12 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#121212] p-4 text-center">
           <Tag className="w-5 h-5 text-primary mx-auto mb-1" />
           <p className="text-2xl font-black text-white">{myListings.length}</p>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Listings</p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#121212] p-4 text-center">
           <MessageCircle className="w-5 h-5 text-primary mx-auto mb-1" />
           <p className="text-2xl font-black text-white">0</p>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Deals</p>
@@ -107,7 +115,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
       </div>
 
       {/* Agent Settings */}
-      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#121212] p-5">
         <div className="flex items-center gap-2 mb-4">
           <Bot className="w-5 h-5 text-primary" />
           <h3 className="text-sm font-black text-white uppercase tracking-widest">Your Agent</h3>
@@ -136,7 +144,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
                 value={rules.minimumAcceptable}
                 onChange={(e) => updateRule({ minimumAcceptable: e.target.value })}
                 placeholder="e.g. 40"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
               />
             </div>
 
@@ -149,7 +157,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
                 value={rules.autoRejectBelow}
                 onChange={(e) => updateRule({ autoRejectBelow: e.target.value })}
                 placeholder="e.g. 20"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
               />
             </div>
 
@@ -180,8 +188,8 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
           <h3 className="text-sm font-black text-white mb-3 uppercase tracking-widest">My Listings</h3>
           <div className="space-y-2">
             {myListings.map((l) => (
-              <div key={l.cid} className="flex items-center gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.02]">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <div key={l.cid} className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.08] bg-[#121212]">
+                <div className="w-10 h-10 rounded-lg bg-white/[0.03] flex items-center justify-center shrink-0">
                   <Tag className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -199,8 +207,8 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
 
       {/* Sign Out */}
       <Button
-        variant="outline"
-        className="w-full rounded-xl border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 font-black"
+        variant="ghost"
+        className="w-full rounded-xl bg-white/5 text-white/60 hover:bg-red-500/10 hover:text-red-400 font-black h-11 transition-colors"
         onClick={onLogout}
       >
         <LogOut className="w-4 h-4 mr-2" />

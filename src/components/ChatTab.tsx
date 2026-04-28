@@ -254,9 +254,10 @@ interface ChatTabProps {
   onUnreadChange?: (count: number) => void;
   startChatWith?: string | null;
   onChatStarted?: () => void;
+  onRequireAuth?: () => void;
 }
 
-export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTabProps) {
+export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequireAuth }: ChatTabProps) {
   const userAddress = getStoredWalletAddress();
   const isConnected = !!userAddress;
   const { client, isLoading, error, initClient, activateClient } = useXMTP();
@@ -823,13 +824,19 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
           </p>
         </div>
         <div className='py-16 text-center'>
-          <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center'>
-            <MessageCircle className='w-8 h-8 text-muted-foreground' />
+          <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/[0.08] flex items-center justify-center'>
+            <MessageCircle className='w-8 h-8 text-muted-foreground' strokeWidth={2.5} />
           </div>
           <p className='text-white font-bold mb-1'>Wallet Required</p>
-          <p className='text-sm text-muted-foreground'>
+          <p className='text-sm text-muted-foreground mb-5'>
             Connect your wallet to view messages
           </p>
+          <Button
+            onClick={() => onRequireAuth?.()}
+            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-8 h-11'
+          >
+            Connect Wallet
+          </Button>
         </div>
       </div>
     );
