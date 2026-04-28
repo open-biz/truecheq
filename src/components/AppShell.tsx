@@ -88,7 +88,7 @@ function BottomTabBar({
   }
 
   return (
-    <nav className='fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl bottom-0' role="tablist" aria-label="Main navigation">
+    <nav className='fixed left-0 right-0 z-50 border-t border-white/[0.06] bg-[#070709]/90 backdrop-blur-2xl bottom-0 shadow-[0_-4px_24px_rgba(0,0,0,0.3)]' role="tablist" aria-label="Main navigation">
       <div className="max-w-lg mx-auto flex items-center">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -99,14 +99,14 @@ function BottomTabBar({
               aria-selected={isActive}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative',
-                isActive ? 'text-primary' : 'text-white/40 hover:text-white/70',
+                'flex-1 flex flex-col items-center gap-1.5 py-3 transition-colors relative',
+                isActive ? 'text-primary' : 'text-white/30 hover:text-white/60',
               )}
             >
               <div className="relative">
                 {tab.icon}
                 {tab.id === 'chat' && chatUnreadCount > 0 && !isActive && (
-                  <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-primary text-[9px] font-black flex items-center justify-center text-primary-foreground">
+                  <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[9px] font-black flex items-center justify-center text-primary-foreground shadow-[0_0_8px_rgba(0,214,50,0.4)]">
                     {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                   </span>
                 )}
@@ -115,7 +115,7 @@ function BottomTabBar({
               {isActive && (
                 <motion.div
                   layoutId="tab-indicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary"
+                  className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(0,214,50,0.4)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -135,10 +135,10 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070709]/80 backdrop-blur-2xl">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/[0.08] shadow-[0_0_12px_rgba(0,214,50,0.1)]">
             <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
           </div>
           <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
@@ -217,8 +217,8 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
   // ---- Not authenticated — Guest mode: show feed, auth overlay for actions ----
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0A0F14] text-foreground">
-        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-5 z-0" />
+      <div className="min-h-screen bg-[#070709] text-foreground">
+        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-[0.08] z-0" />
 
         {isMiniApp ? (
           <TopBar
@@ -266,8 +266,8 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
 
   // ---- Authenticated — show tabbed interface ----
   return (
-    <div className="min-h-screen bg-[#0A0F14] text-foreground">
-      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-5 z-0" />
+    <div className="min-h-screen bg-[#070709] text-foreground">
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-[0.08] z-0" />
 
       {isMiniApp ? (
         <TopBar

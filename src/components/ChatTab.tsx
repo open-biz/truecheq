@@ -107,39 +107,39 @@ function ConversationItem({
   return (
     <button
       onClick={() => onSelect(preview.peerAddress)}
-      className='w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left group'
+      className='w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-white/[0.03] transition-all text-left group active:scale-[0.99]'
     >
       {/* Avatar */}
       <div className='relative flex-shrink-0'>
-        <div className='w-12 h-12 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center'>
-          <User className='w-5 h-5 text-white/50' />
+        <div className='w-14 h-14 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/[0.08] flex items-center justify-center shadow-[0_0_16px_rgba(255,255,255,0.03)]'>
+          <User className='w-5 h-5 text-white/40' />
         </div>
         {preview.hasUnread && (
-          <div className='absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-[#0A0F14]' />
+          <div className='absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary border-2 border-[#070709] shadow-[0_0_8px_rgba(0,214,50,0.4)]' />
         )}
       </div>
 
       {/* Content */}
       <div className='flex-1 min-w-0'>
-        <div className='flex items-center justify-between mb-0.5'>
+        <div className='flex items-center justify-between mb-1'>
           <span className='text-sm font-bold text-white truncate'>
             {truncateAddress(preview.peerAddress)}
           </span>
-          <span className='text-[10px] text-muted-foreground flex-shrink-0 ml-2'>
+          <span className='text-[10px] text-white/30 flex-shrink-0 ml-2 font-medium'>
             {formatRelativeTime(preview.lastMessageTime)}
           </span>
         </div>
         <div className='flex items-center gap-1.5'>
           <p className={cn(
-            'text-xs truncate',
-            preview.hasUnread ? 'text-white font-semibold' : 'text-muted-foreground',
+            'text-sm truncate',
+            preview.hasUnread ? 'text-white font-semibold' : 'text-white/40',
           )}>
             {previewText || 'No messages'}
           </p>
         </div>
       </div>
 
-      <ChevronRight className='w-4 h-4 text-muted-foreground/40 group-hover:text-white/40 transition-colors flex-shrink-0' />
+      <ChevronRight className='w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors flex-shrink-0' />
     </button>
   );
 }
@@ -223,23 +223,23 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
 
   // Text messages
   return (
-    <div className={cn('flex w-full items-end gap-1.5', msg.isSelf ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex w-full items-end gap-2', msg.isSelf ? 'justify-end' : 'justify-start')}>
       {!msg.isSelf && (
-        <div className='w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0'>
-          <User className='w-2.5 h-2.5 text-white/60' />
+        <div className='w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.06] flex items-center justify-center flex-shrink-0'>
+          <User className='w-3 h-3 text-white/30' />
         </div>
       )}
       <div className={cn(
-        'max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm',
+        'max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
         msg.isSelf
-          ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-sm'
-          : 'bg-white/10 text-white rounded-bl-sm border border-white/5',
+          ? 'bg-gradient-to-r from-[#00D632] to-[#00b82b] text-black font-medium rounded-br-md shadow-[0_4px_12px_rgba(0,214,50,0.15)]'
+          : 'bg-[#1e1e24] text-white rounded-bl-md border border-white/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
       )}>
         <span className='whitespace-pre-wrap break-words'>{msg.content}</span>
       </div>
       {msg.isSelf && (
-        <div className='w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0'>
-          <User className='w-2.5 h-2.5 text-white/60' />
+        <div className='w-6 h-6 rounded-full bg-white/[0.06] border border-white/[0.06] flex items-center justify-center flex-shrink-0'>
+          <User className='w-3 h-3 text-white/30' />
         </div>
       )}
     </div>
@@ -824,16 +824,16 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
           </p>
         </div>
         <div className='py-16 text-center'>
-          <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/[0.08] flex items-center justify-center'>
-            <MessageCircle className='w-8 h-8 text-muted-foreground' strokeWidth={2.5} />
+          <div className='w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]'>
+            <MessageCircle className='w-10 h-10 text-white/40' strokeWidth={2.5} />
           </div>
-          <p className='text-white font-bold mb-1'>Wallet Required</p>
-          <p className='text-sm text-muted-foreground mb-5'>
-            Connect your wallet to view messages
+          <p className='text-xl font-black text-white mb-2'>Wallet Required</p>
+          <p className='text-sm text-white/40 mb-8 max-w-[240px] mx-auto'>
+            Connect your wallet to start encrypted XMTP conversations
           </p>
           <Button
             onClick={() => onRequireAuth?.()}
-            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-8 h-11'
+            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-10 h-12 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'
           >
             Connect Wallet
           </Button>
@@ -850,43 +850,43 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
     return (
       <div className='flex flex-col h-[calc(100vh-8rem)]'>
         {/* Conversation Header */}
-        <div className='flex items-center gap-3 p-3 border-b border-white/10 bg-black/40 rounded-t-2xl'>
+        <div className='flex items-center gap-3 p-4 border-b border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl'>
           <Button
             variant='ghost'
             size='sm'
             onClick={closeConversation}
-            className='h-8 w-8 p-0 rounded-full hover:bg-white/10'
+            className='h-9 w-9 p-0 rounded-full hover:bg-white/[0.06] transition-all active:scale-95'
           >
             <ArrowLeft className='w-4 h-4' />
           </Button>
 
-          <div className='w-9 h-9 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center'>
-            <User className='w-4 h-4 text-white/50' />
+          <div className='w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/[0.08] flex items-center justify-center shadow-[0_0_16px_rgba(255,255,255,0.05)]'>
+            <User className='w-5 h-5 text-white/40' />
           </div>
 
           <div className='flex-1 min-w-0'>
             <h3 className='text-sm font-bold text-white truncate'>
               {truncateAddress(activePeerAddress)}
             </h3>
-            <span className='text-[9px] font-black uppercase tracking-widest text-muted-foreground'>
+            <span className='text-[9px] font-black uppercase tracking-widest text-primary/70'>
               XMTP Encrypted
             </span>
           </div>
         </div>
 
         {/* Messages */}
-        <div className='flex-1 overflow-y-auto p-4 space-y-2 bg-gradient-to-b from-black/40 to-black/20'>
+        <div className='flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-[#070709]/60 to-transparent'>
           {isLoadingMessages ? (
             <div className='flex items-center justify-center py-12'>
               <Loader2 className='w-6 h-6 animate-spin text-primary' />
             </div>
           ) : messages.length === 0 ? (
-            <div className='text-center py-12'>
-              <div className='w-12 h-12 mx-auto mb-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center'>
-                <MessageCircle className='w-6 h-6 text-primary/40' />
+            <div className='text-center py-16'>
+              <div className='w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center'>
+                <MessageCircle className='w-7 h-7 text-primary/30' strokeWidth={2} />
               </div>
-              <p className='text-sm text-white font-bold'>No messages yet</p>
-              <p className='text-xs text-muted-foreground'>Start the conversation</p>
+              <p className='text-base font-bold text-white mb-1'>No messages yet</p>
+              <p className='text-xs text-white/30'>Send a message to start the conversation</p>
             </div>
           ) : (
             <AnimatePresence>
@@ -906,7 +906,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
         </div>
 
         {/* Input */}
-        <div className='p-3 border-t border-white/10 bg-black/60'>
+        <div className='p-4 border-t border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl'>
           {offerMode ? (
             <div className='flex gap-2 items-center'>
               <Input
@@ -915,13 +915,13 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onChange={e => setOfferAmount(e.target.value)}
                 placeholder='Offer amount (USDC)...'
                 disabled={isSending}
-                className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 flex-1'
+                className='bg-[#0f0f12] border-white/[0.06] text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={sendOffer}
                 disabled={!offerAmount.trim() || isSending}
                 size='sm'
-                className='bg-primary hover:bg-primary/90 h-9 px-3'
+                className='bg-[#00D632] text-black hover:bg-[#00D632]/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
               >
                 {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Tag className='w-4 h-4' />}
               </Button>
@@ -929,9 +929,9 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onClick={() => { setOfferMode(false); setOfferAmount(''); }}
                 size='sm'
                 variant='ghost'
-                className='h-9 px-2'
+                className='h-10 px-2 rounded-xl hover:bg-white/[0.06] transition-all'
               >
-                <X className='w-4 h-4' />
+                <X className='w-4 h-4 text-white/40' />
               </Button>
             </div>
           ) : (
@@ -943,13 +943,13 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onKeyDown={handleKeyPress}
                 placeholder='Type a message...'
                 disabled={isSending}
-                className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 flex-1'
+                className='bg-[#0f0f12] border-white/[0.06] text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={() => setOfferMode(true)}
                 size='sm'
                 variant='ghost'
-                className='h-9 px-2 text-muted-foreground hover:text-primary'
+                className='h-10 px-3 rounded-xl text-white/40 hover:text-primary hover:bg-white/[0.06] transition-all active:scale-95'
                 title='Make Offer'
               >
                 <Tag className='w-4 h-4' />
@@ -958,7 +958,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onClick={sendMessage}
                 disabled={!inputValue.trim() || isSending}
                 size='sm'
-                className='bg-primary hover:bg-primary/90 h-9 px-3'
+                className='bg-[#00D632] text-black hover:bg-[#00D632]/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
               >
                 {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
               </Button>
@@ -1026,19 +1026,19 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
       {/* Search / Filter */}
       {client && !isLoading && conversations.length > 0 && (
         <div className='relative'>
-          <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60' />
+          <Search className='absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30' />
           <Input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder='Search by address...'
-            className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 pl-9 pr-9'
+            className='bg-[#16161A] border-white/[0.06] text-sm text-white placeholder:text-white/25 h-10 pl-12 pr-10 rounded-2xl focus:ring-1 focus:ring-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]'
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-white/60 transition-colors'
+              className='absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors'
             >
-              <X className='w-3.5 h-3.5' />
+              <X className='w-4 h-4' />
             </button>
           )}
         </div>
@@ -1057,10 +1057,10 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
             ))}
           </div>
         ) : (
-          <div className='py-8 text-center'>
-            <Search className='w-8 h-8 mx-auto mb-2 text-muted-foreground/40' />
-            <p className='text-sm text-white font-bold mb-0.5'>No results</p>
-            <p className='text-xs text-muted-foreground'>
+          <div className='py-12 text-center'>
+            <Search className='w-10 h-10 mx-auto mb-3 text-white/15' />
+            <p className='text-base font-bold text-white mb-1'>No results</p>
+            <p className='text-xs text-white/25'>
               No conversations match &ldquo;{searchQuery.trim()}&rdquo;
             </p>
           </div>
@@ -1070,16 +1070,16 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
       {/* Empty State (no conversations at all) */}
       {client && !isLoading && conversations.length === 0 && (
         <div className='py-16 text-center'>
-          <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center'>
-            <MessageCircle className='w-8 h-8 text-muted-foreground' />
+          <div className='w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]'>
+            <MessageCircle className='w-10 h-10 text-white/25' strokeWidth={2} />
           </div>
-          <p className='text-white font-bold mb-1'>No conversations yet</p>
-          <p className='text-sm text-muted-foreground'>
-            Chat with sellers when you view a listing
+          <p className='text-xl font-black text-white mb-2'>No conversations yet</p>
+          <p className='text-sm text-white/30 max-w-[260px] mx-auto mb-6'>
+            Start chatting with sellers when you view a listing
           </p>
-          <Link href='/?tab=buy' className='inline-block mt-4'>
-            <Button variant='outline' className='rounded-xl border-white/10'>
-              Browse All Listings
+          <Link href='/?tab=buy' className='inline-block'>
+            <Button className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-6 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'>
+              Browse Listings
             </Button>
           </Link>
         </div>
@@ -1088,13 +1088,19 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
       {/* Not connected yet — show connect prompt */}
       {!client && !isLoading && !error && (
         <div className='py-16 text-center'>
-          <div className='w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center'>
-            <MessageCircle className='w-8 h-8 text-muted-foreground' />
+          <div className='w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]'>
+            <MessageCircle className='w-10 h-10 text-white/25' strokeWidth={2} />
           </div>
-          <p className='text-white font-bold mb-1'>XMTP Chat</p>
-          <p className='text-sm text-muted-foreground'>
-            Connect wallet to start messaging
+          <p className='text-xl font-black text-white mb-2'>XMTP Chat</p>
+          <p className='text-sm text-white/30 max-w-[260px] mx-auto mb-6'>
+            Connect your wallet to start encrypted messaging
           </p>
+          <Button
+            onClick={initClient}
+            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-8 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'
+          >
+            <RefreshCw className='w-4 h-4 mr-2' /> Connect XMTP
+          </Button>
         </div>
       )}
     </div>

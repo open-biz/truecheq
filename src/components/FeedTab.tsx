@@ -47,7 +47,7 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="border-white/[0.08] bg-[#121212] overflow-hidden group">
+      <Card className="border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
           {listing.metadata?.images && listing.metadata.images.length > 0 ? (
@@ -57,26 +57,27 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/[0.03] via-white/[0.06] to-white/[0.03] flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-white/20 relative z-10">TruCheq</span>
+            <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] flex items-center justify-center relative overflow-hidden animate-shimmer">
+              <span className="text-2xl font-black text-white/10 relative z-10">
+                {(listing.metadata?.itemName || '??').slice(0, 2).toUpperCase()}
+              </span>
             </div>
           )}
           {/* Verification badge overlay */}
           <div className="absolute top-3 left-3">
             {listing.isOrbVerified ? (
-              <Badge variant="outline" className="border-primary/30 text-primary bg-black/60 backdrop-blur text-[9px] font-black uppercase">
+              <Badge variant="outline" className="border-primary/30 text-primary bg-black/70 backdrop-blur-md text-[9px] font-black uppercase shadow-[0_0_12px_rgba(0,214,50,0.15)]">
                 <ShieldCheck className="w-3 h-3 mr-0.5" /> Orb
               </Badge>
             ) : (
-              <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-black/60 backdrop-blur text-[9px] font-black uppercase">
+              <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-black/70 backdrop-blur-md text-[9px] font-black uppercase">
                 <Smartphone className="w-3 h-3 mr-0.5" /> Device
               </Badge>
             )}
           </div>
           {/* Price overlay */}
           <div className="absolute bottom-3 right-3">
-            <Badge className="bg-primary text-primary-foreground text-sm font-black">
+            <Badge className="bg-[#00D632] text-black text-sm font-black px-3 py-1 rounded-xl shadow-[0_0_12px_rgba(0,214,50,0.3)]">
               ${listing.metadata?.price || '0'} USDC
             </Badge>
           </div>
@@ -84,20 +85,21 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
 
         {/* Content */}
         <div className="p-4">
-          <h3 className="text-lg font-black text-white mb-1">{listing.metadata?.itemName || 'Untitled'}</h3>
+          <h3 className="text-lg font-black text-white tracking-tight mb-1">{listing.metadata?.itemName || 'Untitled'}</h3>
+          <p className="text-sm text-primary font-bold mb-2">${listing.metadata?.price || '0'} USDC</p>
           {listing.metadata?.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{listing.metadata.description}</p>
+            <p className="text-xs text-white/40 line-clamp-2 mb-3">{listing.metadata.description}</p>
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-white/40">
+            <span className="text-[11px] font-mono text-white/25">
               {listing.seller.slice(0, 6)}...{listing.seller.slice(-4)}
             </span>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="ghost"
-                className="rounded-full h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
+                className="rounded-full h-9 w-9 p-0 text-white/40 hover:text-white hover:bg-white/[0.08] transition-all active:scale-95"
                 onClick={() => {
                   const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
                   const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -114,15 +116,14 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
                   }
                 }}
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-4 h-4" />
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                className="rounded-full border-primary/30 text-primary hover:bg-primary/10 text-xs font-black"
+                className="rounded-full bg-white/[0.06] border border-white/[0.08] text-white hover:bg-white/10 hover:text-primary text-xs font-black px-4 transition-all active:scale-95"
                 onClick={onChat}
               >
-                <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                 Chat
               </Button>
             </div>
@@ -225,7 +226,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end justify-center"
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-end justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -233,7 +234,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-[#121212] border-t border-white/[0.08] rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-lg bg-[#16161A] border-t border-white/[0.06] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
@@ -259,7 +260,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] cursor-pointer transition-colors">
+              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.1] bg-[#0f0f12] hover:bg-[#131318] cursor-pointer transition-colors">
                 <ImagePlus className="w-6 h-6 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Tap to upload photo</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -277,7 +278,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               placeholder="e.g. Vintage Camera"
-              className="w-full bg-white/5 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
             />
           </div>
 
@@ -295,7 +296,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full bg-white/5 border border-white/[0.08] rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-black uppercase">USDC</span>
             </div>
@@ -311,7 +312,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item..."
               rows={3}
-              className="w-full bg-white/5 border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none"
+              className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 resize-none transition-all"
             />
           </div>
 
@@ -319,7 +320,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           <Button
             onClick={handleSubmit}
             disabled={isUploading || !itemName.trim() || !price.trim()}
-            className="w-full rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 h-12 text-sm"
+            className="w-full rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 h-14 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
           >
             {isUploading ? (
               <>
@@ -392,7 +393,7 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
             placeholder="Search listings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/[0.08] rounded-xl pl-11 pr-4 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            className="w-full bg-[#16161A] border border-white/[0.08] rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] transition-all"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -403,7 +404,12 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
         <Button
           size="sm"
           variant={filterVerified ? 'default' : 'outline'}
-          className="rounded-xl text-xs font-black shrink-0"
+          className={cn(
+            'rounded-2xl text-xs font-black shrink-0 h-11 px-3 transition-all active:scale-95',
+            filterVerified
+              ? 'bg-[#00D632] text-black hover:bg-[#00D632]/90 shadow-[0_0_16px_rgba(0,214,50,0.25)]'
+              : 'bg-[#16161A] border-white/[0.08] text-white/60 hover:text-white hover:bg-[#1c1c22]',
+          )}
           onClick={() => setFilterVerified(!filterVerified)}
         >
           <ShieldCheck className="w-3.5 h-3.5 mr-1" />
@@ -427,9 +433,9 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {user && (
         <button
           onClick={() => setShowCreate(true)}
-          className="fixed bottom-28 right-4 z-40 w-14 h-14 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-xl shadow-[#00D632]/30 hover:scale-105 transition-transform"
+          className="fixed bottom-32 right-5 z-40 w-16 h-16 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
         >
-          <Plus className="w-6 h-6" strokeWidth={2.5} />
+          <Plus className="w-7 h-7" strokeWidth={2.5} />
         </button>
       )}
 
