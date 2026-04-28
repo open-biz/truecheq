@@ -21,11 +21,9 @@ import {
 
 import {
   type TruCheqUser,
-  saveTruCheqUser,
   loadTruCheqUser,
   migrateToUnifiedUser,
 } from '@/lib/trucheq-user';
-import { TruCheqAuth } from '@/components/TruCheqAuth';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { ChatTab as ChatTabXMTP } from '@/components/ChatTab';
@@ -181,36 +179,9 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
     }
   }, []);
 
-  const handleAuthSuccess = (authenticatedUser: TruCheqUser) => {
-    setUser(authenticatedUser);
-    saveTruCheqUser(authenticatedUser);
-  };
+  if (!mounted || !user) return null;
 
-  if (!mounted) return null;
-
-  // ---- Not authenticated — show auth flow ----
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#0A0F14] text-foreground">
-        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
-
-        <TopBar
-          title="TruCheq"
-          startAdornment={
-            <CircularIcon size="sm">
-              <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
-            </CircularIcon>
-          }
-        />
-
-        <div className="max-w-md mx-auto px-4 py-8">
-          <TruCheqAuth onSuccess={handleAuthSuccess} />
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Authenticated — show tabbed interface ----
+  // ---- Render tabbed interface (no auth gate — MiniKit gives us wallet + orb status at init) ----
   return (
     <div className="min-h-screen bg-[#0A0F14] text-foreground">
       <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
