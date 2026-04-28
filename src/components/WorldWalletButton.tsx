@@ -93,26 +93,18 @@ export function WorldWalletButton({
     }
   }, [isInsideWorldApp, isAuthenticating]);
 
-  // Auto-connect on mount when inside World App
+  // Restore stored wallet address on mount (no auto walletAuth — that triggers SIWE/Safari handoff)
   useEffect(() => {
-    // Check for existing auth
     const stored = localStorage.getItem('trucheq_wallet_auth');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed.address) {
-          setAddress(parsed.address);
-          return;
-        }
+        if (parsed.address) setAddress(parsed.address);
       } catch {
         localStorage.removeItem('trucheq_wallet_auth');
       }
     }
-    
-    if (isInsideWorldApp && !address && !isAuthenticating) {
-      handleWalletAuth();
-    }
-  }, [isInsideWorldApp, address, isAuthenticating, handleWalletAuth]);
+  }, []);
 
   // Size classes
   const sizeClasses = {
