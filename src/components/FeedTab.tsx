@@ -409,20 +409,22 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
     <div className="space-y-4">
       {/* Search + Filters */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search listings..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#16161A] border border-white/[0.06] rounded-2xl pl-14 pr-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] transition-all"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-          )}
+        <div className="flex-1">
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#16161A] border border-white/[0.06] rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+            <Search className="w-4 h-4 text-white/30 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search listings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none min-w-0"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-white/30 hover:text-white/60 transition-colors shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
         <Button
           size="sm"
