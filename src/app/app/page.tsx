@@ -1,5 +1,11 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect } from 'react';
 
 export default function AppPage() {
-  redirect('/');
+  useEffect(() => {
+    window.location.href = '/';
+  }, []);
+
+  return null;
 }

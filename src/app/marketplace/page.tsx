@@ -1,5 +1,11 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect } from 'react';
 
 export default function MarketplacePage() {
-  redirect('/?tab=buy');
+  useEffect(() => {
+    window.location.href = '/?tab=buy';
+  }, []);
+
+  return null;
 }

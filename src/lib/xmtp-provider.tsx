@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Client, type Signer, IdentifierKind, ConsentState } from '@xmtp/browser-sdk';
-import { useWalletClient, useAccount } from 'wagmi';
+import { getStoredWalletAddress, getWalletClient } from './wallet-client';
 import { getXMTPEnv } from './xmtp';
 
 // ============================================================================
@@ -52,8 +52,8 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
   const hasInitializedRef = useRef(false);
   const initializedWithRef = useRef<string | null>(null);
 
-  const { data: walletClient } = useWalletClient();
-  const { address: userAddress, isConnected } = useAccount();
+  const userAddress = getStoredWalletAddress();
+  const isConnected = !!userAddress;
 
   // Hydration
   useEffect(() => {
@@ -63,7 +63,7 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
 
   // Create XMTP signer (shared by all consumers)
   const getXmtpSigner = useCallback((): Signer | null => {
-    if (!walletClient || !userAddress) return null;
+    if (!userAddress) return null;
     try {
       const signer: Signer = {
         type: 'EOA',
@@ -72,16 +72,20 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
           identifierKind: IdentifierKind.Ethereum,
         }),
         signMessage: async (message: string): Promise<Uint8Array> => {
-          const signature = await walletClient.signMessage({ message });
+          const walletClient = getWalletClient();
+          const signature = await walletClient.signMessage({
+            message,
+            account: userAddress.toLowerCase() as `0x${string}`,
+          });
           const hex = signature.slice(2);
-          return new Uint8Array(hex.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []);
+          return new Uint8Array(hex.match(/.{2}/g)?.map((byte: string) => parseInt(byte, 16)) || []);
         },
       };
       return signer;
     } catch {
       return null;
     }
-  }, [walletClient, userAddress]);
+  }, [userAddress]);
 
   // ============================================================================
   // Lazy init: only create Client after user visits Chat tab once
@@ -185,27 +189,13 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
         hasInitializedRef.current = false;
       }
 
-      // If walletClient is not ready yet, show a delayed error instead of
-      // failing silently forever. initClient will silently return early when
-      // signer is null, and this effect re-fires when walletClient arrives.
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      if (!walletClient) {
-        timeoutId = setTimeout(() => {
-          if (isMountedRef.current && !clientRef.current) {
-            setError(WALLET_CLIENT_ERROR);
-          }
-        }, 5000);
-      } else {
-        // walletClient is available — clear any stale reconnect error
-        setError(prev => prev === WALLET_CLIENT_ERROR ? null : prev);
-      }
-
+      // MiniKit wallet client is always available inside World App
+      // initClient will silently return early when signer is null.
       initClient();
-      return () => { if (timeoutId) clearTimeout(timeoutId); };
     }
     // activatedVersion ensures this re-runs when activateClient() fires
     // for the first time, even if wallet state hasn't changed.
-  }, [isHydrated, isConnected, userAddress, walletClient, initClient, activatedVersion]);
+  }, [isHydrated, isConnected, userAddress, initClient, activatedVersion]);
 
   // Cleanup on unmount
   useEffect(() => {

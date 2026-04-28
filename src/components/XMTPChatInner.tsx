@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Client, IdentifierKind, type Dm } from '@xmtp/browser-sdk';
-import { useAccount } from 'wagmi';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { MiniKit } from '@worldcoin/minikit-js';
@@ -277,7 +277,8 @@ export function XMTPChatInner({
   bottomOffset = '1.5rem',
 }: XMTPChatInnerProps) {
   const router = useRouter();
-  const { address: userAddress, isConnected } = useAccount();
+  const userAddress = getStoredWalletAddress();
+  const isConnected = !!userAddress;
   const { client, isLoading: isProviderLoading, error: providerError, initClient, activateClient } = useXMTP();
   const isMiniApp = MiniKit.isInstalled();
 

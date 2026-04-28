@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { WorldWalletButton } from '@/components/WorldWalletButton';
 import { parseUnits, encodeFunctionData, type Hex, createPublicClient, http } from 'viem';
-import { worldChain, base } from '@/lib/chains';
+import { worldChain } from '@/lib/chains';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { useUserOperationReceipt } from '@worldcoin/minikit-react';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ const CHAIN_ICONS: Record<number, string> = {
   [BASE_CHAIN_ID]: '🔵',
 };
 
-// USDC ABI for transfer (used by both wagmi writeContract and MiniKit encodeFunctionData)
+// USDC ABI for transfer (used with MiniKit sendTransaction)
 const USDC_ABI = [
   {
     name: 'transfer',
@@ -140,7 +140,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const metadataUrl = searchParams.get('meta');
   const listingId = id;
-  const isMiniApp = useIsMiniApp();
+  const isMiniApp = true; // Mini-app only
 
   const dealBackUrl = `/deal/${listingId}${metadataUrl ? `?meta=${encodeURIComponent(metadataUrl)}` : ''}`;
   // Mini App: back navigation (standalone has header with back link)
@@ -151,28 +151,16 @@ function PaymentPageContentInner({ id }: { id: string }) {
     </Link>
   );
   
-  const { address, isConnected, chain } = useAccount();
-  const { switchChain } = useSwitchChain();
+  const address = getStoredWalletAddress();
+  const isConnected = !!address;
 
-  // Track selected payment chain (World Chain by default) — must be declared before receiptPublicClient
-  const [selectedChain, setSelectedChain] = useState<number>(WORLD_CHAIN_ID);
-  const isCorrectChain = chain?.id === selectedChain;
+  // Mini-app only: always use World Chain
+  const selectedChain = WORLD_CHAIN_ID;
 
-  // ---- Wagmi path (standalone browser) ----
-  const { writeContract, data: wagmiTxHash, isPending: isWagmiSigning } = useWriteContract();
-  const { isLoading: isWagmiConfirming, isSuccess: isWagmiConfirmed } = useWaitForTransactionReceipt({
-    hash: isMiniApp ? undefined : wagmiTxHash, // Only poll via wagmi when NOT in World App
-  });
-
-  // ---- MiniKit path (World App) ----
   // Create a memoized viem PublicClient for useUserOperationReceipt.
-  // wagmi's useClient() returns a type with optional account that doesn't match.
   const receiptPublicClient = useMemo(() => {
-    const chainConfig = selectedChain === WORLD_CHAIN_ID
-      ? worldChain
-      : base;
-    return createPublicClient({ chain: chainConfig, transport: http() });
-  }, [selectedChain]);
+    return createPublicClient({ chain: worldChain, transport: http() });
+  }, []);
 
   const { poll: pollUserOpReceipt, isLoading: isUserOpPolling } = useUserOperationReceipt({
     client: receiptPublicClient,
@@ -228,33 +216,17 @@ function PaymentPageContentInner({ id }: { id: string }) {
     fetchMetadata();
   }, [metadataUrl]);
 
-  // Auto-advance to review when wallet connects on correct chain
+  // Auto-advance to review when wallet is authenticated
   useEffect(() => {
-    if (isConnected && isCorrectChain && paymentStep === 'connect') {
+    if (isConnected && paymentStep === 'connect') {
       setPaymentStep('review');
     }
-  }, [isConnected, isCorrectChain, paymentStep]);
+  }, [isConnected, paymentStep]);
 
-  // ---- Wagmi receipt tracking (standalone browser) ----
-  useEffect(() => {
-    if (!isMiniApp && isWagmiConfirmed && wagmiTxHash) {
-      setFinalTxHash(wagmiTxHash);
-      setIsConfirmed(true);
-      setIsConfirming(false);
-    }
-  }, [isMiniApp, isWagmiConfirmed, wagmiTxHash]);
-
-  // ---- Wagmi confirming state ----
-  useEffect(() => {
-    if (!isMiniApp && isWagmiConfirming) {
-      setIsConfirming(true);
-    }
-  }, [isMiniApp, isWagmiConfirming]);
-
-  // ---- MiniKit userOpHash receipt polling (World App) ----
+  // ---- MiniKit userOpHash receipt polling ----
   // Polls every 3s until the bundler confirms the userOp and we get a transactionHash.
   useEffect(() => {
-    if (!isMiniApp || !userOpHash) return;
+    if (!userOpHash) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -284,7 +256,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isMiniApp, userOpHash, pollUserOpReceipt]);
+  }, [userOpHash, pollUserOpReceipt]);
 
   // ---- Unified: handle payment confirmed (both paths converge here) ----
   // Guard against firing multiple times (useCallback deps can change after confirmation)
@@ -332,10 +304,6 @@ function PaymentPageContentInner({ id }: { id: string }) {
       handlePaymentConfirmed(finalTxHash);
     }
   }, [isConfirmed, finalTxHash, handlePaymentConfirmed]);
-
-  const handleSwitchChain = () => {
-    switchChain({ chainId: selectedChain });
-  };
 
   // Handle x402 payment flow
   const handlePay = async () => {
@@ -401,58 +369,46 @@ function PaymentPageContentInner({ id }: { id: string }) {
 
       // Step 2: Make the USDC payment
       const amountUSDC = parseUnits(metadata.price, 6);
-      const usdcAddress = selectedChain === WORLD_CHAIN_ID ? USDC_ADDRESS_WORLD : USDC_ADDRESS_BASE;
+      const usdcAddress = USDC_ADDRESS_WORLD;
 
-      if (isMiniApp) {
-        // ---- World App path: MiniKit.sendTransaction (ERC-4337) ----
-        setIsSigning(true);
-        // Encode the USDC transfer calldata manually (MiniKit uses raw calldata, not ABI)
-        const calldata = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'transfer',
-          args: [metadata.seller as `0x${string}`, amountUSDC],
-        });
+      // Mini-app path: MiniKit.sendTransaction (ERC-4337)
+      setIsSigning(true);
+      // Encode the USDC transfer calldata manually (MiniKit uses raw calldata, not ABI)
+      const calldata = encodeFunctionData({
+        abi: USDC_ABI,
+        functionName: 'transfer',
+        args: [metadata.seller as `0x${string}`, amountUSDC],
+      });
 
-        const result = await MiniKit.sendTransaction({
-          transactions: [{
-            to: usdcAddress,
-            data: calldata,
-          }],
-          chainId: selectedChain,
-        });
+      const result = await MiniKit.sendTransaction({
+        transactions: [{
+          to: usdcAddress,
+          data: calldata,
+        }],
+        chainId: selectedChain,
+      });
 
-        // CommandResultByVia = { executedWith: 'minikit' | 'wagmi' | 'fallback', data: SendTransactionV2Result }
-        // SendTransactionV2Result = { userOpHash: string, status: 'success', version, from, timestamp }
-        setIsSigning(false);
-        if (result.executedWith === 'minikit') {
-          if (result.data.status === 'success' && result.data.userOpHash) {
-            setUserOpHash(result.data.userOpHash);
-            setIsConfirming(true);
-          } else {
-            throw new Error(result.data.status === 'success'
-              ? 'No userOpHash returned from MiniKit.sendTransaction'
-              : `Transaction rejected by bundler (status: ${result.data.status ?? 'unknown'})`);
-          }
+      // CommandResultByVia = { executedWith: 'minikit' | 'wagmi' | 'fallback', data: SendTransactionV2Result }
+      // SendTransactionV2Result = { userOpHash: string, status: 'success', version, from, timestamp }
+      setIsSigning(false);
+      if (result.executedWith === 'minikit') {
+        if (result.data.status === 'success' && result.data.userOpHash) {
+          setUserOpHash(result.data.userOpHash);
+          setIsConfirming(true);
         } else {
-          // Fallback path (wagmi/fallback) — result.data.userOpHash contains the regular tx hash
-          const fallbackHash = result.data.userOpHash;
-          if (fallbackHash) {
-            setFinalTxHash(fallbackHash as Hex);
-            setIsConfirmed(true);
-            setIsConfirming(false);
-          }
+          throw new Error(result.data.status === 'success'
+            ? 'No userOpHash returned from MiniKit.sendTransaction'
+            : `Transaction rejected by bundler (status: ${result.data.status ?? 'unknown'})`);
         }
       } else {
-        // ---- Standalone browser path: wagmi writeContract (standard EOA) ----
-        // isWagmiSigning / isWagmiConfirming / isWagmiConfirmed hooks handle the lifecycle
-        writeContract({
-          address: usdcAddress,
-          abi: USDC_ABI,
-          functionName: 'transfer',
-          args: [metadata.seller as `0x${string}`, amountUSDC],
-        });
+        // Fallback path — result.data.userOpHash contains the regular tx hash
+        const fallbackHash = result.data.userOpHash;
+        if (fallbackHash) {
+          setFinalTxHash(fallbackHash as Hex);
+          setIsConfirmed(true);
+          setIsConfirming(false);
+        }
       }
-
     } catch (error) {
       console.error('Payment error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment failed';
@@ -473,10 +429,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
         <PageHeader isMiniApp={isMiniApp} />
         <div className="max-w-lg mx-auto px-4 py-12 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            {isMiniApp
-              ? <Spinner className='w-8 h-8' />
-              : <LucideLoader2 className="w-8 h-8 animate-spin text-primary" />
-            }
+            <Spinner className='w-8 h-8' />
             <p className="text-sm font-bold text-muted-foreground">Loading listing...</p>
           </div>
         </div>
@@ -514,7 +467,7 @@ function PaymentPageContentInner({ id }: { id: string }) {
 
   // ---- Payment confirmed - show success ----
   // Derive txHash for display from either path
-  const displayTxHash = finalTxHash || wagmiTxHash;
+  const displayTxHash = finalTxHash;
 
   if (paymentStep === 'confirmed' || isConfirmed) {
     return (
@@ -605,20 +558,17 @@ function PaymentPageContentInner({ id }: { id: string }) {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tx Hash</span>
                     <a 
-                      href={selectedChain === WORLD_CHAIN_ID
-                        ? `https://worldchain-mainnet.g.alchemy.com/explorer/tx/${displayTxHash}`
-                        : `https://basescan.org/tx/${displayTxHash}`}
-                      target={isMiniApp ? undefined : '_blank'}
+                      href={`https://worldchain-mainnet.g.alchemy.com/explorer/tx/${displayTxHash}`}
                       rel="noopener noreferrer"
-                      onClick={isMiniApp ? (e) => {
+                      onClick={(e) => {
                         e.preventDefault();
                         navigator.clipboard.writeText(displayTxHash);
                         toast.success('Tx hash copied!');
-                      } : undefined}
+                      }}
                       className="text-[10px] font-mono text-primary flex items-center gap-1 hover:underline"
                     >
                       {displayTxHash.slice(0, 6)}...{displayTxHash.slice(-4)}
-                      {isMiniApp ? <LucideCopy className="w-3 h-3" /> : <LucideExternalLink className="w-3 h-3" />}
+                      <LucideCopy className="w-3 h-3" />
                     </a>
                   </div>
                 )}
@@ -709,40 +659,15 @@ function PaymentPageContentInner({ id }: { id: string }) {
                 </Badge>
               </div>
 
-              {/* Chain Selector */}
+              {/* Network */}
               <div className="space-y-2 pt-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Network</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setSelectedChain(WORLD_CHAIN_ID)}
-                    className={cn(
-                      'p-3 rounded-xl border transition-all',
-                      selectedChain === WORLD_CHAIN_ID
-                        ? 'bg-primary/10 border-primary/40 text-primary'
-                        : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
-                    )}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl">{CHAIN_ICONS[WORLD_CHAIN_ID]}</span>
-                      <span className="text-[10px] font-black">World Chain</span>
-                      <span className="text-[9px] text-muted-foreground">Agent-ready</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setSelectedChain(BASE_CHAIN_ID)}
-                    className={cn(
-                      'p-3 rounded-xl border transition-all',
-                      selectedChain === BASE_CHAIN_ID
-                        ? 'bg-primary/10 border-primary/40 text-primary'
-                        : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
-                    )}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl">{CHAIN_ICONS[BASE_CHAIN_ID]}</span>
-                      <span className="text-[10px] font-black">Base</span>
-                      <span className="text-[9px] text-muted-foreground">Standard</span>
-                    </div>
-                  </button>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Network</span>
+                <div className='flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/40 text-primary'>
+                  <span className='text-xl'>{CHAIN_ICONS[WORLD_CHAIN_ID]}</span>
+                  <div>
+                    <span className="text-[10px] font-black">World Chain</span>
+                    <span className="text-[9px] text-muted-foreground block">Agent-ready</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -772,40 +697,13 @@ function PaymentPageContentInner({ id }: { id: string }) {
                   <div className="flex justify-center py-2">
                     <WorldWalletButton size='md' />
                   </div>
-                ) : chain === undefined ? (
-                  <div className="flex justify-center py-4">
-                    {isMiniApp
-                      ? <Spinner className='w-6 h-6' />
-                      : <LucideLoader2 className="w-6 h-6 animate-spin text-primary" />
-                    }
-                  </div>
-                ) : !isCorrectChain ? (
-                  <div className="space-y-2">
-                    <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                      <p className="text-[10px] text-yellow-400 font-bold">
-                        Switch to {CHAIN_NAMES[selectedChain]} for x402 payments
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={handleSwitchChain}
-                      className="w-full py-4 text-sm font-black bg-yellow-500 text-black hover:bg-yellow-400 rounded-xl"
-                    >
-                      <LucideWallet className="w-4 h-4 mr-2" />
-                      Switch to {CHAIN_NAMES[selectedChain]}
-                    </Button>
-                  </div>
                 ) : (
                   <Button 
                     onClick={() => setPaymentStep('review')}
-                    className={cn(
-                      'w-full py-5 text-sm font-black rounded-xl shadow-[0_0_20px_rgba(0,214,50,0.2)]',
-                      selectedChain === WORLD_CHAIN_ID
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'bg-blue-500 text-white hover:bg-blue-400'
-                    )}
+                    className='w-full py-5 text-sm font-black rounded-xl shadow-[0_0_20px_rgba(0,214,50,0.2)] bg-primary text-primary-foreground hover:bg-primary/90'
                   >
                     <LucideWallet className="w-4 h-4 mr-2" />
-                    Continue to Pay via {CHAIN_NAMES[selectedChain]}
+                    Continue to Pay via World Chain
                   </Button>
                 )}
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -835,21 +733,13 @@ function PaymentPageContentInner({ id }: { id: string }) {
 
                 <Button 
                   onClick={handlePay}
-                  disabled={isSigning || isWagmiSigning}
-                  className={cn(
-                    'w-full py-5 text-sm font-black rounded-xl shadow-[0_0_20px_rgba(0,214,50,0.2)] disabled:opacity-50',
-                    selectedChain === WORLD_CHAIN_ID
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      : 'bg-blue-500 text-white hover:bg-blue-400'
-                  )}
+                  disabled={isSigning}
+                  className='w-full py-5 text-sm font-black rounded-xl shadow-[0_0_20px_rgba(0,214,50,0.2)] disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90'
                 >
-                  {(isSigning || isWagmiSigning) ? (
+                  {isSigning ? (
                     <>
-                      {isMiniApp
-                        ? <Spinner className='w-4 h-4 mr-2' />
-                        : <LucideLoader2 className="w-4 h-4 mr-2 animate-spin" />
-                      }
-                      Confirm on {CHAIN_NAMES[selectedChain]}...
+                      <Spinner className='w-4 h-4 mr-2' />
+                      Confirm on World Chain...
                     </>
                   ) : (
                     <>
@@ -862,29 +752,23 @@ function PaymentPageContentInner({ id }: { id: string }) {
             )}
 
             {/* Paying State */}
-            {paymentStep === 'paying' && !isConfirming && !isWagmiConfirming && !isUserOpPolling && (
+            {paymentStep === 'paying' && !isConfirming && !isUserOpPolling && (
               <div className="flex flex-col items-center gap-3 py-6">
-                {isMiniApp
-                  ? <Spinner className='w-10 h-10' />
-                  : <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
-                }
+                <Spinner className='w-10 h-10' />
                 <p className="text-sm font-black text-white">Processing x402 Payment...</p>
                 <p className="text-xs text-muted-foreground">
-                  {(isSigning || isWagmiSigning) ? 'Confirm the transaction in your wallet' : 'Initiating payment...'}
+                  {isSigning ? 'Confirm the transaction in your wallet' : 'Initiating payment...'}
                 </p>
               </div>
             )}
 
-            {/* Confirming State (wagmi or userOp polling) */}
-            {(isConfirming || isWagmiConfirming || isUserOpPolling) && !isConfirmed && (
+            {/* Confirming State (userOp polling) */}
+            {(isConfirming || isUserOpPolling) && !isConfirmed && (
               <div className="flex flex-col items-center gap-3 py-6">
-                {isMiniApp
-                  ? <Spinner className='w-10 h-10' />
-                  : <LucideLoader2 className="w-10 h-10 animate-spin text-primary" />
-                }
+                <Spinner className='w-10 h-10' />
                 <p className="text-sm font-black text-white">Confirming Transaction...</p>
                 <p className="text-xs text-muted-foreground">
-                  {isMiniApp ? 'Waiting for bundler confirmation...' : 'Waiting for on-chain confirmation'}
+                  Waiting for bundler confirmation...
                 </p>
               </div>
             )}

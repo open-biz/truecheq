@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ import { SEED_LISTINGS, type Listing } from '@/lib/seed-listings';
 import type { DealMetadata } from '@/lib/filebase';
 
 export function DealDashboard() {
-  const { address, isConnected } = useAccount();
+  const address = getStoredWalletAddress();
+  const isConnected = !!address;
   const [listings, setListings] = useState<(Listing & { metadata?: DealMetadata })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

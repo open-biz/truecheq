@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ConsentState, type Dm } from '@xmtp/browser-sdk';
-import { useAccount } from 'wagmi';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -230,7 +230,8 @@ function ChatBubble({ msg, onPayFromInvoice }: {
 
 export function ChatTab({ onUnreadChange }: { onUnreadChange?: (count: number) => void }) {
   const router = useRouter();
-  const { address: userAddress, isConnected } = useAccount();
+  const userAddress = getStoredWalletAddress();
+  const isConnected = !!userAddress;
   const { client, isLoading, error, initClient, activateClient } = useXMTP();
 
   // Conversation list state

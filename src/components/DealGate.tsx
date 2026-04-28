@@ -23,7 +23,7 @@ import type { DealMetadata } from '@/lib/filebase';
 import { XMTPChat } from '@/components/XMTPChat';
 import { TruCheqAuth } from '@/components/TruCheqAuth';
 import { type TruCheqUser, loadTruCheqUser, saveTruCheqUser, clearTruCheqUser, migrateToUnifiedUser } from '@/lib/trucheq-user';
-import { useAccount, useDisconnect } from 'wagmi';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { WorldWalletButton } from './WorldWalletButton';
 import Link from 'next/link';
 import {
@@ -159,8 +159,9 @@ export function DealGate({ id, metadataUrl }: { id: string; metadataUrl?: string
   const [trucheqUser, setTrucheqUser] = useState<TruCheqUser | null>(null);
   const isMiniApp = useIsMiniApp();
 
-  const { address: walletAddress, isConnected } = useAccount();
-  const { disconnect } = useDisconnect();
+  const walletAddress = getStoredWalletAddress();
+  const isConnected = !!walletAddress;
+  const disconnect = () => localStorage.removeItem('trucheq_wallet_auth');
 
   const isOrbVerified = metadata?.isOrbVerified ?? false;
   const sellerAddress = metadata?.seller || '';

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { 
   type TruCheqUser, 
   createTruCheqUser, 
@@ -21,6 +20,7 @@ import {
   clearTruCheqUser,
   migrateToUnifiedUser,
 } from '@/lib/trucheq-user';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 
 // ============================================================================
 // Props
@@ -100,9 +100,8 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
   const [widgetError, setWidgetError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
-  const { address: walletAddress, isConnected } = useAccount();
-  const { connectors, connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const walletAddress = getStoredWalletAddress();
+  const isConnected = !!walletAddress;
 
   // Try to restore user from localStorage on mount
   useEffect(() => {
@@ -120,7 +119,7 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When wallet connects, update user and complete auth
+  // When wallet is authenticated, update user and complete auth
   useEffect(() => {
     if (step === 'wallet' && isConnected && walletAddress && user) {
       const updated = { ...user, walletAddress };
@@ -212,19 +211,30 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
     }
   }, [onSuccess, isConnected]);
 
-  const handleConnectWallet = () => {
-    const worldAppConnector = connectors.find(c => c.id === 'worldApp');
-    if (worldAppConnector) {
-      connect({ connector: worldAppConnector });
-    } else {
-      toast.error('World App connector unavailable');
+  const handleConnectWallet = async () => {
+    if (!MiniKit.isInstalled()) {
+      toast.error('Please open this app in World App');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const address = await getMiniAppWalletAddress();
+      if (address) {
+        toast.success('Wallet connected!');
+      } else {
+        toast.error('Wallet connection failed');
+      }
+    } catch {
+      toast.error('Wallet connection failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
     setUser(null);
     clearTruCheqUser();
-    disconnect();
+    localStorage.removeItem('trucheq_wallet_auth');
     setStep('world_id');
   };
 

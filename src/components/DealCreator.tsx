@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WorldWalletButton } from './WorldWalletButton';
-import { useAccount } from 'wagmi';
+import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,8 @@ interface DealCreatorProps {
 }
 
 export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: DealCreatorProps) {
-  const { address: walletAddress, isConnected } = useAccount();
+  const walletAddress = getStoredWalletAddress();
+  const isConnected = !!walletAddress;
   const address = walletAddress || manualWallet;
   const [itemName, setItemName] = useState('');
   const [price, setPrice] = useState('');
