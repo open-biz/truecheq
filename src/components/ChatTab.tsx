@@ -24,10 +24,8 @@ import {
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   type ChatMessage,
-  type X402InvoicePayload,
   type SystemMessagePayload,
   parseMessageContent,
   truncateAddress,
@@ -90,8 +88,12 @@ function ConversationItem({
 }) {
   const { type } = parseMessageContent(preview.lastMessage);
   const previewText =
-    type === 'x402-invoice'
-      ? '📄 Invoice received'
+    type === 'offer'
+      ? '💰 Offer received'
+      : type === 'payment-request'
+        ? '� Payment requested'
+      : type === 'payment-confirm'
+        ? '✅ Payment confirmed'
       : type === 'system'
         ? '✅ System message'
         : preview.lastMessage.length > 50
@@ -142,10 +144,7 @@ function ConversationItem({
 // Component: Inline Message Renderer
 // ============================================================================
 
-function ChatBubble({ msg, onPayFromInvoice }: {
-  msg: ChatMessage;
-  onPayFromInvoice: (cid: string, metaUrl?: string) => void;
-}) {
+function ChatBubble({ msg }: { msg: ChatMessage }) {
   // System messages — centered
   if (msg.type === 'system') {
     const payload = msg.payload as SystemMessagePayload | undefined;
@@ -153,7 +152,9 @@ function ChatBubble({ msg, onPayFromInvoice }: {
       ? `Payment of ${payload.amount || ''} USDC Confirmed`
       : payload?.event === 'payment_sent'
         ? `Payment of ${payload.amount || ''} USDC Sent`
-        : msg.content;
+        : payload?.event === 'offer_accepted'
+          ? 'Offer Accepted'
+          : msg.content;
     return (
       <div className='flex justify-center my-3'>
         <div className='bg-primary/10 border border-primary/20 rounded-full px-3 py-1 flex items-center gap-1.5'>
@@ -166,34 +167,50 @@ function ChatBubble({ msg, onPayFromInvoice }: {
     );
   }
 
-  // Invoice card
-  if (msg.type === 'x402-invoice' && msg.payload) {
-    const inv = msg.payload as X402InvoicePayload;
+  // Offer card
+  if (msg.type === 'offer' && msg.payload) {
+    const offer = msg.payload as { amount: string; currency: string; itemName: string };
     return (
       <div className='w-full my-2'>
         <div className='bg-[#101820] border border-primary/30 rounded-2xl p-3 shadow-[0_4px_12px_rgba(0,214,50,0.1)]'>
-          <div className='flex items-center gap-3 mb-3'>
-            {inv.itemImage ? (
-              <img src={getProxiedImageUrl(inv.itemImage)} alt={inv.itemName} className='w-10 h-10 rounded-lg object-cover border border-white/10' />
-            ) : (
-              <div className='w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center'>
-                <DollarSign className='w-5 h-5 text-primary/40' />
-              </div>
-            )}
-            <div className='flex-1'>
-              <p className='text-xs font-bold text-white'>{inv.itemName}</p>
-              <p className='text-lg font-black italic tracking-tighter text-primary'>{inv.amount} USDC</p>
-            </div>
-          </div>
+          <p className='text-xs font-bold text-white mb-1'>{offer.itemName}</p>
+          <p className='text-lg font-black italic tracking-tighter text-primary'>{offer.amount} {offer.currency}</p>
+          <p className='text-[10px] text-muted-foreground mt-1'>Offer from buyer</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Payment request card
+  if (msg.type === 'payment-request' && msg.payload) {
+    const req = msg.payload as { amount: string; currency: string; recipient: string };
+    return (
+      <div className='w-full my-2'>
+        <div className='bg-[#101820] border border-yellow-500/30 rounded-2xl p-3'>
+          <p className='text-xs font-bold text-white mb-1'>Payment Request</p>
+          <p className='text-lg font-black italic tracking-tighter text-yellow-400'>{req.amount} {req.currency}</p>
           {!msg.isSelf && (
             <Button
-              onClick={() => onPayFromInvoice(inv.cid)}
               size='sm'
-              className='w-full bg-primary text-black font-bold rounded-xl hover:bg-primary/90'
+              className='w-full mt-2 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400'
             >
-              <ShieldCheck className='w-3 h-3 mr-1.5' /> Pay Now
+              <DollarSign className='w-3 h-3 mr-1.5' /> Pay Now
             </Button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Payment confirmation card
+  if (msg.type === 'payment-confirm' && msg.payload) {
+    const conf = msg.payload as { amount: string; currency: string; txHash: string };
+    return (
+      <div className='w-full my-2'>
+        <div className='bg-[#101820] border border-primary/30 rounded-2xl p-3'>
+          <p className='text-xs font-bold text-primary mb-1'>Payment Sent</p>
+          <p className='text-sm font-black text-white'>{conf.amount} {conf.currency}</p>
+          <p className='text-[10px] font-mono text-muted-foreground mt-1 truncate'>{conf.txHash}</p>
         </div>
       </div>
     );
@@ -228,8 +245,13 @@ function ChatBubble({ msg, onPayFromInvoice }: {
 // MAIN: ChatTab
 // ============================================================================
 
-export function ChatTab({ onUnreadChange }: { onUnreadChange?: (count: number) => void }) {
-  const router = useRouter();
+interface ChatTabProps {
+  onUnreadChange?: (count: number) => void;
+  startChatWith?: string | null;
+  onChatStarted?: () => void;
+}
+
+export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTabProps) {
   const userAddress = getStoredWalletAddress();
   const isConnected = !!userAddress;
   const { client, isLoading, error, initClient, activateClient } = useXMTP();
@@ -271,6 +293,29 @@ export function ChatTab({ onUnreadChange }: { onUnreadChange?: (count: number) =
     activateClient();
     return () => { isMountedRef.current = false; };
   }, [activateClient]);
+
+  // Handle external request to start chat with a specific address
+  useEffect(() => {
+    if (!startChatWith) return;
+
+    const address = startChatWith.toLowerCase();
+    // Check if conversation already exists
+    const existing = conversations.find(c => c.peerAddress.toLowerCase() === address);
+    if (existing) {
+      setActivePeerAddress(address);
+      setActiveDm(existing.dm);
+      setViewMode('conversation');
+      onChatStarted?.();
+      return;
+    }
+    // Start new conversation view (DM created on first message)
+    setActivePeerAddress(address);
+    setActiveDm(null);
+    setMessages([]);
+    setViewMode('conversation');
+    onChatStarted?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startChatWith]);
 
   // ============================================================================
   // BUILD CONVERSATION PREVIEWS (using shared client)
@@ -573,16 +618,6 @@ export function ChatTab({ onUnreadChange }: { onUnreadChange?: (count: number) =
   }, [inputValue, isSending, activeDm, activePeerAddress, userAddress]);
 
   // ============================================================================
-  // HANDLE PAY FROM INVOICE
-  // ============================================================================
-
-  const handlePayFromInvoice = useCallback((cid: string) => {
-    const gateway = process.env.NEXT_PUBLIC_FILEBASE_GATEWAY || 'https://parallel-pink-stork.myfilebase.com';
-    const metadataUrl = `${gateway}/ipfs/${cid}`;
-    router.push(`/pay/${cid.slice(0, 12)}?meta=${encodeURIComponent(metadataUrl)}`);
-  }, [router]);
-
-  // ============================================================================
   // SCROLL TO BOTTOM
   // ============================================================================
 
@@ -682,7 +717,7 @@ export function ChatTab({ onUnreadChange }: { onUnreadChange?: (count: number) =
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.12 }}
                 >
-                  <ChatBubble msg={msg} onPayFromInvoice={handlePayFromInvoice} />
+                  <ChatBubble msg={msg} />
                 </motion.div>
               ))}
             </AnimatePresence>

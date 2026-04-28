@@ -106,7 +106,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="text-lg md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            TruCheq is a sybil-resistant P2P commerce protocol. World&nbsp;ID verifies sellers, XMTP enables encrypted chat, and Coinbase&nbsp;x402 settles payments &mdash; all without a database.
+            TruCheq is a sybil-resistant P2P commerce protocol. World&nbsp;ID verifies sellers, XMTP enables encrypted chat, and World Pay + XMTP transactions handle payments &mdash; all without a database.
           </motion.p>
 
           <motion.div
@@ -239,13 +239,13 @@ export default function LandingPage() {
             </CardContent>
           </Card>
 
-          {/* Box 3 (Small) - x402 Payments */}
+          {/* Box 3 (Small) - World Pay */}
           <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between">
             <CardHeader className="pb-2">
               <LucideLock className="w-6 h-6 text-primary mb-2" />
-              <CardTitle className="text-xl font-black tracking-tight text-white uppercase">x402 Payments</CardTitle>
+              <CardTitle className="text-xl font-black tracking-tight text-white uppercase">World Pay</CardTitle>
               <CardDescription className="text-sm text-foreground/60 leading-snug font-bold">
-                Coinbase payment protocol on Base.
+                Native payments in World App.
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-8">
@@ -315,7 +315,7 @@ export default function LandingPage() {
             {[
               { title: "r/Watchexchange", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop", text: "Verified sellers with World ID before shipping high-value watches." },
               { title: "Concert Tickets", img: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=800&auto=format&fit=crop", text: "End ticket scams with sybil-resistant seller verification." },
-              { title: "Discord Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Negotiate via XMTP, pay with x402. Zero chargeback risk." },
+              { title: "Discord Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Negotiate via XMTP, pay with World Pay. Zero chargeback risk." },
               { title: "Instagram Sneakers", img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop", text: "AI agents help sellers manage listings at scale." },
             ].map((item, index) => (
               <CarouselItem key={index} className="pl-6 md:basis-1/3">
@@ -358,7 +358,6 @@ export default function LandingPage() {
             <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://github.com/open-biz/truecheq'); toast.success('Link copied!'); }}>GitHub Repo</Button>
             <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.world.org/world-id'); toast.success('Link copied!'); }}>World ID Docs</Button>
             <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.xmtp.org'); toast.success('Link copied!'); }}>XMTP Docs</Button>
-            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.cdp.coinbase.com/x402/welcome'); toast.success('Link copied!'); }}>Coinbase x402</Button>
           </div>
 
           <div className="flex flex-col items-center gap-6 text-sm text-muted-foreground font-black">

@@ -1,26 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useIsMiniApp } from '@/lib/use-mini-app';
-import { useAccount, useDisconnect } from 'wagmi';
 import {
-  LucideTag,
-  LucideShoppingCart,
-  LucideMessageCircle,
-  LucideShieldCheck,
-  LucideSmartphone,
-  LucideWallet,
-  LucideLogOut,
-  LucideCopy,
-  LucideChevronDown,
-  LucideGlobe,
+  LayoutGrid,
+  MessageCircle,
+  User,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   TopBar,
-  VerificationBadge,
   CircularIcon,
   BottomBar,
   Tabs,
@@ -36,21 +26,17 @@ import {
   migrateToUnifiedUser,
 } from '@/lib/trucheq-user';
 import { TruCheqAuth } from '@/components/TruCheqAuth';
-import { DealCreator } from '@/components/DealCreator';
-import { DealDashboard } from '@/components/DealDashboard';
-import { ChatTab as ChatTabXMTP } from '@/components/ChatTab';
-import { MarketTab } from '@/components/MarketTab';
-import { toast } from 'sonner';
-import Link from 'next/link';
+import { ChatTab } from '@/components/ChatTab';
+import { FeedTab } from '@/components/FeedTab';
+import { ProfileTab } from '@/components/ProfileTab';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type TabId = 'sell' | 'buy' | 'chat';
+type TabId = 'feed' | 'chat' | 'profile';
 
 interface AppShellProps {
-  /** Initial tab to show */
   initialTab?: TabId;
 }
 
@@ -69,35 +55,19 @@ function BottomTabBar({
   isMiniApp: boolean;
   chatUnreadCount?: number;
 }) {
-  // Track 0→>0 transition for pulse animation
-  const prevUnreadRef = useRef(chatUnreadCount);
-  const [isPulsing, setIsPulsing] = useState(false);
   const haptics = useHaptics();
 
-  useEffect(() => {
-    if (prevUnreadRef.current === 0 && chatUnreadCount > 0) {
-      setIsPulsing(true);
-      const timer = setTimeout(() => setIsPulsing(false), 2000);
-      prevUnreadRef.current = chatUnreadCount;
-      return () => clearTimeout(timer);
-    }
-    prevUnreadRef.current = chatUnreadCount;
-  }, [chatUnreadCount]);
-
-  const tabs: { id: TabId; icon: React.ReactNode; activeIcon: React.ReactNode; label: string }[] = [
-    { id: 'sell', icon: <LucideTag className='w-5 h-5' />, activeIcon: <LucideTag className='w-5 h-5' />, label: 'Sell' },
-    { id: 'buy', icon: <LucideShoppingCart className='w-5 h-5' />, activeIcon: <LucideShoppingCart className='w-5 h-5' />, label: 'Buy' },
-    { id: 'chat', icon: <LucideMessageCircle className='w-5 h-5' />, activeIcon: <LucideMessageCircle className='w-5 h-5' />, label: 'Chat' },
+  const tabs: { id: TabId; icon: React.ReactNode; label: string }[] = [
+    { id: 'feed', icon: <LayoutGrid className='w-5 h-5' />, label: 'Feed' },
+    { id: 'chat', icon: <MessageCircle className='w-5 h-5' />, label: 'Chat' },
+    { id: 'profile', icon: <User className='w-5 h-5' />, label: 'Profile' },
   ];
 
   const handleTabChange = (tab: TabId) => {
     onTabChange(tab);
-    if (isMiniApp) {
-      haptics.impact('light');
-    }
+    if (isMiniApp) haptics.impact('light');
   };
 
-  // Mini App: Use official UI Kit BottomBar + Tabs/TabItem for compliance
   if (isMiniApp) {
     return (
       <div className='fixed left-0 right-0 z-50 bottom-[var(--world-nav-height)]'>
@@ -108,7 +78,6 @@ function BottomTabBar({
                 key={tab.id}
                 value={tab.id}
                 icon={tab.icon}
-                altIcon={tab.activeIcon}
                 label={tab.label}
               />
             ))}
@@ -118,18 +87,11 @@ function BottomTabBar({
     );
   }
 
-  // Standalone: Custom tab bar with Framer Motion animations
   return (
-    <nav
-      className='fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl bottom-0'
-      role="tablist"
-      aria-label="Main navigation"
-    >
-        <LayoutGroup>
-          <div className="max-w-lg mx-auto flex items-center">
-            {tabs.map((tab) => {
+    <nav className='fixed left-0 right-0 z-50 border-t border-white/5 bg-black/80 backdrop-blur-xl bottom-0' role="tablist" aria-label="Main navigation">
+      <div className="max-w-lg mx-auto flex items-center">
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-
           return (
             <button
               key={tab.id}
@@ -137,60 +99,30 @@ function BottomTabBar({
               aria-selected={isActive}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'flex-1 flex flex-col items-center gap-1 py-3 transition-colors',
+                'flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-white/70',
               )}
             >
               <div className="relative">
-                {isActive ? tab.activeIcon : tab.icon}
-                {/* Unread badge on Chat tab */}
-                <AnimatePresence>
-                  {tab.id === 'chat' && chatUnreadCount > 0 && !isActive && (
-                    <motion.div
-                      key='chat-badge'
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={
-                        isPulsing
-                          ? { scale: [1, 1.3, 1, 1.3, 1, 1.3, 1], opacity: [1, 0.8, 1, 0.8, 1, 0.8, 1] }
-                          : { scale: 1, opacity: 1 }
-                      }
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={
-                        isPulsing
-                          ? { duration: 1.8, ease: 'easeInOut' }
-                          : { type: 'spring', stiffness: 500, damping: 25 }
-                      }
-                      className={cn(
-                        chatUnreadCount === 1
-                          ? 'absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary border border-[#0A0F14]'
-                          : 'absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary border-2 border-[#0A0F14] flex items-center justify-center px-1',
-                      )}
-                      style={{
-                        boxShadow: isPulsing
-                          ? '0 0 12px rgba(0,214,50,0.8), 0 0 24px rgba(0,214,50,0.4)'
-                          : '0 0 6px rgba(0,214,50,0.6)',
-                      }}
-                    >
-                      {chatUnreadCount > 1 && (
-                        <span className='text-[9px] font-black text-primary-foreground leading-none'>{chatUnreadCount > 99 ? '99+' : chatUnreadCount}</span>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                {isActive && (
-                  <motion.div
-                    layoutId="tab-indicator"
-                    className="absolute top-1/2 -translate-y-1/2 -left-1.5 w-1 h-4 rounded-full bg-primary shadow-[0_0_8px_rgba(0,214,50,0.6)]"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
+                {tab.icon}
+                {tab.id === 'chat' && chatUnreadCount > 0 && !isActive && (
+                  <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-primary text-[9px] font-black flex items-center justify-center text-primary-foreground">
+                    {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                  </span>
                 )}
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
             </button>
           );
-            })}
-          </div>
-        </LayoutGroup>
+        })}
+      </div>
     </nav>
   );
 }
@@ -199,177 +131,55 @@ function BottomTabBar({
 // Component: Standalone Header
 // ============================================================================
 
-function StandaloneHeader({
-  user,
-  onLogout,
-}: {
-  user: TruCheqUser;
-  onLogout: () => void;
-}) {
-  const { address } = useAccount();
+function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () => void }) {
   const [showDropdown, setShowDropdown] = useState(false);
-
-  const walletAddr = user.walletAddress || address;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
             <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
           </div>
           <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
-        </Link>
+        </div>
 
-        {/* Identity Chip */}
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
           >
-            <div
-              className={cn(
-                'w-2 h-2 rounded-full',
-                user.isOrbVerified ? 'bg-primary' : 'bg-blue-400',
-              )}
-            />
+            <div className={cn('w-2 h-2 rounded-full', user.isOrbVerified ? 'bg-primary' : 'bg-blue-400')} />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">
               {user.isOrbVerified ? 'Orb' : 'Device'}
             </span>
-            {walletAddr && (
-              <span className="text-[10px] font-mono text-muted-foreground">
-                {walletAddr.slice(0, 4)}...{walletAddr.slice(-4)}
-              </span>
-            )}
-            <LucideChevronDown
-              className={cn('w-3 h-3 text-muted-foreground transition-transform', showDropdown && 'rotate-180')}
-            />
           </button>
 
           <AnimatePresence>
             {showDropdown && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 z-50 w-56 rounded-2xl border border-white/10 bg-black/95 backdrop-blur-xl overflow-hidden shadow-2xl"
+                className="absolute right-0 top-full mt-2 z-50 w-48 rounded-2xl border border-white/10 bg-black/95 backdrop-blur-xl overflow-hidden shadow-2xl"
               >
-                {/* Verification */}
                 <div className="p-3 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    {user.isOrbVerified ? (
-                      <LucideShieldCheck className="w-4 h-4 text-primary" />
-                    ) : (
-                      <LucideSmartphone className="w-4 h-4 text-blue-400" />
-                    )}
-                    <span className="text-xs font-black uppercase tracking-widest">
-                      {user.isOrbVerified ? 'Orb Verified' : 'Device Verified'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1 font-mono">
-                    Code: {user.truCheqCode}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground font-mono">Code: {user.truCheqCode}</p>
                 </div>
-
-                {/* Wallet */}
-                {walletAddr && (
-                  <div className="p-3 border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <LucideWallet className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[10px] font-mono text-white/70 truncate flex-1">
-                        {walletAddr}
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(walletAddr);
-                          toast.success('Address copied!');
-                        }}
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        <LucideCopy className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="p-2">
-                  <Link
-                    href="/about"
-                    onClick={() => setShowDropdown(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <LucideGlobe className="w-3 h-3" />
-                    About TruCheq
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setShowDropdown(false);
-                      onLogout();
-                    }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full"
-                  >
-                    <LucideLogOut className="w-3 h-3" />
-                    Sign Out
-                  </button>
-                </div>
+                <button
+                  onClick={() => { setShowDropdown(false); onLogout(); }}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full"
+                >
+                  Sign Out
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
+          {showDropdown && <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />}
         </div>
       </div>
-
-      {/* Click outside to close */}
-      {showDropdown && <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />}
     </header>
-  );
-}
-
-// ============================================================================
-// Component: Sell Tab
-// ============================================================================
-
-function SellTab({ user }: { user: TruCheqUser }) {
-  const [view, setView] = useState<'create' | 'dashboard'>('create');
-  return (
-    <div className="space-y-4">
-      {/* Sub-tabs */}
-      <div className="flex items-center gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
-        <Button
-          variant={view === 'create' ? 'secondary' : 'ghost'}
-          onClick={() => setView('create')}
-          className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest"
-        >
-          <LucideTag className="w-3 h-3 mr-1.5" />
-          Create
-        </Button>
-        <Button
-          variant={view === 'dashboard' ? 'secondary' : 'ghost'}
-          onClick={() => setView('dashboard')}
-          className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest"
-        >
-          My Listings
-        </Button>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={view}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.15 }}
-        >
-          {view === 'create' ? (
-            <DealCreator isOrbVerified={user.isOrbVerified} walletAddress={user.walletAddress} />
-          ) : (
-            <DealDashboard />
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -377,21 +187,18 @@ function SellTab({ user }: { user: TruCheqUser }) {
 // MAIN: AppShell
 // ============================================================================
 
-export function AppShell({ initialTab = 'sell' }: AppShellProps) {
+export function AppShell({ initialTab = 'feed' }: AppShellProps) {
   const isMiniApp = useIsMiniApp();
-  const { disconnect } = useDisconnect();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [user, setUser] = useState<TruCheqUser | null>(null);
   const [mounted, setMounted] = useState(false);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [startChatWith, setStartChatWith] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    // Try to restore user from storage or migrate from old format
     const existing = loadTruCheqUser() || migrateToUnifiedUser();
-    if (existing) {
-      setUser(existing);
-    }
+    if (existing) setUser(existing);
   }, []);
 
   const handleAuthSuccess = (authenticatedUser: TruCheqUser) => {
@@ -402,19 +209,16 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
   const handleLogout = () => {
     setUser(null);
     clearTruCheqUser();
-    disconnect();
-    toast.success('Signed out');
   };
 
   if (!mounted) return null;
 
-  // ---- Not authenticated — show auth flow ----
+  // ---- Not authenticated — Guest mode: show feed, auth overlay for actions ----
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0A0F14] text-foreground">
-        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
+        <div className="fixed inset-0 grid-pattern pointer-events-none opacity-5 z-0" />
 
-        {/* Mini App: World App TopBar. Standalone: custom header */}
         {isMiniApp ? (
           <TopBar
             title="TruCheq"
@@ -433,21 +237,28 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
                 </div>
                 <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
               </div>
-              <Link href="/about">
-                <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest">
-                  About
-                </Button>
-              </Link>
             </div>
           </header>
         )}
 
-        <div className="max-w-md mx-auto px-4 py-8">
-          <TruCheqAuth
-            onSuccess={handleAuthSuccess}
-            skipWalletStep={isMiniApp}
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
+          <FeedTab
+            guestMode
+            onRequireAuth={() => setActiveTab('feed')}
+            onChatSeller={(addr: string) => { setStartChatWith(addr); setActiveTab('chat'); }}
           />
         </div>
+
+        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
+
+        {/* Auth overlay when user tries an action */}
+        {activeTab !== 'feed' && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="max-w-md w-full">
+              <TruCheqAuth onSuccess={handleAuthSuccess} skipWalletStep={isMiniApp} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -455,9 +266,8 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
   // ---- Authenticated — show tabbed interface ----
   return (
     <div className="min-h-screen bg-[#0A0F14] text-foreground">
-      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-5 z-0" />
 
-      {/* Header: Mini App gets TopBar with native VerificationBadge, standalone gets custom header */}
       {isMiniApp ? (
         <TopBar
           title="TruCheq"
@@ -466,28 +276,26 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
               <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover rounded-full" />
             </CircularIcon>
           }
-          endAdornment={
-            <VerificationBadge verified={user.isOrbVerified} />
-          }
         />
       ) : (
         <StandaloneHeader user={user} onLogout={handleLogout} />
       )}
 
-      {/* Main content area with padding for bottom tabs */}
-      <div className={cn('max-w-lg mx-auto px-4 pt-4 pb-24', !isMiniApp && 'pt-4')}>
-        {/* ChatTab: always mounted (hidden when inactive) so XMTP syncs in background */}
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
         <div className={cn(activeTab !== 'chat' && 'hidden')}>
           <motion.div
             initial={false}
             animate={{ opacity: activeTab === 'chat' ? 1 : 0, y: activeTab === 'chat' ? 0 : 8 }}
             transition={{ duration: 0.15 }}
           >
-            <ChatTabXMTP onUnreadChange={setChatUnreadCount} />
+            <ChatTab
+              onUnreadChange={setChatUnreadCount}
+              startChatWith={startChatWith}
+              onChatStarted={() => setStartChatWith(null)}
+            />
           </motion.div>
         </div>
 
-        {/* Other tabs with animation */}
         {activeTab !== 'chat' && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -497,14 +305,18 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
             >
-              {activeTab === 'sell' && <SellTab user={user} />}
-              {activeTab === 'buy' && <MarketTab />}
+              {activeTab === 'feed' && (
+                <FeedTab
+                  user={user}
+                  onChatSeller={(addr: string) => { setStartChatWith(addr); setActiveTab('chat'); }}
+                />
+              )}
+              {activeTab === 'profile' && <ProfileTab user={user} onLogout={handleLogout} />}
             </motion.div>
           </AnimatePresence>
         )}
       </div>
 
-      {/* Bottom Tab Bar */}
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
     </div>
   );

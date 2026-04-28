@@ -7,20 +7,33 @@
 // Types
 // ============================================================================
 
-export interface X402InvoicePayload {
-  customType: 'x402-invoice';
-  cid: string;
+export interface OfferPayload {
+  customType: 'offer';
   amount: string;
+  currency: string;
   itemName: string;
-  itemImage?: string;
-  fallback: string;
-  payTo: string;
-  network: string;
+  listingCid?: string;
+}
+
+export interface PaymentRequestPayload {
+  customType: 'payment-request';
+  amount: string;
+  currency: string;
+  recipient: string;
+  chainId: number;
+}
+
+export interface PaymentConfirmPayload {
+  customType: 'payment-confirm';
+  amount: string;
+  currency: string;
+  txHash: string;
+  chainId: number;
 }
 
 export interface SystemMessagePayload {
   customType: 'system';
-  event: 'payment_sent' | 'payment_confirmed' | 'listing_created';
+  event: 'payment_sent' | 'payment_confirmed' | 'listing_created' | 'offer_accepted';
   amount?: string;
   txHash?: string;
   timestamp: number;
@@ -33,8 +46,8 @@ export interface ChatMessage {
   timestamp: Date;
   isSelf: boolean;
   status?: 'sending' | 'sent' | 'delivered';
-  type?: 'text' | 'x402-invoice' | 'system';
-  payload?: X402InvoicePayload | SystemMessagePayload;
+  type?: 'text' | 'offer' | 'payment-request' | 'payment-confirm' | 'system';
+  payload?: OfferPayload | PaymentRequestPayload | PaymentConfirmPayload | SystemMessagePayload;
 }
 
 // ============================================================================
@@ -42,13 +55,19 @@ export interface ChatMessage {
 // ============================================================================
 
 export function parseMessageContent(content: string): {
-  type: 'text' | 'x402-invoice' | 'system';
-  payload?: X402InvoicePayload | SystemMessagePayload;
+  type: ChatMessage['type'];
+  payload?: ChatMessage['payload'];
 } {
   try {
     const parsed = JSON.parse(content);
-    if (parsed.customType === 'x402-invoice') {
-      return { type: 'x402-invoice', payload: parsed as X402InvoicePayload };
+    if (parsed.customType === 'offer') {
+      return { type: 'offer', payload: parsed as OfferPayload };
+    }
+    if (parsed.customType === 'payment-request') {
+      return { type: 'payment-request', payload: parsed as PaymentRequestPayload };
+    }
+    if (parsed.customType === 'payment-confirm') {
+      return { type: 'payment-confirm', payload: parsed as PaymentConfirmPayload };
     }
     if (parsed.customType === 'system') {
       return { type: 'system', payload: parsed as SystemMessagePayload };

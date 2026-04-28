@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { WorldWalletButton } from './WorldWalletButton';
 import { getStoredWalletAddress } from '@/lib/wallet-client';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -272,7 +271,10 @@ export function DealCreator({ isOrbVerified, walletAddress: manualWallet }: Deal
               Connect your wallet to create listings and receive USDC payments
             </p>
             <div className="flex justify-center">
-              <WorldWalletButton size='md' />
+              <Button variant="outline" className="rounded-xl border-primary/30 text-primary hover:bg-primary/10">
+                <LucideWallet className="w-4 h-4 mr-2" />
+                Connect Wallet
+              </Button>
             </div>
           </div>
         )}
