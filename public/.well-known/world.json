@@ -1,0 +1,7 @@
+{
+  "name": "TruCheq",
+  "description": "Sybil-resistant P2P commerce protocol with World ID verification, encrypted XMTP chat, and Coinbase x402 payments",
+  "icon": "/android-chrome-512x512.png",
+  "content_url": "https://trucheq.com",
+  "images": []
+}

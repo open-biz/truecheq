@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  reactStrictMode: false, // Prevent double-mount issues in World App webview
   // Enable webpack config for WASM support
   webpack: (config, { isServer }) => {
     // Enable async WebAssembly for XMTP SDKs
