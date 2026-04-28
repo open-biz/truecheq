@@ -906,27 +906,16 @@ export function XMTPChatInner({
                 <Copy className='w-4 h-4 mr-2' />
                 {copied ? 'Copied!' : 'Copy'}
               </Button>
-              <Button 
-                asChild
-                variant='outline' 
-                size='sm' 
+              <Button
+                variant='outline'
+                size='sm'
                 className='flex-1 border-white/10 hover:bg-white/10'
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://xmtp.chat/dm/${sellerAddress}`);
+                  toast.success('XMTP link copied!');
+                }}
               >
-                <a 
-                  href={`https://xmtp.chat/dm/${sellerAddress}`}
-                  target={isMiniApp ? undefined : '_blank'} 
-                  rel='noopener noreferrer'
-                  onClick={isMiniApp ? (e) => {
-                    e.preventDefault();
-                    navigator.clipboard.writeText(`https://xmtp.chat/dm/${sellerAddress}`);
-                    toast.success('XMTP link copied!');
-                  } : undefined}
-                >
-                  {isMiniApp
-                    ? <><Copy className='w-4 h-4 mr-2' />Copy Link</>
-                    : <><ExternalLink className='w-4 h-4 mr-2' />External</>
-                  }
-                </a>
+                <Copy className='w-4 h-4 mr-2' />Copy Link
               </Button>
             </div>
           </div>

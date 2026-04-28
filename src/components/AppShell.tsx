@@ -161,6 +161,15 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
     const existing = loadTruCheqUser() || migrateToUnifiedUser();
     if (existing) {
       setUser(existing);
+    } else {
+      // TEMP: skip auth gate — land mini app directly on Sell view with a guest user
+      setUser({
+        nullifierHash: 'guest',
+        isOrbVerified: false,
+        verificationLevel: 'device',
+        truCheqCode: 'GUEST',
+        createdAt: Date.now(),
+      });
     }
   }, []);
 
@@ -179,12 +188,9 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
           <p className="text-sm text-muted-foreground">
             This build is configured for World App webview only.
           </p>
-          <a
-            href={`https://world.org/mini-app?app_id=${process.env.NEXT_PUBLIC_APP_ID ?? ''}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-primary-foreground font-bold"
-          >
-            Open Mini App <LucideExternalLink className="w-4 h-4" />
-          </a>
+          <p className="text-xs text-muted-foreground">
+            Open this URL inside World App to use TruCheq.
+          </p>
         </div>
       </div>
     );
