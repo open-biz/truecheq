@@ -15,6 +15,7 @@ import {
   ImagePlus,
   Loader2,
   Share2,
+  User,
 } from 'lucide-react';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -38,8 +39,8 @@ interface FeedTabProps {
 // Component: Listing Card
 // ============================================================================
 
-function ListingCard({ listing, index, onChat }: { listing: Listing; index: number; onChat: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; index: number; onChat: () => void; onSelect?: () => void }) {
+  const handleCardClick = () => onSelect?.();
 
   return (
     <motion.div
@@ -47,9 +48,9 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl">
+      <Card className="border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl cursor-pointer active:scale-[0.99]">
         {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-[4/3] overflow-hidden" onClick={handleCardClick}>
           {listing.metadata?.images && listing.metadata.images.length > 0 ? (
             <img
               src={getProxiedImageUrl(listing.metadata.images[0])}
@@ -83,14 +84,14 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4" onClick={handleCardClick}>
           <h3 className="text-lg font-black text-white tracking-tight mb-1">{listing.metadata?.itemName || 'Untitled'}</h3>
           <p className="text-sm text-primary font-bold mb-2">${listing.metadata?.price || '0'} USDC</p>
           {listing.metadata?.description && (
             <p className="text-xs text-white/40 line-clamp-2 mb-3">{listing.metadata.description}</p>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
             <span className="text-[11px] font-mono text-white/25">
               {listing.seller.slice(0, 6)}...{listing.seller.slice(-4)}
             </span>
@@ -336,6 +337,129 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
 }
 
 // ============================================================================
+// Component: Listing Detail Sheet
+// ============================================================================
+
+function ListingDetailSheet({
+  listing,
+  onClose,
+  onChat,
+}: {
+  listing: Listing | null;
+  onClose: () => void;
+  onChat: () => void;
+}) {
+  if (!listing) return null;
+
+  return (
+    <AnimatePresence>
+      {listing && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] bg-[#070709]/95 backdrop-blur-sm flex items-end justify-center"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="w-full max-w-lg bg-[#16161A] border-t border-white/[0.06] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-black text-white">Product Details</h2>
+              <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Product Image */}
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-5">
+              {listing.metadata?.images && listing.metadata.images.length > 0 ? (
+                <img
+                  src={getProxiedImageUrl(listing.metadata.images[0])}
+                  alt={listing.metadata.itemName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-white/[0.03] via-white/[0.06] to-white/[0.03] flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-white/20 relative z-10">TruCheq</span>
+                </div>
+              )}
+              {/* Price badge */}
+              <div className="absolute bottom-3 right-3">
+                <Badge className="bg-[#00D632] text-black text-sm font-black px-3 py-1 rounded-xl shadow-[0_0_12px_rgba(0,214,50,0.3)]">
+                  ${listing.metadata?.price || listing.price || '0'} USDC
+                </Badge>
+              </div>
+            </div>
+
+            {/* Title & Description */}
+            <h3 className="text-2xl font-black text-white mb-2">{listing.metadata?.itemName || 'Untitled'}</h3>
+            {listing.metadata?.description && (
+              <p className="text-sm text-white/50 mb-5 leading-relaxed">{listing.metadata.description}</p>
+            )}
+
+            {/* Seller Info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0f0f12] border border-white/[0.06] mb-5">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/[0.08] flex items-center justify-center">
+                <User className="w-5 h-5 text-white/40" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/30 font-mono truncate">{listing.seller}</p>
+                {listing.isOrbVerified ? (
+                  <div className="flex items-center gap-1 text-primary text-[10px] font-black uppercase">
+                    <ShieldCheck className="w-3 h-3" /> Orb Verified
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-blue-400 text-[10px] font-black uppercase">
+                    <Smartphone className="w-3 h-3" /> Device Verified
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 h-12 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95"
+                onClick={onChat}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat with Seller
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl h-12 px-4 bg-white/[0.05] border-white/[0.08] text-white/60 hover:bg-white/10 hover:text-white transition-all"
+                onClick={() => {
+                  const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
+                  const url = typeof window !== 'undefined' ? window.location.href : '';
+                  if (MiniKit.isInstalled()) {
+                    MiniKit.share({ title, url });
+                  } else if (navigator.share) {
+                    navigator.share({ title, url }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    toast.success('Link copied');
+                  }
+                }}
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
 // MAIN: FeedTab
 // ============================================================================
 
@@ -344,6 +468,7 @@ const USER_LISTINGS_KEY = 'trucheq_user_listings';
 export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [filterVerified, setFilterVerified] = useState(false);
   const [seedListings, setSeedListings] = useState<Listing[]>(SEED_LISTINGS);
   const [userListings, setUserListings] = useState<Listing[]>(() => {
@@ -445,7 +570,7 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {/* Listings Feed */}
       <div className="space-y-4">
         {filtered.map((listing, i) => (
-          <ListingCard key={listing.cid} listing={listing} index={i} onChat={() => handleChat(listing)} />
+          <ListingCard key={listing.cid} listing={listing} index={i} onChat={() => handleChat(listing)} onSelect={() => setSelectedListing(listing)} />
         ))}
         {filtered.length === 0 && (
           <div className="text-center py-16">
@@ -467,6 +592,14 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       )}
 
       <CreateListingSheet isOpen={showCreate} onClose={() => setShowCreate(false)} user={user!} onCreated={handleCreated} />
+
+      <ListingDetailSheet
+        listing={selectedListing}
+        onClose={() => setSelectedListing(null)}
+        onChat={() => {
+          if (selectedListing) handleChat(selectedListing);
+        }}
+      />
     </div>
   );
 }
