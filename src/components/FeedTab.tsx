@@ -13,9 +13,11 @@ import {
   X,
   MessageCircle,
   DollarSign,
+  Share2,
 } from 'lucide-react';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
+import { MiniKit } from '@worldcoin/minikit-js';
 import { SEED_LISTINGS, type Listing } from '@/lib/seed-listings';
 import type { TruCheqUser } from '@/lib/trucheq-user';
 
@@ -88,15 +90,39 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
             <span className="text-[10px] font-mono text-muted-foreground">
               {listing.seller.slice(0, 6)}...{listing.seller.slice(-4)}
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full border-primary/30 text-primary hover:bg-primary/10 text-xs font-black"
-              onClick={onChat}
-            >
-              <MessageCircle className="w-3.5 h-3.5 mr-1" />
-              Chat
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="rounded-full h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
+                onClick={() => {
+                  const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
+                  const url = typeof window !== 'undefined' ? window.location.href : '';
+                  if (MiniKit.isInstalled()) {
+                    MiniKit.share({
+                      title,
+                      url,
+                    });
+                  } else if (navigator.share) {
+                    navigator.share({ title, url }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    toast.success('Link copied to clipboard');
+                  }
+                }}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full border-primary/30 text-primary hover:bg-primary/10 text-xs font-black"
+                onClick={onChat}
+              >
+                <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                Chat
+              </Button>
+            </div>
           </div>
         </div>
       </Card>

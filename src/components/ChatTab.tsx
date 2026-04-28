@@ -26,6 +26,8 @@ import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { payWithMiniKit, canUseMiniKitPay } from '@/lib/payments';
+import { loadAgentRules, evaluateOffer, generateAgentReply } from '@/lib/agent';
+import { MiniKit } from '@worldcoin/minikit-js';
 import {
   type ChatMessage,
   type SystemMessagePayload,
@@ -509,6 +511,58 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
                   });
                   // Mark as read while viewing
                   setLastRead(peerAddress, Date.now());
+
+                  // Agent auto-reply to offers
+                  if (type === 'offer' && payload && dm) {
+                    const offerPayload = payload as { amount: string; currency: string; itemName: string };
+                    const rules = loadAgentRules();
+                    const askingPrice = parseFloat(offerPayload.amount) * 1.2; // Approximate asking (no exact listing price in message)
+                    const evaluation = evaluateOffer(
+                      parseFloat(offerPayload.amount),
+                      askingPrice,
+                      rules,
+                    );
+
+                    if (evaluation.action !== 'review') {
+                      // Fire agent reply
+                      (async () => {
+                        try {
+                          const replyText = generateAgentReply(evaluation, offerPayload.itemName);
+                          await dm.sendText(replyText);
+
+                          // If accepted, send payment request
+                          if (evaluation.action === 'accept') {
+                            const paymentRequest = {
+                              customType: 'payment-request' as const,
+                              amount: offerPayload.amount,
+                              currency: offerPayload.currency,
+                              recipient: userAddress || '',
+                              chainId: 480,
+                            };
+                            await dm.sendText(JSON.stringify(paymentRequest));
+                          }
+                        } catch (agentErr) {
+                          console.error('[ChatTab] Agent reply error:', agentErr);
+                        }
+                      })();
+                    } else {
+                      // Agent queued for review — send notification
+                      if (MiniKit.isInstalled()) {
+                        try {
+                          (MiniKit as any).sendNotifications?.({
+                            includedAddresses: [userAddress || ''],
+                            notification: {
+                              title: 'New offer received',
+                              body: `Someone offered $${offerPayload.amount} for "${offerPayload.itemName}". Your agent queued it for review.`,
+                              cta_url: typeof window !== 'undefined' ? `${window.location.origin}/app?tab=chat` : '/app?tab=chat',
+                            },
+                          });
+                        } catch (notifyErr) {
+                          console.log('[ChatTab] Notification error:', notifyErr);
+                        }
+                      }
+                    }
+                  }
                 }
               }
             } catch (streamErr) {

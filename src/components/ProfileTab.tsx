@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
 import {
   ShieldCheck,
   Smartphone,
@@ -11,18 +12,45 @@ import {
   LogOut,
   Tag,
   MessageCircle,
+  Bot,
+  Check,
+  X,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { TruCheqUser } from '@/lib/trucheq-user';
 import { SEED_LISTINGS } from '@/lib/seed-listings';
+import { loadAgentRules, saveAgentRules, type AgentRules, DEFAULT_RULES } from '@/lib/agent';
 
 interface ProfileTabProps {
   user: TruCheqUser;
   onLogout: () => void;
 }
 
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between w-full py-2"
+    >
+      <span className="text-xs text-white/80">{label}</span>
+      <div className={cn('w-9 h-5 rounded-full transition-colors relative', checked ? 'bg-primary' : 'bg-white/10')}>
+        <div className={cn('absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform', checked ? 'translate-x-4' : 'translate-x-0.5')} />
+      </div>
+    </button>
+  );
+}
+
 export function ProfileTab({ user, onLogout }: ProfileTabProps) {
   const myListings = SEED_LISTINGS.filter((l) => l.seller.toLowerCase() === (user.walletAddress || '').toLowerCase());
+  const [rules, setRules] = useState<AgentRules>(loadAgentRules);
+
+  const updateRule = (patch: Partial<AgentRules>) => {
+    const next = { ...rules, ...patch };
+    setRules(next);
+    saveAgentRules(next);
+  };
 
   const copyAddress = () => {
     if (user.walletAddress) {
@@ -76,6 +104,74 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
           <p className="text-2xl font-black text-white">0</p>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Deals</p>
         </div>
+      </div>
+
+      {/* Agent Settings */}
+      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Bot className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-black text-white uppercase tracking-widest">Your Agent</h3>
+        </div>
+
+        <Switch
+          checked={rules.enabled}
+          onChange={(v) => updateRule({ enabled: v })}
+          label="Auto-negotiate when offline"
+        />
+
+        {rules.enabled && (
+          <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
+            <Switch
+              checked={rules.autoAcceptAtAskingPrice}
+              onChange={(v) => updateRule({ autoAcceptAtAskingPrice: v })}
+              label="Auto-accept at asking price"
+            />
+
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-black mb-1 block">
+                Minimum acceptable (USDC)
+              </label>
+              <input
+                type="number"
+                value={rules.minimumAcceptable}
+                onChange={(e) => updateRule({ minimumAcceptable: e.target.value })}
+                placeholder="e.g. 40"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-black mb-1 block">
+                Auto-reject below (USDC)
+              </label>
+              <input
+                type="number"
+                value={rules.autoRejectBelow}
+                onChange={(e) => updateRule({ autoRejectBelow: e.target.value })}
+                placeholder="e.g. 20"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <Switch
+              checked={rules.counterOffer}
+              onChange={(v) => updateRule({ counterOffer: v })}
+              label="Counter-offer at minimum"
+            />
+
+            <div className="flex gap-2 pt-2">
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <Check className="w-3 h-3 text-primary" /> Accept
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <X className="w-3 h-3 text-red-400" /> Reject
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <ArrowRightLeft className="w-3 h-3 text-yellow-400" /> Counter
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* My Listings */}
