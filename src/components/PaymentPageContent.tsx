@@ -557,19 +557,16 @@ function PaymentPageContentInner({ id }: { id: string }) {
                 {displayTxHash && (
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tx Hash</span>
-                    <a 
-                      href={`https://worldchain-mainnet.g.alchemy.com/explorer/tx/${displayTxHash}`}
-                      rel="noopener noreferrer"
-                      onClick={(e) => {
-                        e.preventDefault();
+                    <button
+                      onClick={() => {
                         navigator.clipboard.writeText(displayTxHash);
                         toast.success('Tx hash copied!');
                       }}
-                      className="text-[10px] font-mono text-primary flex items-center gap-1 hover:underline"
+                      className="text-[10px] font-mono text-primary flex items-center gap-1 hover:underline bg-transparent border-none p-0 cursor-pointer"
                     >
                       {displayTxHash.slice(0, 6)}...{displayTxHash.slice(-4)}
                       <LucideCopy className="w-3 h-3" />
-                    </a>
+                    </button>
                   </div>
                 )}
                 {paymentProof && (
