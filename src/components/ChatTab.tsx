@@ -20,10 +20,12 @@ import {
   ChevronRight,
   Search,
   X,
+  Tag,
 } from 'lucide-react';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { payWithMiniKit, canUseMiniKitPay } from '@/lib/payments';
 import {
   type ChatMessage,
   type SystemMessagePayload,
@@ -144,7 +146,7 @@ function ConversationItem({
 // Component: Inline Message Renderer
 // ============================================================================
 
-function ChatBubble({ msg }: { msg: ChatMessage }) {
+function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
   // System messages — centered
   if (msg.type === 'system') {
     const payload = msg.payload as SystemMessagePayload | undefined;
@@ -189,10 +191,11 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
         <div className='bg-[#101820] border border-yellow-500/30 rounded-2xl p-3'>
           <p className='text-xs font-bold text-white mb-1'>Payment Request</p>
           <p className='text-lg font-black italic tracking-tighter text-yellow-400'>{req.amount} {req.currency}</p>
-          {!msg.isSelf && (
+          {!msg.isSelf && onPay && (
             <Button
               size='sm'
               className='w-full mt-2 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400'
+              onClick={onPay}
             >
               <DollarSign className='w-3 h-3 mr-1.5' /> Pay Now
             </Button>
@@ -279,6 +282,11 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+  // Offer / Payment state
+  const [offerMode, setOfferMode] = useState(false);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
 
   // Refs
   const isMountedRef = useRef(true);
@@ -618,6 +626,117 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
   }, [inputValue, isSending, activeDm, activePeerAddress, userAddress]);
 
   // ============================================================================
+  // SEND OFFER
+  // ============================================================================
+
+  const sendOffer = useCallback(async () => {
+    const amount = offerAmount.trim();
+    if (!amount || isSending || !activeDm) return;
+
+    try {
+      setIsSending(true);
+      const offerPayload = {
+        customType: 'offer' as const,
+        amount,
+        currency: 'USDC',
+        itemName: 'Item', // TODO: pass actual item name
+      };
+      const text = JSON.stringify(offerPayload);
+
+      const tempId = Date.now().toString();
+      setMessages(prev => [...prev, {
+        id: tempId,
+        content: text,
+        senderAddress: userAddress || '',
+        timestamp: new Date(),
+        isSelf: true,
+        status: 'sending',
+        type: 'offer',
+        payload: offerPayload,
+      }]);
+
+      await activeDm.sendText(text);
+
+      setMessages(prev => prev.map(m =>
+        m.id === tempId ? { ...m, status: 'sent' as const } : m,
+      ));
+
+      setConversations(prev => prev.map(c =>
+        c.peerAddress.toLowerCase() === activePeerAddress.toLowerCase()
+          ? { ...c, lastMessage: text, lastMessageTime: new Date() }
+          : c,
+      ));
+
+      setOfferMode(false);
+      setOfferAmount('');
+
+    } catch (err) {
+      console.error('[ChatTab] Send offer error:', err);
+      toast.error('Failed to send offer');
+    } finally {
+      setIsSending(false);
+    }
+  }, [offerAmount, isSending, activeDm, activePeerAddress, userAddress]);
+
+  // ============================================================================
+  // HANDLE PAYMENT
+  // ============================================================================
+
+  const handlePay = useCallback(async (msg: ChatMessage) => {
+    if (!msg.payload || msg.type !== 'payment-request') return;
+    const req = msg.payload as { amount: string; currency: string; recipient: string };
+
+    setIsPaying(true);
+    try {
+      if (canUseMiniKitPay()) {
+        // In World App — use native pay
+        const result = await payWithMiniKit({
+          amount: req.amount,
+          recipient: req.recipient,
+        });
+
+        if (result.success) {
+          toast.success(`Paid ${req.amount} ${req.currency}`);
+
+          // Send payment confirmation back
+          const confirmPayload = {
+            customType: 'payment-confirm' as const,
+            amount: req.amount,
+            currency: req.currency,
+            txHash: result.txHash || 'pending',
+            chainId: 480,
+          };
+          if (activeDm) {
+            await activeDm.sendText(JSON.stringify(confirmPayload));
+            // Optimistically add to messages
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              content: JSON.stringify(confirmPayload),
+              senderAddress: userAddress || '',
+              timestamp: new Date(),
+              isSelf: true,
+              status: 'sent',
+              type: 'payment-confirm',
+              payload: confirmPayload,
+            }]);
+          }
+        } else {
+          toast.error(result.error || 'Payment failed');
+        }
+      } else {
+        // Standalone — show "use your wallet" instruction
+        // TODO: integrate Wagmi for standalone payment
+        toast.info('Open in World App to pay natively, or use your wallet');
+      }
+    } catch (err) {
+      console.error('[ChatTab] Payment error:', err);
+      toast.error('Payment failed');
+    } finally {
+      setIsPaying(false);
+    }
+  }, [activeDm, userAddress]);
+
+  // ============================================================================
   // SCROLL TO BOTTOM
   // ============================================================================
 
@@ -717,7 +836,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.12 }}
                 >
-                  <ChatBubble msg={msg} />
+                  <ChatBubble msg={msg} onPay={msg.type === 'payment-request' ? () => handlePay(msg) : undefined} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -727,25 +846,63 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
 
         {/* Input */}
         <div className='p-3 border-t border-white/10 bg-black/60'>
-          <div className='flex gap-2 items-center'>
-            <Input
-              ref={inputRef}
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder='Type a message...'
-              disabled={isSending}
-              className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 flex-1'
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!inputValue.trim() || isSending}
-              size='sm'
-              className='bg-primary hover:bg-primary/90 h-9 px-3'
-            >
-              {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
-            </Button>
-          </div>
+          {offerMode ? (
+            <div className='flex gap-2 items-center'>
+              <Input
+                type="number"
+                value={offerAmount}
+                onChange={e => setOfferAmount(e.target.value)}
+                placeholder='Offer amount (USDC)...'
+                disabled={isSending}
+                className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 flex-1'
+              />
+              <Button
+                onClick={sendOffer}
+                disabled={!offerAmount.trim() || isSending}
+                size='sm'
+                className='bg-primary hover:bg-primary/90 h-9 px-3'
+              >
+                {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Tag className='w-4 h-4' />}
+              </Button>
+              <Button
+                onClick={() => { setOfferMode(false); setOfferAmount(''); }}
+                size='sm'
+                variant='ghost'
+                className='h-9 px-2'
+              >
+                <X className='w-4 h-4' />
+              </Button>
+            </div>
+          ) : (
+            <div className='flex gap-2 items-center'>
+              <Input
+                ref={inputRef}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder='Type a message...'
+                disabled={isSending}
+                className='bg-white/5 border-white/10 text-sm placeholder:text-muted-foreground/50 h-9 flex-1'
+              />
+              <Button
+                onClick={() => setOfferMode(true)}
+                size='sm'
+                variant='ghost'
+                className='h-9 px-2 text-muted-foreground hover:text-primary'
+                title='Make Offer'
+              >
+                <Tag className='w-4 h-4' />
+              </Button>
+              <Button
+                onClick={sendMessage}
+                disabled={!inputValue.trim() || isSending}
+                size='sm'
+                className='bg-primary hover:bg-primary/90 h-9 px-3'
+              >
+                {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
