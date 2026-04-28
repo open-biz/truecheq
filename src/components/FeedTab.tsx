@@ -57,10 +57,9 @@ function ListingCard({ listing, index, onChat }: { listing: Listing; index: numb
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] flex items-center justify-center relative overflow-hidden animate-shimmer">
-              <span className="text-2xl font-black text-white/10 relative z-10">
-                {(listing.metadata?.itemName || '??').slice(0, 2).toUpperCase()}
-              </span>
+            <div className="w-full h-full bg-gradient-to-br from-white/[0.03] via-white/[0.06] to-white/[0.03] flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-white/20 relative z-10">TruCheq</span>
             </div>
           )}
           {/* Verification badge overlay */}
