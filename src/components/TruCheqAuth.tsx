@@ -30,6 +30,8 @@ interface TruCheqAuthProps {
   /** Called when user is authenticated (either fresh or restored from storage) */
   onSuccess: (user: TruCheqUser) => void;
   className?: string;
+  /** Skip wallet connection step (for mini-app where wallet is auto-connected) */
+  skipWalletStep?: boolean;
 }
 
 // ============================================================================
@@ -91,7 +93,7 @@ async function getMiniAppWalletAddress(): Promise<string | null> {
 // Component
 // ============================================================================
 
-export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
+export function TruCheqAuth({ onSuccess, className, skipWalletStep }: TruCheqAuthProps) {
   const [user, setUser] = useState<TruCheqUser | null>(null);
   const [step, setStep] = useState<'world_id' | 'wallet' | 'complete'>('world_id');
   const [widgetOpen, setWidgetOpen] = useState(false);
@@ -108,8 +110,8 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
     const existing = loadTruCheqUser() || migrateToUnifiedUser();
     if (existing) {
       setUser(existing);
-      // If wallet is already connected, go straight to complete
-      if (existing.walletAddress || isConnected) {
+      // If wallet is already connected OR skipWalletStep is true, go straight to complete
+      if (existing.walletAddress || isConnected || skipWalletStep) {
         setStep('complete');
         onSuccess(existing);
       } else {
@@ -117,7 +119,7 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [skipWalletStep]);
 
   // When wallet is authenticated, update user and complete auth
   useEffect(() => {
@@ -203,13 +205,14 @@ export function TruCheqAuth({ onSuccess, className }: TruCheqAuthProps) {
     });
 
     // Mini app only: continue once wallet is connected or recovered.
-    if (isConnected || miniAppWallet) {
+    // If skipWalletStep is true, go straight to complete (mini-app auto-connects wallet)
+    if (isConnected || miniAppWallet || skipWalletStep) {
       setStep('complete');
       onSuccess(trucheqUser);
     } else {
       setStep('wallet');
     }
-  }, [onSuccess, isConnected]);
+  }, [onSuccess, isConnected, skipWalletStep]);
 
   const handleConnectWallet = async () => {
     if (!MiniKit.isInstalled()) {
