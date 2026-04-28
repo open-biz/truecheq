@@ -9,11 +9,11 @@ import {
   LucideMessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MiniKit } from '@worldcoin/minikit-js';
 import {
   TopBar,
   VerificationBadge,
   CircularIcon,
-  BottomBar,
   Tabs,
   TabItem,
   useHaptics,
@@ -78,20 +78,18 @@ function BottomTabBar({
   };
 
   return (
-    <div className='fixed left-0 right-0 z-50 bottom-[var(--world-nav-height)]'>
-      <BottomBar direction='horizontal'>
-        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabId)}>
-          {tabs.map((tab) => (
-            <TabItem
-              key={tab.id}
-              value={tab.id}
-              icon={tab.icon}
-              altIcon={tab.activeIcon}
-              label={tab.label}
-            />
-          ))}
-        </Tabs>
-      </BottomBar>
+    <div className='fixed bottom-0 left-0 right-0 z-50 bg-[#0A0F14] border-t border-white/10 px-0 pb-[max(env(safe-area-inset-bottom),12px)]'>
+      <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabId)}>
+        {tabs.map((tab) => (
+          <TabItem
+            key={tab.id}
+            value={tab.id}
+            icon={tab.icon}
+            altIcon={tab.activeIcon}
+            label={tab.label}
+          />
+        ))}
+      </Tabs>
     </div>
   );
 }
@@ -158,15 +156,28 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
     const existing = loadTruCheqUser() || migrateToUnifiedUser();
     if (existing) {
       setUser(existing);
-    } else {
-      // TEMP: skip auth gate — land mini app directly on Sell view with a guest user
-      setUser({
-        nullifierHash: 'guest',
-        isOrbVerified: false,
-        verificationLevel: 'device',
-        truCheqCode: 'GUEST',
-        createdAt: Date.now(),
-      });
+      return;
+    }
+    // No stored user — land mini app on Sell view immediately with the data
+    // already exposed by World App on init (no walletAuth/SIWE required for
+    // read-only access, per docs.world.org MiniKit State).
+    const mk = MiniKit.user;
+    const walletAddress = mk?.walletAddress || (typeof window !== 'undefined' ? (window as any).WorldApp?.wallet_address : undefined);
+    const isOrbVerified = mk?.verificationStatus?.isOrbVerified ?? false;
+    setUser({
+      nullifierHash: 'guest',
+      isOrbVerified,
+      verificationLevel: isOrbVerified ? 'orb' : 'device',
+      walletAddress,
+      truCheqCode: 'GUEST',
+      createdAt: Date.now(),
+    });
+    if (walletAddress) {
+      // Persist the address so other components (DealCreator, payments) can read it
+      // via getStoredWalletAddress() without needing a SIWE prompt.
+      try {
+        localStorage.setItem('trucheq_wallet_auth', JSON.stringify({ address: walletAddress }));
+      } catch {}
     }
   }, []);
 
