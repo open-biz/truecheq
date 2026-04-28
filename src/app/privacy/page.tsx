@@ -134,10 +134,10 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-black text-white tracking-tight">6. Third-Party Services</h2>
             <p>TruCheq integrates with the following third-party services. Each has its own privacy policy:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>World ID / IDKit</strong> — Identity verification. <a href="https://worldcoin.org/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">World Privacy Policy</a></li>
-              <li><strong>XMTP</strong> — End-to-end encrypted messaging. <a href="https://xmtp.org/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">XMTP Privacy Policy</a></li>
-              <li><strong>Filebase / IPFS</strong> — Decentralized storage. <a href="https://filebase.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Filebase Privacy Policy</a></li>
-              <li><strong>Coinbase x402</strong> — Payment protocol. <a href="https://www.coinbase.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Coinbase Privacy Policy</a></li>
+              <li><strong>World ID / IDKit</strong> — Identity verification (worldcoin.org/privacy)</li>
+              <li><strong>XMTP</strong> — End-to-end encrypted messaging (xmtp.org/privacy)</li>
+              <li><strong>Filebase / IPFS</strong> — Decentralized storage (filebase.com/privacy)</li>
+              <li><strong>Coinbase x402</strong> — Payment protocol (coinbase.com/privacy)</li>
               <li><strong>World App / MiniKit</strong> — Mini App hosting and wallet connection.</li>
             </ul>
           </section>

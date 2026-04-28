@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useIsMiniApp } from '@/lib/use-mini-app';
 import { cn } from '@/lib/utils';
 import {
   LucideTag,
   LucideShoppingCart,
   LucideMessageCircle,
-  LucideExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -149,7 +147,6 @@ function SellTab({ user }: { user: TruCheqUser }) {
 // ============================================================================
 
 export function AppShell({ initialTab = 'sell' }: AppShellProps) {
-  const isMiniApp = useIsMiniApp();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [user, setUser] = useState<TruCheqUser | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -179,22 +176,6 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
   };
 
   if (!mounted) return null;
-  if (!isMiniApp) {
-    return (
-      <div className="min-h-screen bg-[#0A0F14] text-foreground flex items-center justify-center px-6">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 text-center space-y-4">
-          <p className="text-sm font-black uppercase tracking-widest text-primary">Mini App Only</p>
-          <h1 className="text-2xl font-black tracking-tight">Open TruCheq in World App</h1>
-          <p className="text-sm text-muted-foreground">
-            This build is configured for World App webview only.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Open this URL inside World App to use TruCheq.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // ---- Not authenticated — show auth flow ----
   if (!user) {

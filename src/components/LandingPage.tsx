@@ -355,18 +355,10 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 mb-24 max-w-4xl w-full">
-            <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://github.com/open-biz/truecheq" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://github.com/open-biz/truecheq'); toast.success('Link copied!'); } : undefined}>GitHub Repo</a>
-            </Button>
-            <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.world.org/world-id" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.world.org/world-id'); toast.success('Link copied!'); } : undefined}>World ID Docs</a>
-            </Button>
-            <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.xmtp.org" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.xmtp.org'); toast.success('Link copied!'); } : undefined}>XMTP Docs</a>
-            </Button>
-            <Button variant="link" asChild className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest">
-              <a href="https://docs.cdp.coinbase.com/x402/welcome" target={isMiniApp ? undefined : '_blank'} rel="noopener noreferrer" onClick={isMiniApp ? (e) => { e.preventDefault(); navigator.clipboard.writeText('https://docs.cdp.coinbase.com/x402/welcome'); toast.success('Link copied!'); } : undefined}>Coinbase x402</a>
-            </Button>
+            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://github.com/open-biz/truecheq'); toast.success('Link copied!'); }}>GitHub Repo</Button>
+            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.world.org/world-id'); toast.success('Link copied!'); }}>World ID Docs</Button>
+            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.xmtp.org'); toast.success('Link copied!'); }}>XMTP Docs</Button>
+            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.cdp.coinbase.com/x402/welcome'); toast.success('Link copied!'); }}>Coinbase x402</Button>
           </div>
 
           <div className="flex flex-col items-center gap-6 text-sm text-muted-foreground font-black">
