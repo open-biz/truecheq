@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAccount, useDisconnect, useSwitchChain } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,17 +9,14 @@ import {
   LucideCheck,
   LucideX,
   LucideLoader2,
-  LucideExternalLink,
   LucideGlobe,
   LucideChevronDown,
-  LucideLogOut,
   LucideCopy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { toast } from 'sonner';
 import { walletAuth } from '@/auth/wallet';
-
 import { worldChain, worldChainSepolia } from '@/lib/chains';
 import { BASE_CHAIN_NUM } from '@/lib/x402';
 
@@ -71,13 +67,7 @@ export function WorldWalletButton({
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-  // Wagmi wallet connection (for address display and chain switching)
-  const { address, isConnected, chain } = useAccount();
-  const { disconnect } = useDisconnect();
-  const { switchChain } = useSwitchChain();
-
-  const isCorrectChain = chain?.id === WORLD_CHAIN_ID || chain?.id === WORLD_CHAIN_SEPOLIA_ID || chain?.id === BASE_CHAIN_NUM;
+  const [address, setAddress] = useState<string | null>(null);
 
   // Check if running inside World App webview
   const isInsideWorldApp = MiniKit.isInstalled();
@@ -88,6 +78,7 @@ export function WorldWalletButton({
     setIsAuthenticating(true);
     try {
       const result = await walletAuth();
+      setAddress(result.address);
       // Store the auth result for later use
       localStorage.setItem('trucheq_wallet_auth', JSON.stringify(result));
       toast.success('Wallet authenticated!');
@@ -104,10 +95,24 @@ export function WorldWalletButton({
 
   // Auto-connect on mount when inside World App
   useEffect(() => {
-    if (isInsideWorldApp && !isConnected && !isAuthenticating) {
+    // Check for existing auth
+    const stored = localStorage.getItem('trucheq_wallet_auth');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.address) {
+          setAddress(parsed.address);
+          return;
+        }
+      } catch {
+        localStorage.removeItem('trucheq_wallet_auth');
+      }
+    }
+    
+    if (isInsideWorldApp && !address && !isAuthenticating) {
       handleWalletAuth();
     }
-  }, [isInsideWorldApp, isConnected, isAuthenticating, handleWalletAuth]);
+  }, [isInsideWorldApp, address, isAuthenticating, handleWalletAuth]);
 
   // Size classes
   const sizeClasses = {
@@ -124,7 +129,7 @@ export function WorldWalletButton({
   };
 
   // ---- Connected state ----
-  if (isConnected && address) {
+  if (address) {
     return (
       <>
         <div className={cn('relative', className)}>
@@ -134,16 +139,13 @@ export function WorldWalletButton({
             className={cn(
               'flex items-center gap-2 font-mono bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl',
               sizeClasses[size],
-              isCorrectChain ? 'text-primary' : 'text-yellow-400'
+              'text-primary'
             )}
           >
             {showChainStatus && (
-              <div className={cn(
-                'w-2 h-2 rounded-full',
-                isCorrectChain ? 'bg-primary' : 'bg-yellow-400'
-              )} />
+              <div className='w-2 h-2 rounded-full bg-primary' />
             )}
-            {isInsideWorldApp && <span>🌍</span>}
+            <span>🌍</span>
             <span>{address.slice(0, 6)}...{address.slice(-4)}</span>
             <LucideChevronDown className={cn('w-4 h-4 transition-transform', showDropdown && 'rotate-180')} />
           </Button>
@@ -160,18 +162,16 @@ export function WorldWalletButton({
                 )}
               >
                 {/* Wallet Type */}
-                {isInsideWorldApp && (
-                  <div className='p-4 border-b border-white/10'>
-                    <Badge variant='outline' className='px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary border-primary/40'>
-                      🌏 World App
-                    </Badge>
-                  </div>
-                )}
+                <div className='p-4 border-b border-white/10'>
+                  <Badge variant='outline' className='px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary border-primary/40'>
+                    🌏 World App
+                  </Badge>
+                </div>
 
                 {/* Address */}
                 <div className='p-4 border-b border-white/10'>
                   <p className='text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2'>
-                    {isInsideWorldApp ? 'World App Wallet' : 'Connected Wallet'}
+                    World App Wallet
                   </p>
                   <div className='flex items-center gap-2'>
                     <span className='text-sm font-mono text-white'>{address}</span>
@@ -189,46 +189,9 @@ export function WorldWalletButton({
                   <div className='p-4 border-b border-white/10'>
                     <p className='text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2'>Network</p>
                     <div className='flex items-center gap-2'>
-                      {isCorrectChain ? (
-                        <>
-                          <LucideCheck className='w-4 h-4 text-primary' />
-                          <span className='text-sm text-primary'>World Chain</span>
-                        </>
-                      ) : (
-                        <>
-                          <LucideGlobe className='w-4 h-4 text-yellow-400' />
-                          <span className='text-sm text-yellow-400'>Wrong Network</span>
-                        </>
-                      )}
+                      <LucideCheck className='w-4 h-4 text-primary' />
+                      <span className='text-sm text-primary'>World Chain</span>
                     </div>
-                    {!isCorrectChain && (
-                      <Button
-                        size='sm'
-                        onClick={() => switchChain({ chainId: WORLD_CHAIN_ID })}
-                        className='mt-2 w-full bg-yellow-500 text-black hover:bg-yellow-400 rounded-xl text-xs font-black'
-                      >
-                        Switch to World Chain
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {/* Explorer Link */}
-                {chain && (
-                  <div className='p-4 border-b border-white/10'>
-                    <a 
-                      href={`${getExplorerUrl(chain.id)}/address/${address}`}
-                      target={isInsideWorldApp ? undefined : '_blank'}
-                      rel='noopener noreferrer'
-                      onClick={isInsideWorldApp ? (e) => {
-                        e.preventDefault();
-                        copyAddress(address);
-                      } : undefined}
-                      className='flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors'
-                    >
-                      {isInsideWorldApp ? 'Copy Address' : 'View on Explorer'}
-                      {isInsideWorldApp ? <LucideCopy className='w-3 h-3' /> : <LucideExternalLink className='w-3 h-3' />}
-                    </a>
                   </div>
                 )}
 
@@ -236,10 +199,9 @@ export function WorldWalletButton({
                 <div className='p-4'>
                   <Button
                     variant='ghost'
-                    onClick={() => { disconnect(); setShowDropdown(false); }}
+                    onClick={() => { setAddress(null); localStorage.removeItem('trucheq_wallet_auth'); setShowDropdown(false); }}
                     className='w-full text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl'
                   >
-                    <LucideLogOut className='w-4 h-4 mr-2' />
                     Disconnect
                   </Button>
                 </div>
