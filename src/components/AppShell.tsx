@@ -88,7 +88,7 @@ function BottomTabBar({
   }
 
   return (
-    <nav className='fixed left-0 right-0 z-50 border-t border-white/[0.06] bg-[#070709]/90 backdrop-blur-2xl bottom-0 shadow-[0_-4px_24px_rgba(0,0,0,0.3)]' role="tablist" aria-label="Main navigation">
+    <nav className='fixed left-0 right-0 z-50 bg-[#070709]/95 backdrop-blur-2xl bottom-0 shadow-[0_-4px_24px_rgba(0,0,0,0.3)]' role="tablist" aria-label="Main navigation">
       <div className="max-w-lg mx-auto flex items-center">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -100,7 +100,7 @@ function BottomTabBar({
               onClick={() => handleTabChange(tab.id)}
               className={cn(
                 'flex-1 flex flex-col items-center gap-1.5 py-3 transition-colors relative',
-                isActive ? 'text-primary' : 'text-white/30 hover:text-white/60',
+                isActive ? 'text-primary' : 'text-white/40 hover:text-white/70',
               )}
             >
               <div className="relative">

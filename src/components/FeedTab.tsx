@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -225,7 +225,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-end justify-center"
+        className="fixed inset-0 z-[60] bg-[#070709]/95 backdrop-blur-sm flex items-end justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -259,7 +259,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.1] bg-[#0f0f12] hover:bg-[#131318] cursor-pointer transition-colors">
+              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.06] bg-[#0f0f12] hover:bg-[#131318] cursor-pointer transition-colors">
                 <ImagePlus className="w-6 h-6 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Tap to upload photo</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -277,7 +277,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               placeholder="e.g. Vintage Camera"
-              className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
+              className="w-full bg-[#0f0f12] border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
 
@@ -295,7 +295,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-all"
+                className="w-full bg-[#0f0f12] border border-transparent rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-black uppercase">USDC</span>
             </div>
@@ -311,7 +311,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item..."
               rows={3}
-              className="w-full bg-[#0f0f12] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 resize-none transition-all"
+              className="w-full bg-[#0f0f12] border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none transition-all"
             />
           </div>
 
@@ -319,7 +319,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           <Button
             onClick={handleSubmit}
             disabled={isUploading || !itemName.trim() || !price.trim()}
-            className="w-full rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 h-14 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
+            className="w-full rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 disabled:opacity-40 disabled:cursor-not-allowed h-14 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
           >
             {isUploading ? (
               <>
@@ -345,6 +345,7 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [filterVerified, setFilterVerified] = useState(false);
+  const [seedListings, setSeedListings] = useState<Listing[]>(SEED_LISTINGS);
   const [userListings, setUserListings] = useState<Listing[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -353,7 +354,30 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
     } catch { return []; }
   });
 
-  const allListings = [...SEED_LISTINGS, ...userListings];
+  // Fetch IPFS metadata for seed listings on mount
+  useEffect(() => {
+    async function fetchMetadata() {
+      const enriched = await Promise.all(
+        SEED_LISTINGS.map(async (listing) => {
+          if (listing.metadata) return listing;
+          try {
+            const res = await fetch(listing.metadataUrl);
+            if (res.ok) {
+              const metadata = await res.json();
+              return { ...listing, metadata };
+            }
+          } catch (e) {
+            console.error(`Failed to fetch metadata for ${listing.cid}:`, e);
+          }
+          return listing;
+        })
+      );
+      setSeedListings(enriched);
+    }
+    fetchMetadata();
+  }, []);
+
+  const allListings = [...seedListings, ...userListings];
 
   const filtered = allListings.filter((l) => {
     const matchesSearch =
@@ -386,17 +410,17 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {/* Search + Filters */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
           <input
             type="text"
             placeholder="Search listings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#16161A] border border-white/[0.08] rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] transition-all"
+            className="w-full bg-[#16161A] border border-white/[0.06] rounded-2xl pl-14 pr-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] transition-all"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-muted-foreground" />
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -422,14 +446,16 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
           <ListingCard key={listing.cid} listing={listing} index={i} onChat={() => handleChat(listing)} />
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-sm">No listings found</p>
+          <div className="text-center py-16">
+            <Search className="w-10 h-10 mx-auto mb-4 text-white/15" />
+            <p className="text-base font-bold text-white mb-1">No listings found</p>
+            <p className="text-xs text-white/30">Try a different search term</p>
           </div>
         )}
       </div>
 
       {/* FAB for Create */}
-      {user && (
+      {user && !showCreate && (
         <button
           onClick={() => setShowCreate(true)}
           className="fixed bottom-32 right-5 z-40 w-16 h-16 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
