@@ -3,28 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import {
-  LucideTag,
-  LucideShoppingCart,
-  LucideMessageCircle,
-} from 'lucide-react';
+import { LucideTag, LucideShoppingCart, LucideMessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MiniKit } from '@worldcoin/minikit-js';
-import {
-  TopBar,
-  VerificationBadge,
-  CircularIcon,
-  Tabs,
-  TabItem,
-  useHaptics,
-} from '@worldcoin/mini-apps-ui-kit-react';
-
-import {
-  type TruCheqUser,
-  loadTruCheqUser,
-  migrateToUnifiedUser,
-  saveTruCheqUser,
-} from '@/lib/trucheq-user';
+import { TopBar, VerificationBadge, CircularIcon, Tabs, TabItem, useHaptics } from '@worldcoin/mini-apps-ui-kit-react';
+import { type TruCheqUser, loadTruCheqUser, migrateToUnifiedUser, saveTruCheqUser } from '@/lib/trucheq-user';
 import { DealCreator } from '@/components/DealCreator';
 import { DealDashboard } from '@/components/DealDashboard';
 import { ChatTab as ChatTabXMTP } from '@/components/ChatTab';
@@ -78,16 +61,10 @@ function BottomTabBar({
   };
 
   return (
-    <div className='fixed left-0 right-0 z-50 bottom-0 pb-[max(env(safe-area-inset-bottom),12px)] bg-[#0A0F14] border-t border-white/10'>
+    <div className="fixed left-0 right-0 z-40 bottom-0 pb-[max(env(safe-area-inset-bottom),12px)] bg-[#0A0F14]/95 backdrop-blur-xl border-t border-white/10">
       <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabId)}>
         {tabs.map((tab) => (
-          <TabItem
-            key={tab.id}
-            value={tab.id}
-            icon={tab.icon}
-            altIcon={tab.activeIcon}
-            label={tab.label}
-          />
+          <TabItem key={tab.id} value={tab.id} icon={tab.icon} altIcon={tab.activeIcon} label={tab.label} />
         ))}
       </Tabs>
     </div>
@@ -213,7 +190,7 @@ export function AppShell({ initialTab = 'sell' }: AppShellProps) {
   // ---- Authenticated — show tabbed interface ----
   return (
     <div className="min-h-screen bg-[#0A0F14] text-foreground">
-      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-10" />
+      <div className="fixed inset-0 grid-pattern pointer-events-none opacity-5 z-0" />
 
       <TopBar
         title="TruCheq"
