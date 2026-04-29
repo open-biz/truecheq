@@ -12,16 +12,10 @@ import {
   LucideLock,
   LucideUnlock,
   LucideArrowUpRight,
-  LucideBot,
-  LucideCopy,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
-import { MiniKit } from '@worldcoin/minikit-js';
-import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import {
@@ -32,9 +26,7 @@ import {
 } from "@/components/ui/code-graphics";
 
 export default function LandingPage() {
-  const [isLocked, setIsLocked] = React.useState(true);
-  const [copied, setCopied] = React.useState(false);
-  const isMiniApp = MiniKit.isInstalled();
+  const [isLocked, setIsLocked] = useState(true);
   const [verifications, setVerifications] = useState<{ id: number; addr: string; level: string }[]>([]);
 
   useEffect(() => {
@@ -46,324 +38,243 @@ export default function LandingPage() {
     setVerifications(items);
   }, []);
 
-
-
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-[#070709] text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:p-4 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:m-4">
         Skip to main content
       </a>
       <Spotlight />
 
-      {/* Sticky Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-md" role="navigation" aria-label="Main navigation">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
-              <img src="/trucheq-logo.jpeg" alt="TruCheq Logo" className="w-full h-full object-cover" />
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 bg-[#070709]/80 backdrop-blur-2xl border-b border-white/[0.06]" role="navigation" aria-label="Main navigation">
+        <div className="max-w-lg mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-[0_0_12px_rgba(0,214,50,0.1)]">
+              <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
             </div>
-            <span className="text-2xl font-black tracking-tighter italic text-white">TruCheq</span>
+            <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
           </div>
-
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Features</a>
-            <Link href="/?tab=buy" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Marketplace</Link>
-
-            <a href="#cases" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors rounded-lg px-2 py-1">Use Cases</a>
-          </div>
-
           <Link href="/">
-            <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl px-6 py-4 shadow-[0_0_15px_rgba(0,214,50,0.3)] hover:shadow-[0_0_20px_rgba(0,214,50,0.5)] transition-all">
+            <Button className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] rounded-xl h-9 px-4 shadow-[0_0_12px_rgba(0,214,50,0.25)] hover:shadow-[0_0_20px_rgba(0,214,50,0.4)] transition-all">
               Launch App
             </Button>
           </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section id="main-content" className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 text-center pt-20">
-        <RetroGrid className="opacity-40" />
-
-        <div className="relative z-10 max-w-5xl mx-auto py-12">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <Badge variant="outline" className="mb-6 border-primary/50 text-primary bg-primary/5 backdrop-blur-sm px-4 py-1.5 rounded-full font-bold">
-              🌐 World Chain × XMTP × Coinbase Hackathon
+      {/* Hero */}
+      <section id="main-content" className="relative min-h-[52vh] flex flex-col items-center justify-center px-6 text-center overflow-hidden">
+        <RetroGrid className="opacity-30" />
+        <div className="relative z-10 max-w-lg mx-auto w-full py-10">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Badge variant="outline" className="mb-5 border-primary/40 text-primary bg-primary/5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+              🌐 World Chain × XMTP × Hackathon
             </Badge>
           </motion.div>
-
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-6xl md:text-[5.5rem] font-black tracking-tight mb-8 leading-[0.95] text-white"
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-4xl sm:text-5xl font-black tracking-tight mb-4 leading-[0.95] text-white"
           >
-            Headless <span className="text-primary italic">Commerce</span> <br className="hidden md:block" /> for the Agent Era.
+            Headless{' '}
+            <span className="text-primary italic">Commerce</span>
+            <br />for the Agent Era.
           </motion.h1>
-
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-lg md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="text-base text-white/50 mb-8 leading-relaxed font-medium"
           >
-            TruCheq is a sybil-resistant P2P commerce protocol. World&nbsp;ID verifies sellers, XMTP enables encrypted chat, and World Pay + XMTP transactions handle payments &mdash; all without a database.
+            Sybil-resistant P2P marketplace. World&nbsp;ID verifies sellers, XMTP encrypts chat, World Pay settles &mdash; no database needed.
           </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex flex-col items-center justify-center gap-8"
-          >
-            <Link href="/" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto sm:px-10 py-8 text-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all rounded-2xl shadow-[0_0_20px_rgba(0,214,50,0.2)] flex items-center justify-center gap-2">
-                Create Listing <LucideArrowRight className="w-6 h-6" />
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
+            <Link href="/" className="block w-full">
+              <Button size="lg" className="w-full h-14 text-base font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_4px_24px_rgba(0,214,50,0.3)] transition-all active:scale-95 flex items-center justify-center gap-2">
+                Open Marketplace <LucideArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-
-            {/* Agent Skill Copy Button */}
-            <div className="mt-8 w-full max-w-xl flex flex-col items-center">
-              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                <LucideBot className="w-4 h-4" />
-                Agent: Protocol automation
-              </p>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText("curl -s https://trucheq.com/SKILL.md");
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="group relative w-auto min-w-[340px] md:min-w-[380px] bg-zinc-800/60 border border-zinc-700/50 rounded-md overflow-hidden flex items-center justify-between px-4 transition-all duration-300 pulse-border hover:border-primary/40 hover:shadow-[0_0_15px_rgba(0,214,50,0.15)] h-[52px]"
-                aria-label="Copy agent skill curl command"
-              >
-                <div className="flex items-center space-x-3">
-                  <LucideBot className="w-[18px] h-[18px] text-primary flex-shrink-0" aria-hidden="true" />
-                  <code className="font-mono text-sm text-white/90 select-all">curl -s https://trucheq.com/SKILL.md</code>
-                </div>
-                <div className="flex items-center ml-3 p-1.5 rounded text-white/50 hover:text-white hover:bg-white/5 transition-colors">
-                  {copied ? (
-                    <div className="flex items-center gap-1 text-green-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-                      <span className="text-xs font-medium">Copied!</span>
-                    </div>
-                  ) : (
-                    <LucideCopy className="w-4 h-4" aria-hidden="true" />
-                  )}
-                </div>
-              </button>
-            </div>
-
           </motion.div>
         </div>
       </section>
 
-      {/* Features Bento Grid */}
-      <section id="features" className="py-24 px-6 max-w-7xl mx-auto relative">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-white uppercase">Features</h2>
-          <p className="text-xl text-muted-foreground font-bold">Protocol-level trust for peer-to-peer trade.</p>
+      {/* Stats strip */}
+      <div className="max-w-lg mx-auto px-6 pb-6">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {['0% Fees', 'Orb Verified', 'No Database', 'XMTP Encrypted'].map((stat) => (
+            <span key={stat} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-white/50 bg-white/[0.06] rounded-full px-3 py-1.5">
+              {stat}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Bento Grid */}
+      <section id="features" className="px-6 pb-10 max-w-lg mx-auto">
+        <div className="mb-6">
+          <h2 className="text-2xl font-black tracking-tight text-white uppercase">Features</h2>
+          <p className="text-sm text-white/40 font-bold mt-0.5">Protocol-level trust for P2P trade.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
+        <div className="grid grid-cols-2 gap-3 auto-rows-auto">
 
-          {/* Box 1 (Large) - World ID */}
-          <Card className="md:col-span-2 md:row-span-2 relative overflow-hidden group border-white/5 bg-card/50 backdrop-blur-xl">
+          {/* World ID — full width */}
+          <div className="col-span-2 bg-[#16161A] rounded-2xl border border-white/[0.06] overflow-hidden relative group p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-            <CardHeader className="relative z-10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-inner">
-                  <LucideShieldCheck className="w-8 h-8" />
+            <div className="relative z-10 flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <LucideShieldCheck className="w-5 h-5" />
                 </div>
-                <div className="flex items-center gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
-                  <span className={`text-[10px] font-black tracking-widest px-3 py-1 rounded-full transition-colors ${isLocked ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary'}`}>
-                    {isLocked ? "UNVERIFIED" : "ORB VERIFIED"}
-                  </span>
-                  <Switch checked={!isLocked} onCheckedChange={(v) => setIsLocked(!v)} />
+                <div>
+                  <h3 className="text-base font-black text-white uppercase tracking-tight">World ID</h3>
+                  <p className="text-xs text-white/40 font-bold">Sybil-resistant identity</p>
                 </div>
               </div>
-              <div>
-                <CardTitle className="text-4xl font-black mb-3 tracking-tight text-white uppercase">World ID</CardTitle>
-                <CardDescription className="text-lg max-w-md leading-relaxed text-foreground/70 font-bold">
-                  Sybil-resistant identity verification. Sellers prove they&apos;re real humans &mdash; Orb verified or device verified.
-                </CardDescription>
+              <div className="flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full">
+                <span className={cn('text-[9px] font-black tracking-widest transition-colors', isLocked ? 'text-red-400' : 'text-primary')}>
+                  {isLocked ? 'UNVERIFIED' : 'ORB ✓'}
+                </span>
+                <Switch checked={!isLocked} onCheckedChange={(v) => setIsLocked(!v)} />
               </div>
-            </CardHeader>
-            <CardContent className="flex justify-center items-center h-full pt-0">
-              <div className="w-full max-w-sm p-8 rounded-[2rem] border border-white/10 bg-black/60 backdrop-blur-md flex items-center gap-8 shadow-2xl relative">
-                <div className="absolute inset-0 bg-primary/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
-                <TruCheqCoin active={!isLocked} />
-                <div className="flex-1 space-y-4">
-                  <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/30 shadow-[0_0_10px_rgba(0,214,50,0.3)]'}`} />
-                  <div className={`h-2.5 rounded-full transition-all duration-700 ${isLocked ? 'w-2/3 bg-white/5' : 'w-3/4 bg-primary/20'}`} />
-                </div>
-                <div className={cn(
-                  "p-3 rounded-xl transition-all duration-700",
-                  isLocked ? "bg-white/5 text-white/10" : "bg-primary/20 text-primary"
-                )}>
-                  <LucideUnlock className="w-6 h-6" />
-                </div>
+            </div>
+            <div className="relative z-10 p-5 rounded-xl bg-black/50 flex items-center gap-6">
+              <TruCheqCoin active={!isLocked} />
+              <div className="flex-1 space-y-3">
+                <div className={`h-2 rounded-full transition-all duration-700 ${isLocked ? 'w-1/3 bg-white/10' : 'w-full bg-primary/40 shadow-[0_0_8px_rgba(0,214,50,0.3)]'}`} />
+                <div className={`h-2 rounded-full transition-all duration-700 ${isLocked ? 'w-2/3 bg-white/5' : 'w-3/4 bg-primary/20'}`} />
               </div>
-            </CardContent>
-          </Card>
+              <div className={cn('p-2.5 rounded-xl transition-all duration-700', isLocked ? 'bg-white/5 text-white/10' : 'bg-primary/20 text-primary')}>
+                <LucideUnlock className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
 
-          {/* Box 2 (Tall) - XMTP Chat */}
-          <Card className="md:row-span-3 border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col">
-            <CardHeader className="relative z-10 bg-gradient-to-b from-card to-transparent pb-6">
-              <div className="p-3 w-fit rounded-2xl bg-primary/10 text-primary border border-primary/20 mb-6">
-                <LucideMessageCircle className="w-8 h-8" />
+          {/* XMTP Chat — full width, fixed height */}
+          <div className="col-span-2 bg-[#16161A] rounded-2xl border border-white/[0.06] overflow-hidden relative flex flex-col" style={{ height: 220 }}>
+            <div className="p-5 pb-3 relative z-10">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <LucideMessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white uppercase tracking-tight">XMTP Chat</h3>
+                  <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">End-to-end encrypted</p>
+                </div>
               </div>
-              <CardTitle className="text-2xl font-black tracking-tight text-white uppercase">XMTP Chat</CardTitle>
-              <CardDescription className="text-sm font-bold text-foreground/50">
-                END-TO-END ENCRYPTED
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 relative overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-card to-transparent z-10" />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent z-10" />
-
-              <Marquee vertical repeat={10} className="[--duration:25s] h-full">
+            </div>
+            <div className="flex-1 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#16161A] to-transparent z-10" />
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#16161A] to-transparent z-10" />
+              <Marquee vertical repeat={8} className="[--duration:20s] h-full">
                 {verifications.map((v) => (
-                  <div key={v.id} className="flex items-center gap-4 p-4 mx-4 rounded-2xl border border-white/5 bg-black/40 backdrop-blur-sm hover:border-primary/20 transition-all group/tx cursor-default">
-                    <Avatar className="w-10 h-10 border-2 border-white/5 group-hover/tx:border-primary/50 transition-all">
+                  <div key={v.id} className="flex items-center gap-3 py-2 px-5">
+                    <Avatar className="w-8 h-8 shrink-0">
                       <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=v-${v.id}`} />
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 overflow-hidden text-left">
-                      <p className="text-sm font-black truncate tracking-tight text-white">0x...{v.addr}</p>
-                      <p className={`text-xs font-black ${v.level === 'Orb' ? 'text-primary' : 'text-blue-400'}`}>{v.level === 'Orb' ? '✅ Orb Verified' : '📱 Device'}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-white truncate">0x...{v.addr}</p>
+                      <p className={`text-[10px] font-black ${v.level === 'Orb' ? 'text-primary' : 'text-blue-400'}`}>
+                        {v.level === 'Orb' ? '✅ Orb' : '📱 Device'}
+                      </p>
                     </div>
-                    <LucideArrowUpRight className="w-4 h-4 text-white/20 group-hover/tx:text-primary transition-colors" />
+                    <LucideArrowUpRight className="w-3.5 h-3.5 text-white/20 shrink-0" />
                   </div>
                 ))}
               </Marquee>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Box 3 (Small) - World Pay */}
-          <Card className="border-white/5 bg-card/50 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between">
-            <CardHeader className="pb-2">
-              <LucideLock className="w-6 h-6 text-primary mb-2" />
-              <CardTitle className="text-xl font-black tracking-tight text-white uppercase">World Pay</CardTitle>
-              <CardDescription className="text-sm text-foreground/60 leading-snug font-bold">
-                Native payments in World App.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-8">
-              <div className="flex items-center justify-between px-6 relative h-20">
-                <div className="z-10 p-3 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-md shadow-xl transition-transform hover:scale-110">
-                  <div className="w-10 h-10 bg-blue-500 flex items-center justify-center rounded-xl text-white font-bold shadow-lg text-lg">₿</div>
+          {/* World Pay — half width */}
+          <div className="bg-[#16161A] rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
+            <div>
+              <LucideLock className="w-5 h-5 text-primary mb-3" />
+              <h3 className="text-sm font-black text-white uppercase tracking-tight mb-1">World Pay</h3>
+              <p className="text-xs text-white/40 font-bold leading-snug">Native payments in World App.</p>
+            </div>
+            <div className="flex items-center justify-between mt-4">
+              <div className="p-2 rounded-xl bg-black/60">
+                <div className="w-8 h-8 bg-blue-500 flex items-center justify-center rounded-lg text-white font-bold text-sm">₿</div>
+              </div>
+              <div className="flex-1 mx-2 h-px bg-gradient-to-r from-blue-500/30 via-primary/50 to-primary/30" />
+              <div className="p-2 rounded-xl bg-black/60 shadow-[0_0_12px_rgba(0,214,50,0.15)]">
+                <div className="w-8 h-8 bg-primary flex items-center justify-center rounded-lg text-black font-black italic text-sm">T</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Zero Fees — half width */}
+          <div className="bg-[#16161A] rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
+            <div>
+              <LucideUsers className="w-5 h-5 text-primary mb-3" />
+              <h3 className="text-sm font-black text-white uppercase tracking-tight mb-1">Zero Fees</h3>
+              <p className="text-xs text-white/40 font-bold leading-snug">The software is the service.</p>
+            </div>
+            <div className="flex flex-col gap-3 mt-4">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
+                  <span>Legacy</span><span>15%</span>
                 </div>
-                <div className="z-10 p-3 rounded-2xl bg-black/60 border border-primary/20 backdrop-blur-md shadow-[0_0_20px_rgba(0,214,50,0.2)] transition-transform hover:scale-110">
-                  <div className="w-10 h-10 bg-primary flex items-center justify-center rounded-xl text-primary-foreground font-bold italic shadow-lg">T</div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} whileInView={{ width: '100%' }} transition={{ duration: 1.5, ease: 'easeOut' }} className="h-full bg-red-400/40" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Box 4 (Small) - Zero Fees */}
-          <Card className="border-white/5 bg-card/50 backdrop-blur-xl">
-            <CardHeader className="pb-2">
-              <LucideUsers className="w-6 h-6 text-primary mb-2" />
-              <CardTitle className="text-xl font-black tracking-tight text-white uppercase">Zero Sale Fees</CardTitle>
-              <CardDescription className="text-sm text-foreground/60 leading-snug font-bold">
-                The software is the service.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="mt-2 text-left">
-              <div className="flex flex-col gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                    <span>Legacy</span>
-                    <span>15%</span>
-                  </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} whileInView={{ width: "100%" }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full bg-destructive/40" />
-                  </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-primary">
+                  <span>TruCheq</span><span>0%</span>
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary">
-                    <span>TruCheq</span>
-                    <span>0%</span>
-                  </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} whileInView={{ width: "3%" }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full bg-primary shadow-[0_0_10px_rgba(0,214,50,0.5)]" />
-                  </div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} whileInView={{ width: '3%' }} transition={{ duration: 1.5, ease: 'easeOut' }} className="h-full bg-primary shadow-[0_0_8px_rgba(0,214,50,0.5)]" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
         </div>
       </section>
 
-
-
-      {/* Use Case Carousel */}
-      <section id="cases" className="py-24 px-6 max-w-7xl mx-auto">
-        <Carousel className="w-full" opts={{ loop: true }}>
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 text-left">
-            <div className="max-w-2xl">
-              <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter leading-none text-white uppercase whitespace-nowrap">Use Cases</h2>
-              <p className="text-xl text-muted-foreground leading-relaxed font-bold">The trust layer for social commerce.</p>
+      {/* Use Cases — native swipe */}
+      <section id="cases" className="pb-10">
+        <div className="max-w-lg mx-auto px-6 mb-4">
+          <h2 className="text-2xl font-black tracking-tight text-white uppercase">Use Cases</h2>
+          <p className="text-sm text-white/40 font-bold mt-0.5">The trust layer for social commerce.</p>
+        </div>
+        <div className="flex gap-3 overflow-x-auto px-6 pb-3 snap-x snap-mandatory scrollbar-none">
+          {[
+            { title: "r/Watchexchange", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop", text: "Verified sellers with World ID before shipping high-value watches." },
+            { title: "Concert Tickets", img: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=800&auto=format&fit=crop", text: "End ticket scams with sybil-resistant seller verification." },
+            { title: "Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Negotiate via XMTP, pay with World Pay. Zero chargeback risk." },
+            { title: "Sneaker Drops", img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop", text: "AI agents help sellers manage listings at scale." },
+          ].map((item) => (
+            <div key={item.title} className="w-[260px] shrink-0 snap-start rounded-2xl overflow-hidden relative group" style={{ height: 320 }}>
+              <img src={item.img} alt={item.title} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5">
+                <span className="inline-block text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 rounded-lg px-2 py-1 mb-2">{item.title}</span>
+                <p className="text-white text-sm font-black leading-snug">{item.text}</p>
+              </div>
             </div>
-            <div className="flex gap-4">
-              <CarouselPrevious className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
-              <CarouselNext className="static translate-y-0 h-14 w-14 border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-2xl" />
-            </div>
-          </div>
-
-          <CarouselContent className="-ml-6">
-            {[
-              { title: "r/Watchexchange", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&auto=format&fit=crop", text: "Verified sellers with World ID before shipping high-value watches." },
-              { title: "Concert Tickets", img: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=800&auto=format&fit=crop", text: "End ticket scams with sybil-resistant seller verification." },
-              { title: "Discord Hardware Swap", img: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop", text: "Negotiate via XMTP, pay with World Pay. Zero chargeback risk." },
-              { title: "Instagram Sneakers", img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop", text: "AI agents help sellers manage listings at scale." },
-            ].map((item, index) => (
-              <CarouselItem key={index} className="pl-6 md:basis-1/3">
-                <Card className="border-white/5 bg-card/50 overflow-hidden group rounded-[2.5rem] h-full transition-all hover:border-primary/20 text-left">
-                  <div className="aspect-[4/5] relative overflow-hidden">
-                    <img src={item.img} alt={item.title} className="object-cover w-full h-full transition-transform duration-1000 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
-                    <div className="absolute bottom-8 left-8 right-8">
-                      <Badge className="bg-primary/20 text-primary border-primary/30 backdrop-blur-md mb-4 px-4 py-1.5 rounded-xl uppercase tracking-widest text-[10px] font-black">{item.title}</Badge>
-                      <p className="text-white text-xl font-black leading-tight tracking-tight">{item.text}</p>
-                    </div>
-                  </div>
-                </Card>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+          ))}
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="pt-24 pb-16 px-6 border-t border-white/5 relative bg-[#0A0F14]">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-
-        <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-          <div className="relative w-24 h-24 mb-12 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
-            <img src="/trucheq-logo.jpeg" alt="TruCheq Logo" className="object-cover w-full h-full" />
+      <footer className="px-6 pt-10 pb-16 border-t border-white/[0.06] relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="max-w-lg mx-auto flex flex-col items-center text-center gap-6">
+          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-[0_0_24px_rgba(0,214,50,0.1)]">
+            <img src="/trucheq-logo.jpeg" alt="TruCheq" className="object-cover w-full h-full" />
           </div>
-
-          <h3 className="text-6xl md:text-8xl font-black mb-16 tracking-tighter leading-none text-white uppercase">Ready to Trade?</h3>
-
-          <div className="relative group mb-20 scale-110">
-            <Link href="/">
-              <Button size="lg" className="px-16 py-10 text-3xl font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,214,50,0.3)] transition-all active:scale-95">
-                Launch App
-              </Button>
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 mb-24 max-w-4xl w-full">
-            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://github.com/open-biz/truecheq'); toast.success('Link copied!'); }}>GitHub Repo</Button>
-            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.world.org/world-id'); toast.success('Link copied!'); }}>World ID Docs</Button>
-            <Button variant="link" className="text-muted-foreground hover:text-primary text-sm font-black uppercase tracking-widest" onClick={() => { navigator.clipboard.writeText('https://docs.xmtp.org'); toast.success('Link copied!'); }}>XMTP Docs</Button>
-          </div>
-
-          <div className="flex flex-col items-center gap-6 text-sm text-muted-foreground font-black">
-            <p className="tracking-[0.2em] uppercase">Built for <span className="text-white">World Chain × XMTP × Coinbase Hackathon</span>.</p>
-            <p className="opacity-50 tracking-tighter">© 2025 TruCheq Protocol.</p>
-          </div>
+          <h3 className="text-3xl font-black tracking-tight text-white uppercase">Ready to Trade?</h3>
+          <Link href="/" className="w-full">
+            <Button size="lg" className="w-full h-14 text-base font-black bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-[0_4px_24px_rgba(0,214,50,0.3)] transition-all active:scale-95">
+              Launch App
+            </Button>
+          </Link>
+          <p className="text-xs text-white/25 font-black tracking-[0.15em] uppercase">Built for World Chain × XMTP × Coinbase Hackathon</p>
+          <p className="text-xs text-white/15">© 2025 TruCheq Protocol</p>
         </div>
       </footer>
     </div>
