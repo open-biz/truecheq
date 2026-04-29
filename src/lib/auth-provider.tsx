@@ -70,7 +70,12 @@ export function WagmiAuthSync() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
+  // Inside World App the worldApp() connector auto-handles auth; skip wagmi sync
+  const insideWorldApp = typeof window !== 'undefined' && MiniKit.isInstalled();
+
   useEffect(() => {
+    if (insideWorldApp) return;
+
     if (isConnected && address) {
       const existing = loadTruCheqUser();
 

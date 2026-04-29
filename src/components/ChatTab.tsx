@@ -814,6 +814,8 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
   // ============================================================================
 
   if (!isConnected) {
+    const insideWorldApp = typeof window !== 'undefined' && MiniKit.isInstalled();
+
     return (
       <div className='space-y-6'>
         <div className='text-center'>
@@ -826,13 +828,24 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
           <div className='w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]'>
             <MessageCircle className='w-10 h-10 text-white/40' strokeWidth={2.5} />
           </div>
-          <p className='text-xl font-black text-white mb-2'>Wallet Required</p>
-          <p className='text-sm text-white/40 mb-8 max-w-[240px] mx-auto'>
-            Connect your wallet to start encrypted XMTP conversations
-          </p>
-          <div className='max-w-xs mx-auto'>
-            <ConnectButton />
-          </div>
+          {insideWorldApp ? (
+            <>
+              <p className='text-xl font-black text-white mb-2'>Sign in Required</p>
+              <p className='text-sm text-white/40 mb-8 max-w-[260px] mx-auto'>
+                Please sign in with your wallet inside World App to use chat
+              </p>
+            </>
+          ) : (
+            <>
+              <p className='text-xl font-black text-white mb-2'>Wallet Required</p>
+              <p className='text-sm text-white/40 mb-8 max-w-[240px] mx-auto'>
+                Connect your wallet to start encrypted XMTP conversations
+              </p>
+              <div className='max-w-xs mx-auto'>
+                <ConnectButton />
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

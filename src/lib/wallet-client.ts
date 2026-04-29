@@ -51,26 +51,37 @@ export function isWalletAuthenticated(): boolean {
  * - eth_chainId → 0x1e0 (World Chain 480)
  */
 export function getWalletClient() {
-  // Only works inside World App
-  if (!MiniKit.isInstalled()) {
-    throw new Error('MiniKit is not installed. This app only works inside World App.');
+  if (MiniKit.isInstalled()) {
+    const provider = getWorldAppProvider();
+    return createWalletClient({
+      chain: worldChain,
+      transport: custom(provider),
+    });
   }
 
-  const provider = getWorldAppProvider();
+  // Standalone browser fallback: use injected wallet (MetaMask, etc.)
+  if (typeof window !== 'undefined' && (window as any).ethereum) {
+    return createWalletClient({
+      chain: worldChain,
+      transport: custom((window as any).ethereum),
+    });
+  }
 
-  return createWalletClient({
-    chain: worldChain,
-    transport: custom(provider),
-  });
+  throw new Error('MiniKit is not installed and no browser wallet was found. Please install MetaMask or open this app inside World App.');
 }
 
 /**
  * Gets the provider directly for lower-level operations.
  */
 export function getProvider() {
-  if (!MiniKit.isInstalled()) {
-    throw new Error('MiniKit is not installed. This app only works inside World App.');
+  if (MiniKit.isInstalled()) {
+    return getWorldAppProvider();
   }
 
-  return getWorldAppProvider();
+  // Standalone browser fallback: use injected wallet provider
+  if (typeof window !== 'undefined' && (window as any).ethereum) {
+    return (window as any).ethereum;
+  }
+
+  throw new Error('MiniKit is not installed and no browser wallet was found.');
 }

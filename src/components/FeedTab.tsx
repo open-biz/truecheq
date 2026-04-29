@@ -50,9 +50,12 @@ function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; i
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
     >
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         className="w-full text-left bg-card rounded-2xl overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform cursor-pointer"
         onClick={() => onSelect?.()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(); } }}
       >
         {/* Thumbnail */}
         <div className="w-[72px] h-[72px] rounded-xl overflow-hidden shrink-0 bg-black/40">
@@ -107,7 +110,7 @@ function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; i
         >
           <MessageCircle className="w-4 h-4" />
         </button>
-      </button>
+      </div>
     </motion.div>
   );
 }
