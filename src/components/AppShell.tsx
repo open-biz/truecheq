@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMiniApp } from '@/lib/use-mini-app';
 import {
   LayoutGrid,
   MessageCircle,
   User,
+  LogOut,
+  Copy,
+  Info,
 } from 'lucide-react';
 import {
   TopBar,
@@ -158,21 +163,56 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
           <AnimatePresence>
             {showDropdown && (
               <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 z-50 w-48 rounded-2xl border border-white/10 bg-black/95 backdrop-blur-xl overflow-hidden shadow-2xl"
+                className="absolute right-0 top-full mt-2 z-50 w-52 rounded-2xl bg-[#16161A] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
               >
-                <div className="p-3 border-b border-white/10">
-                  <p className="text-[10px] text-muted-foreground font-mono">Code: {user.truCheqCode}</p>
+                {/* Code Section */}
+                <div className="p-4 pb-3">
+                  <p className="text-[10px] uppercase tracking-widest text-white/30 font-black mb-1.5">Your TruCheq Code</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono text-white/80">{user.truCheqCode}</code>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(user.truCheqCode);
+                        toast.success('Code copied');
+                      }}
+                      className="p-1 rounded-md hover:bg-white/10 transition-colors"
+                    >
+                      <Copy className="w-3 h-3 text-white/40" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => { setShowDropdown(false); onLogout(); }}
-                  className="flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full"
-                >
-                  Sign Out
-                </button>
+
+                <div className="h-px bg-white/[0.06] mx-4" />
+
+                {/* Menu Items */}
+                <div className="p-2">
+                  <Link
+                    href="/"
+                    onClick={() => setShowDropdown(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors w-full"
+                  >
+                    <Info className="w-4 h-4 text-white/40" />
+                    About TruCheq
+                  </Link>
+                </div>
+
+                <div className="h-px bg-white/[0.06] mx-4" />
+
+                {/* Sign Out */}
+                <div className="p-2">
+                  <button
+                    onClick={() => { setShowDropdown(false); onLogout(); }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors w-full"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
