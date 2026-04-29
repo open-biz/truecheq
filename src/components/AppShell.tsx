@@ -99,7 +99,7 @@ function BottomTabBar({
               aria-selected={isActive}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'flex-1 flex flex-col items-center gap-1.5 py-3 transition-colors relative',
+                'flex-1 flex flex-col items-center gap-2 py-5 transition-colors relative',
                 isActive ? 'text-primary' : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -135,7 +135,7 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070709]/80 backdrop-blur-2xl">
+    <header className="sticky top-0 z-40 bg-[#070709]/80 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/[0.08] shadow-[0_0_12px_rgba(0,214,50,0.1)]">
@@ -230,9 +230,9 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
             }
           />
         ) : (
-          <header className="sticky top-0 z-40 border-b border-white/5 bg-black/60 backdrop-blur-md">
+          <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-md">
             <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className='w-7 h-7 flex items-center justify-center'>
                 <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
                   <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
                 </div>

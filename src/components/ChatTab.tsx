@@ -233,7 +233,7 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
         'max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
         msg.isSelf
           ? 'bg-gradient-to-r from-[#00D632] to-[#00b82b] text-black font-medium rounded-br-md shadow-[0_4px_12px_rgba(0,214,50,0.15)]'
-          : 'bg-[#1e1e24] text-white rounded-bl-md border border-white/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
+          : 'bg-[#1e1e24] text-white rounded-bl-md shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
       )}>
         <span className='whitespace-pre-wrap break-words'>{msg.content}</span>
       </div>
@@ -850,7 +850,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
     return (
       <div className='flex flex-col h-[calc(100vh-8rem)]'>
         {/* Conversation Header */}
-        <div className='flex items-center gap-3 p-4 border-b border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl'>
+        <div className='flex items-center gap-3 p-4 bg-[#16161A]/90 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.2)]'>
           <Button
             variant='ghost'
             size='sm'
@@ -906,7 +906,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
         </div>
 
         {/* Input */}
-        <div className='p-4 border-t border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl'>
+        <div className='p-4 bg-[#16161A]/90 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.2)]'>
           {offerMode ? (
             <div className='flex gap-2 items-center'>
               <Input
@@ -915,7 +915,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onChange={e => setOfferAmount(e.target.value)}
                 placeholder='Offer amount (USDC)...'
                 disabled={isSending}
-                className='bg-[#0f0f12] border-white/[0.06] text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
+                className='bg-[#0f0f12] border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={sendOffer}
@@ -943,7 +943,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onKeyDown={handleKeyPress}
                 placeholder='Type a message...'
                 disabled={isSending}
-                className='bg-[#0f0f12] border-white/[0.06] text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
+                className='bg-[#0f0f12] border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={() => setOfferMode(true)}
@@ -1031,7 +1031,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder='Search by address...'
-            className='bg-[#16161A] border-white/[0.06] text-sm text-white placeholder:text-white/25 h-10 pl-12 pr-10 rounded-2xl focus:ring-1 focus:ring-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]'
+            className='bg-[#16161A] text-sm text-white placeholder:text-white/25 h-10 pl-12 pr-10 rounded-2xl focus:ring-1 focus:ring-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]'
           />
           {searchQuery && (
             <button

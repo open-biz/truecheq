@@ -70,7 +70,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
   return (
     <div className="space-y-5">
       {/* Identity Card */}
-      <div className="rounded-3xl border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+      <div className="rounded-3xl bg-[#16161A]/90 backdrop-blur-xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shadow-[0_0_16px_rgba(0,214,50,0.1)]">
             {user.isOrbVerified ? (
@@ -88,7 +88,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
         </div>
 
         {user.walletAddress && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#0f0f12] border border-white/[0.06]">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#0f0f12]">
             <Wallet className="w-4 h-4 text-white/30 shrink-0" />
             <span className="text-xs font-mono text-white/50 truncate flex-1">
               {user.walletAddress}
@@ -102,12 +102,12 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl p-4 text-center shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
+        <div className="rounded-2xl bg-[#16161A]/90 backdrop-blur-xl p-4 text-center shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
           <Tag className="w-5 h-5 text-primary mx-auto mb-1.5" />
           <p className="text-2xl font-black text-white">{myListings.length}</p>
           <p className="text-[10px] uppercase tracking-widest text-white/30 font-black">Listings</p>
         </div>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl p-4 text-center shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
+        <div className="rounded-2xl bg-[#16161A]/90 backdrop-blur-xl p-4 text-center shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
           <MessageCircle className="w-5 h-5 text-primary mx-auto mb-1.5" />
           <p className="text-2xl font-black text-white">0</p>
           <p className="text-[10px] uppercase tracking-widest text-white/30 font-black">Deals</p>
@@ -115,7 +115,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
       </div>
 
       {/* Agent Settings */}
-      <div className="rounded-3xl border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)] border-l-2 border-l-primary/30">
+      <div className="rounded-3xl bg-[#16161A]/90 backdrop-blur-xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
             <Bot className="w-4 h-4 text-primary" />
@@ -146,7 +146,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
                 value={rules.minimumAcceptable}
                 onChange={(e) => updateRule({ minimumAcceptable: e.target.value })}
                 placeholder="e.g. 40"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                className="w-full bg-white/[0.03] border-transparent rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
@@ -159,7 +159,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
                 value={rules.autoRejectBelow}
                 onChange={(e) => updateRule({ autoRejectBelow: e.target.value })}
                 placeholder="e.g. 20"
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                className="w-full bg-white/[0.03] border-transparent rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
 
@@ -190,8 +190,8 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
           <h3 className="text-sm font-black text-white mb-3 uppercase tracking-widest">My Listings</h3>
           <div className="space-y-2">
             {myListings.map((l) => (
-              <div key={l.cid} className="flex items-center gap-3 p-3 rounded-2xl border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.06] flex items-center justify-center shrink-0">
+              <div key={l.cid} className="flex items-center gap-3 p-3 rounded-2xl bg-[#16161A]/90 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#1c1c22] transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] flex items-center justify-center shrink-0">
                   <Tag className="w-4 h-4 text-white/30" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -210,7 +210,7 @@ export function ProfileTab({ user, onLogout }: ProfileTabProps) {
       {/* Sign Out */}
       <Button
         variant="ghost"
-        className="w-full rounded-2xl bg-transparent border border-white/[0.06] text-white/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 font-black h-12 transition-all active:scale-[0.98]"
+        className="w-full rounded-2xl bg-transparent text-white/30 hover:bg-red-500/10 hover:text-red-400 font-black h-12 transition-all active:scale-[0.98]"
         onClick={onLogout}
       >
         <LogOut className="w-4 h-4 mr-2" />
