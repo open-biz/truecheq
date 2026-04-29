@@ -63,9 +63,9 @@ function BottomTabBar({
   const haptics = useHaptics();
 
   const tabs: { id: TabId; icon: React.ReactNode; label: string }[] = [
-    { id: 'feed', icon: <LayoutGrid className='w-5 h-5' />, label: 'Feed' },
-    { id: 'chat', icon: <MessageCircle className='w-5 h-5' />, label: 'Chat' },
-    { id: 'profile', icon: <User className='w-5 h-5' />, label: 'Profile' },
+    { id: 'feed', icon: <LayoutGrid className='w-6 h-6' />, label: 'Feed' },
+    { id: 'chat', icon: <MessageCircle className='w-6 h-6' />, label: 'Chat' },
+    { id: 'profile', icon: <User className='w-6 h-6' />, label: 'Profile' },
   ];
 
   const handleTabChange = (tab: TabId) => {
@@ -93,7 +93,12 @@ function BottomTabBar({
   }
 
   return (
-    <nav className='fixed left-0 right-0 z-50 bg-[#070709]/95 backdrop-blur-2xl bottom-0 shadow-[0_-4px_24px_rgba(0,0,0,0.3)]' role="tablist" aria-label="Main navigation">
+    <nav
+      className='fixed left-0 right-0 z-50 bg-[#070709]/95 backdrop-blur-2xl bottom-0 shadow-[0_-1px_0_rgba(255,255,255,0.06),0_-4px_24px_rgba(0,0,0,0.4)]'
+      role="tablist"
+      aria-label="Main navigation"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="max-w-lg mx-auto flex items-center">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -104,7 +109,7 @@ function BottomTabBar({
               aria-selected={isActive}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'flex-1 flex flex-col items-center gap-2 py-5 transition-colors relative',
+                'flex-1 flex flex-col items-center gap-1.5 py-4 transition-colors relative',
                 isActive ? 'text-primary' : 'text-white/40 hover:text-white/70',
               )}
             >
@@ -116,11 +121,11 @@ function BottomTabBar({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">{tab.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="tab-indicator"
-                  className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(0,214,50,0.4)]"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-primary shadow-[0_0_8px_rgba(0,214,50,0.6)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -192,7 +197,7 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
                 {/* Menu Items */}
                 <div className="p-2">
                   <Link
-                    href="/"
+                    href="/about"
                     onClick={() => setShowDropdown(false)}
                     className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors w-full"
                   >
@@ -270,10 +275,10 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
             }
           />
         ) : (
-          <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-md">
+          <header className="sticky top-0 z-40 bg-[#070709]/80 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
             <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-              <div className='w-7 h-7 flex items-center justify-center'>
-                <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <div className='flex items-center gap-2.5'>
+                <div className="w-9 h-9 rounded-xl overflow-hidden shadow-[0_0_12px_rgba(0,214,50,0.1)]">
                   <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
@@ -282,7 +287,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
           </header>
         )}
 
-        <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
           <FeedTab
             guestMode
             onRequireAuth={() => setActiveTab('feed')}
@@ -322,7 +327,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
         <StandaloneHeader user={user} onLogout={handleLogout} />
       )}
 
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
         <div className={cn(activeTab !== 'chat' && 'hidden')}>
           <motion.div
             initial={false}

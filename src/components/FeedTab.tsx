@@ -40,96 +40,67 @@ interface FeedTabProps {
 // ============================================================================
 
 function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; index: number; onChat: () => void; onSelect?: () => void }) {
-  const handleCardClick = () => onSelect?.();
+  const sellerDisplay = listing.seller
+    ? `${listing.seller.slice(0, 6)}...${listing.seller.slice(-4)}`
+    : '';
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
+      transition={{ duration: 0.25, delay: index * 0.04 }}
     >
-      <Card className="bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl cursor-pointer active:scale-[0.99]">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden" onClick={handleCardClick}>
+      <button
+        className="w-full text-left bg-[#16161A] rounded-2xl overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform cursor-pointer"
+        onClick={() => onSelect?.()}
+      >
+        {/* Thumbnail */}
+        <div className="w-[72px] h-[72px] rounded-xl overflow-hidden shrink-0 bg-[#0f0f12]">
           {listing.metadata?.images && listing.metadata.images.length > 0 ? (
             <img
               src={getProxiedImageUrl(listing.metadata.images[0])}
               alt={listing.metadata.itemName}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/[0.03] via-white/[0.06] to-white/[0.03] flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-              <span className="text-xs font-black uppercase tracking-[0.2em] text-white/20 relative z-10">TruCheq</span>
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/20">TC</span>
             </div>
           )}
-          {/* Verification badge overlay */}
-          <div className="absolute top-3 left-3">
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          {/* Verification badge */}
+          <div className="flex items-center gap-1.5 mb-0.5">
             {listing.isOrbVerified ? (
-              <Badge variant="outline" className="border-primary/30 text-primary bg-black/70 backdrop-blur-md text-[9px] font-black uppercase shadow-[0_0_12px_rgba(0,214,50,0.15)]">
-                <ShieldCheck className="w-3 h-3 mr-0.5" /> Orb
-              </Badge>
+              <span className="inline-flex items-center gap-0.5 text-primary text-[9px] font-black uppercase tracking-widest">
+                <ShieldCheck className="w-2.5 h-2.5" /> ORB
+              </span>
             ) : (
-              <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-black/70 backdrop-blur-md text-[9px] font-black uppercase">
-                <Smartphone className="w-3 h-3 mr-0.5" /> Device
-              </Badge>
+              <span className="inline-flex items-center gap-0.5 text-blue-400 text-[9px] font-black uppercase tracking-widest">
+                <Smartphone className="w-2.5 h-2.5" /> DEVICE
+              </span>
             )}
           </div>
-          {/* Price overlay */}
-          <div className="absolute bottom-3 right-3">
-            <Badge className="bg-[#00D632] text-black text-sm font-black px-3 py-1 rounded-xl shadow-[0_0_12px_rgba(0,214,50,0.3)]">
-              ${listing.metadata?.price || '0'} USDC
-            </Badge>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-4" onClick={handleCardClick}>
-          <h3 className="text-lg font-black text-white tracking-tight mb-1">{listing.metadata?.itemName || 'Untitled'}</h3>
-          <p className="text-sm text-primary font-bold mb-2">${listing.metadata?.price || '0'} USDC</p>
+          <h3 className="text-sm font-black text-white truncate leading-snug">{listing.metadata?.itemName || 'Untitled'}</h3>
           {listing.metadata?.description && (
-            <p className="text-xs text-white/40 line-clamp-2 mb-3">{listing.metadata.description}</p>
+            <p className="text-xs text-white/40 truncate mt-0.5">{listing.metadata.description}</p>
           )}
-
-          <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[11px] font-mono text-white/25">
-              {listing.seller.slice(0, 6)}...{listing.seller.slice(-4)}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="rounded-full h-9 w-9 p-0 text-white/40 hover:text-white hover:bg-white/[0.08] transition-all active:scale-95"
-                onClick={() => {
-                  const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
-                  const url = typeof window !== 'undefined' ? window.location.href : '';
-                  if (MiniKit.isInstalled()) {
-                    MiniKit.share({
-                      title,
-                      url,
-                    });
-                  } else if (navigator.share) {
-                    navigator.share({ title, url }).catch(() => {});
-                  } else {
-                    navigator.clipboard.writeText(url);
-                    toast.success('Link copied to clipboard');
-                  }
-                }}
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                className="rounded-full bg-white/[0.06] border border-white/[0.08] text-white hover:bg-white/10 hover:text-primary text-xs font-black px-4 transition-all active:scale-95"
-                onClick={onChat}
-              >
-                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                Chat
-              </Button>
-            </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs font-black text-primary">${listing.metadata?.price || '0'} USDC</span>
+            <span className="text-[10px] text-white/25 font-mono">{sellerDisplay}</span>
           </div>
         </div>
-      </Card>
+
+        {/* Chat button */}
+        <button
+          className="shrink-0 w-9 h-9 rounded-xl bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-primary transition-all active:scale-90"
+          onClick={(e) => { e.stopPropagation(); onChat(); }}
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
+      </button>
     </motion.div>
   );
 }
@@ -250,7 +221,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               Photo
             </label>
             {imagePreview ? (
-              <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-white/[0.08]">
+              <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <button
                   onClick={() => { setImageFile(null); setImagePreview(null); }}
@@ -407,11 +378,13 @@ function ListingDetailSheet({
 
             {/* Seller Info */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0f0f12] mb-5">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/[0.08] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 flex items-center justify-center">
                 <User className="w-5 h-5 text-white/40" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/30 font-mono truncate">{listing.seller}</p>
+                <p className="text-xs text-white/30 font-mono truncate">
+                  {listing.seller ? `${listing.seller.slice(0, 8)}...${listing.seller.slice(-6)}` : ''}
+                </p>
                 {listing.isOrbVerified ? (
                   <div className="flex items-center gap-1 text-primary text-[10px] font-black uppercase">
                     <ShieldCheck className="w-3 h-3" /> Orb Verified
@@ -433,9 +406,8 @@ function ListingDetailSheet({
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat with Seller
               </Button>
-              <Button
-                variant="outline"
-                className="rounded-xl h-12 px-4 bg-white/[0.05] border-white/[0.08] text-white/60 hover:bg-white/10 hover:text-white transition-all"
+              <button
+                className="rounded-xl h-12 px-4 bg-white/[0.06] text-white/60 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
                 onClick={() => {
                   const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
                   const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -450,7 +422,7 @@ function ListingDetailSheet({
                 }}
               >
                 <Share2 className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
           </motion.div>
         </motion.div>
@@ -532,6 +504,12 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
 
   return (
     <div className="space-y-4">
+      {/* Page Header */}
+      <div className="pb-1">
+        <h1 className="text-2xl font-black text-white tracking-tight">Browse All Listings</h1>
+        <p className="text-xs text-white/30 mt-0.5">{filtered.length} listing{filtered.length !== 1 ? 's' : ''}</p>
+      </div>
+
       {/* Search + Filters */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
@@ -560,13 +538,13 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
           )}
           onClick={() => setFilterVerified(!filterVerified)}
         >
-          <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+          <ShieldCheck className="inline w-3.5 h-3.5 mr-1" />
           Verified
         </button>
       </div>
 
       {/* Listings Feed */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {filtered.map((listing, i) => (
           <ListingCard key={listing.cid} listing={listing} index={i} onChat={() => handleChat(listing)} onSelect={() => setSelectedListing(listing)} />
         ))}
@@ -583,7 +561,8 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {user && !showCreate && (
         <button
           onClick={() => setShowCreate(true)}
-          className="fixed bottom-32 right-5 z-40 w-16 h-16 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
+          className="fixed z-40 w-16 h-16 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)', right: '1.25rem' }}
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />
         </button>
