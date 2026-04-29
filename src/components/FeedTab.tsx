@@ -551,20 +551,18 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
             )}
           </div>
         </div>
-        <Button
-          size="sm"
-          variant={filterVerified ? 'default' : 'outline'}
+        <button
           className={cn(
             'rounded-2xl text-xs font-black shrink-0 h-11 px-3 transition-all active:scale-95',
             filterVerified
               ? 'bg-[#00D632] text-black hover:bg-[#00D632]/90 shadow-[0_0_16px_rgba(0,214,50,0.25)]'
-              : 'bg-[#16161A] border-white/[0.08] text-white/60 hover:text-white hover:bg-[#1c1c22]',
+              : 'bg-[#16161A] text-white/60 hover:text-white hover:bg-[#1c1c22]',
           )}
           onClick={() => setFilterVerified(!filterVerified)}
         >
           <ShieldCheck className="w-3.5 h-3.5 mr-1" />
           Verified
-        </Button>
+        </button>
       </div>
 
       {/* Listings Feed */}
