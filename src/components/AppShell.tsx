@@ -143,7 +143,7 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
     <header className="sticky top-0 z-40 bg-[#070709]/80 backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/[0.08] shadow-[0_0_12px_rgba(0,214,50,0.1)]">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-[0_0_12px_rgba(0,214,50,0.1)]">
             <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
           </div>
           <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
@@ -152,7 +152,7 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] transition-colors"
           >
             <div className={cn('w-2 h-2 rounded-full', user.isOrbVerified ? 'bg-primary' : 'bg-blue-400')} />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">
@@ -273,7 +273,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
           <header className="sticky top-0 z-40 bg-black/60 backdrop-blur-md">
             <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
               <div className='w-7 h-7 flex items-center justify-center'>
-                <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
+                <div className="w-8 h-8 rounded-lg overflow-hidden">
                   <img src="/trucheq-logo.jpeg" alt="TruCheq" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-lg font-black tracking-tighter italic text-white">TruCheq</span>
