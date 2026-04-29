@@ -180,33 +180,27 @@ export function TruCheqAuth({ onSuccess, className, skipWalletStep }: TruCheqAut
     const hasOrb = responses?.some(res => res.identifier === 'orb') ?? false;
     const nullifier = r?.responses?.[0]?.nullifier || r?.nullifier || 'unknown';
 
+    // Always close the IDKit widget first so the modal never appears stuck.
     setWidgetOpen(false);
+    setIsLoading(false);
 
-    // In Mini App context, auto-connect wallet via walletAuth after IDKit verification
-    // Show loading state between the two auth flows so user knows something is happening
-    let miniAppWallet: string | undefined;
-    if (MiniKit.isInstalled()) {
-      setIsLoading(true);
-      miniAppWallet = (await getMiniAppWalletAddress()) ?? undefined;
-      setIsLoading(false);
-    }
-
+    // NOTE: Do NOT call walletAuth here. AuthProvider owns walletAuth in
+    // World App. This component is rendered only in standalone browser
+    // (per AppShell), where there is no World App wallet to connect.
     const trucheqUser = createTruCheqUser({
       nullifierHash: nullifier,
       isOrbVerified: hasOrb,
       sessionId: r?.session_id,
-      walletAddress: miniAppWallet,
+      walletAddress: getStoredWalletAddress() || undefined,
     });
 
     setUser(trucheqUser);
     saveTruCheqUser(trucheqUser);
-    toast.success('World ID verified!', { 
-      description: hasOrb ? 'Orb verified' : 'Device verified' 
+    toast.success('World ID verified!', {
+      description: hasOrb ? 'Orb verified' : 'Device verified',
     });
 
-    // Mini app only: continue once wallet is connected or recovered.
-    // If skipWalletStep is true, go straight to complete (mini-app auto-connects wallet)
-    if (isConnected || miniAppWallet || skipWalletStep) {
+    if (isConnected || skipWalletStep) {
       setStep('complete');
       onSuccess(trucheqUser);
     } else {

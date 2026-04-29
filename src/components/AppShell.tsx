@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useIsMiniApp } from '@/lib/use-mini-app';
 import {
   LayoutGrid,
   MessageCircle,
@@ -228,8 +227,7 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
 // ============================================================================
 
 export function AppShell({ initialTab = 'feed' }: AppShellProps) {
-  const isMiniApp = useIsMiniApp();
-  const { user, isReady, login, logout, setUser } = useAuth();
+  const { user, isReady, isMiniApp, login, logout, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [startChatWith, setStartChatWith] = useState<string | null>(null);
