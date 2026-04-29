@@ -311,7 +311,7 @@ function GuestProfile() {
 // ============================================================================
 
 export function AppShell({ initialTab = 'feed' }: AppShellProps) {
-  const { user, isReady, isMiniApp, logout, setUser } = useAuth();
+  const { user, isReady, isMiniApp, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [startChatWith, setStartChatWith] = useState<string | null>(null);

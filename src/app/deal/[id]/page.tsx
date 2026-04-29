@@ -1,4 +1,5 @@
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import { fetchListingMeta } from '@/lib/fetch-listing';
 
 type Props = {
@@ -8,9 +9,7 @@ type Props = {
 
 export async function generateMetadata(
   { params, searchParams }: Props,
-  parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const { id } = await params;
   const { meta } = await searchParams;
   const metaUrl = meta ? decodeURIComponent(meta) : '';
   const listing = metaUrl ? await fetchListingMeta(metaUrl) : null;
@@ -18,7 +17,6 @@ export async function generateMetadata(
   const itemName = listing?.itemName || 'Listing';
   const price = listing?.price;
   const description = listing?.description || 'View this listing on TruCheq — sybil-resistant P2P commerce';
-  const imageUrl = listing?.images?.[0];
   const isOrbVerified = listing?.isOrbVerified ?? false;
   const verificationLevel = listing?.verificationLevel ?? (isOrbVerified ? 'orb' : 'device');
   const verificationLabel = verificationLevel === 'orb' ? 'Orb Verified' : verificationLevel === 'device' ? 'Device Verified' : 'Unverified';
@@ -115,12 +113,12 @@ export default async function DealPage({ params, searchParams }: Props) {
         )}
 
         {/* CTA — link back to main app */}
-        <a
+        <Link
           href="/?tab=buy"
           className="block w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black text-center leading-[3.5rem] shadow-[0_4px_24px_rgba(0,214,50,0.3)] hover:bg-primary/90 transition-all active:scale-[0.98]"
         >
           Open in TruCheq
-        </a>
+        </Link>
 
         {/* CID reference */}
         <p className="text-[10px] text-white/15 font-mono text-center mt-4">

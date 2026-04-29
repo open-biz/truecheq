@@ -98,7 +98,7 @@ function VerificationStatusPill({ level }: { level: TruCheqUser['verificationLev
 
 export function ProfileTab({ user, onLogout }: ProfileTabProps) {
   const { setUser } = useAuth();
-  const [userListings, setUserListings] = useState<Listing[]>(() => {
+  const [userListings] = useState<Listing[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
       const raw = localStorage.getItem('trucheq_user_listings');

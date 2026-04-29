@@ -62,8 +62,7 @@ export async function GET(request: NextRequest) {
           }}
         >
           {imageData ? (
-            /* satori expects string src but accepts ArrayBuffer internally — double-assert is the documented pattern */
-            // eslint-disable-next-line @next/next/no-img-element
+            {/* satori expects string src but accepts ArrayBuffer internally — double-assert is the documented pattern */}
             <img
               src={imageData as unknown as string}
               alt={itemName}

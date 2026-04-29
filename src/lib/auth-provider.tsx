@@ -54,10 +54,6 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-function deriveTruCheqCode(address: string): string {
-  return address.toLowerCase().replace(/^0x/, '').slice(-6).toUpperCase();
-}
-
 function newNonce(): string {
   return (
     crypto.randomUUID?.().replace(/-/g, '') || Date.now().toString(36).padStart(16, '0')

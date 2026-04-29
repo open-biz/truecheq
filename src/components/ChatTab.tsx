@@ -11,7 +11,6 @@ import {
   Send,
   Loader2,
   ArrowLeft,
-  ShieldCheck,
   User,
   AlertCircle,
   RefreshCw,
@@ -22,7 +21,7 @@ import {
   X,
   Tag,
 } from 'lucide-react';
-import { cn, getProxiedImageUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { payWithMiniKit, canUseMiniKitPay } from '@/lib/payments';
@@ -289,7 +288,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTa
   // Offer / Payment state
   const [offerMode, setOfferMode] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
-  const [isPaying, setIsPaying] = useState(false);
+  const [, setIsPaying] = useState(false);
 
   // Refs
   const isMountedRef = useRef(true);
