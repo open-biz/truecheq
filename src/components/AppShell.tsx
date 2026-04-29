@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -23,14 +23,8 @@ import {
   useHaptics,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
-import { MiniKit } from '@worldcoin/minikit-js';
-import {
-  type TruCheqUser,
-  saveTruCheqUser,
-  clearTruCheqUser,
-  loadTruCheqUser,
-  migrateToUnifiedUser,
-} from '@/lib/trucheq-user';
+import { type TruCheqUser } from '@/lib/trucheq-user';
+import { useAuth } from '@/lib/auth-provider';
 import { TruCheqAuth } from '@/components/TruCheqAuth';
 import { ChatTab } from '@/components/ChatTab';
 import { FeedTab } from '@/components/FeedTab';
@@ -235,93 +229,21 @@ function StandaloneHeader({ user, onLogout }: { user: TruCheqUser; onLogout: () 
 
 export function AppShell({ initialTab = 'feed' }: AppShellProps) {
   const isMiniApp = useIsMiniApp();
+  const { user, isReady, login, logout, setUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
-  const [user, setUser] = useState<TruCheqUser | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [startChatWith, setStartChatWith] = useState<string | null>(null);
-  const [showWalletAuth, setShowWalletAuth] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const existing = loadTruCheqUser() || migrateToUnifiedUser();
-    if (existing) setUser(existing);
-  }, []);
-
-  // Auto-walletAuth on mini app load. Per World docs, walletAuth is the
-  // primary login (not World ID). User sees one Approve prompt inside
-  // World App and is signed in. World ID verification becomes optional
-  // for the Orb verification badge.
-  const autoAuthAttemptedRef = React.useRef(false);
-  useEffect(() => {
-    if (!mounted) return;
-    if (user) return; // already signed in
-    if (autoAuthAttemptedRef.current) return;
-    if (!MiniKit.isInstalled()) return; // standalone browser uses manual flow
-
-    autoAuthAttemptedRef.current = true;
-    (async () => {
-      try {
-        const nonce = (crypto.randomUUID?.().replace(/-/g, '') || Date.now().toString(36)).slice(0, 16);
-        const result = await MiniKit.walletAuth({
-          nonce,
-          statement: 'Sign in to TruCheq',
-        });
-        if (result.executedWith === 'fallback') return;
-
-        const address = result.data.address;
-        // Create a wallet-only user. truCheqCode is derived from the address
-        // (lowercase, last 6 chars of keccak-style hash substitute = address suffix).
-        const codeSeed = address.toLowerCase().replace(/^0x/, '').slice(-6).toUpperCase();
-        const newUser: TruCheqUser = {
-          nullifierHash: '',
-          isOrbVerified: false,
-          verificationLevel: 'device',
-          walletAddress: address,
-          truCheqCode: codeSeed,
-          createdAt: Date.now(),
-        };
-        setUser(newUser);
-        saveTruCheqUser(newUser);
-      } catch (err) {
-        console.warn('[AppShell] auto walletAuth failed:', err);
-        // User can still tap any tab to retry — handleRequireWallet covers it.
-      }
-    })();
-  }, [mounted, user]);
 
   const handleAuthSuccess = (authenticatedUser: TruCheqUser) => {
     setUser(authenticatedUser);
-    saveTruCheqUser(authenticatedUser);
   };
 
   const handleLogout = () => {
-    setUser(null);
-    clearTruCheqUser();
+    logout();
   };
 
-  // Called from ChatTab when wallet address is missing — just re-run walletAuth
-  // silently without showing the full World ID re-verification flow.
-  const handleRequireWallet = useCallback(async () => {
-    if (!user) return;
-    if (!MiniKit.isInstalled()) {
-      setShowWalletAuth(true);
-      return;
-    }
-    try {
-      const nonce = Date.now().toString(36).padStart(12, '0');
-      const result = await MiniKit.walletAuth({ nonce, statement: 'Connect wallet to TruCheq chat' });
-      if (result.executedWith !== 'fallback') {
-        const updated = { ...user, walletAddress: result.data.address };
-        setUser(updated);
-        saveTruCheqUser(updated);
-      }
-    } catch {
-      setShowWalletAuth(true);
-    }
-  }, [user]);
-
-  if (!mounted) return null;
+  // Wait for auth restore + auto-auth attempt to complete before rendering
+  if (!isReady) return null;
 
   // ---- Not authenticated — Guest mode: show feed, auth overlay for actions ----
   if (!user) {
@@ -361,11 +283,11 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
 
         <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
 
-        {/* Auth overlay — only in standalone browser. Inside World App, auto-walletAuth handles it. */}
+        {/* Auth overlay — standalone browser only. Inside World App, AuthProvider auto-runs walletAuth. */}
         {!isMiniApp && activeTab !== 'feed' && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="max-w-md w-full">
-              <TruCheqAuth onSuccess={handleAuthSuccess} skipWalletStep={isMiniApp} />
+              <TruCheqAuth onSuccess={handleAuthSuccess} />
             </div>
           </div>
         )}
@@ -402,7 +324,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
               onUnreadChange={setChatUnreadCount}
               startChatWith={startChatWith}
               onChatStarted={() => setStartChatWith(null)}
-              onRequireAuth={handleRequireWallet}
+              onRequireAuth={login}
             />
           </motion.div>
         </div>
@@ -430,17 +352,6 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
 
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
 
-      {/* Wallet auth overlay — only shown as fallback in standalone (non-mini-app) mode */}
-      {showWalletAuth && (
-        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <TruCheqAuth
-              onSuccess={(u) => { handleAuthSuccess(u); setShowWalletAuth(false); }}
-              skipWalletStep={isMiniApp}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
