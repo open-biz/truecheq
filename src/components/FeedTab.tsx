@@ -48,7 +48,7 @@ function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; i
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="border border-white/[0.06] bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl cursor-pointer active:scale-[0.99]">
+      <Card className="bg-[#16161A]/90 backdrop-blur-xl overflow-hidden group shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out hover:-translate-y-0.5 rounded-3xl cursor-pointer active:scale-[0.99]">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden" onClick={handleCardClick}>
           {listing.metadata?.images && listing.metadata.images.length > 0 ? (
@@ -234,7 +234,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-[#16161A] border-t border-white/[0.06] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
+          className="w-full max-w-lg bg-[#16161A] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
@@ -366,7 +366,7 @@ function ListingDetailSheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="w-full max-w-lg bg-[#16161A] border-t border-white/[0.06] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
+            className="w-full max-w-lg bg-[#16161A] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -406,7 +406,7 @@ function ListingDetailSheet({
             )}
 
             {/* Seller Info */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0f0f12] border border-white/[0.06] mb-5">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0f0f12] mb-5">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 border border-white/[0.08] flex items-center justify-center">
                 <User className="w-5 h-5 text-white/40" />
               </div>
@@ -535,7 +535,7 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {/* Search + Filters */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#16161A] border border-white/[0.06] rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#16161A] rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] focus-within:ring-1 focus-within:ring-primary/30 transition-all">
             <Search className="w-4 h-4 text-white/30 shrink-0" />
             <input
               type="text"
