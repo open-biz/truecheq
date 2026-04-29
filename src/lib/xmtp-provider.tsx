@@ -2,8 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { Client, type Signer, IdentifierKind, ConsentState } from '@xmtp/browser-sdk';
+import { MiniKit } from '@worldcoin/minikit-js';
 import { getStoredWalletAddress, getWalletClient } from './wallet-client';
 import { getXMTPEnv } from './xmtp';
+import { STORAGE_KEYS } from './utils';
 
 // ============================================================================
 // Context
@@ -38,9 +40,29 @@ export function useXMTP(): XMTPContextValue {
 // ============================================================================
 
 // localStorage key for lazy XMTP activation persistence (shared in STORAGE_KEYS)
-import { STORAGE_KEYS } from './utils';
 const LAZY_KEY = STORAGE_KEYS.XMTP_ACTIVATED;
-const WALLET_CLIENT_ERROR = 'Wallet client unavailable — please reconnect your wallet';
+
+/**
+ * Retrieve or generate a stable 32-byte DB encryption key per wallet address.
+ * Persisting it means XMTP can reuse its local IndexedDB cache across page
+ * loads — so Client.create() doesn't need to call signMessage() every session.
+ */
+function getOrCreateDbKey(address: string): Uint8Array {
+  try {
+    const storageKey = `xmtp_dbkey_${address.toLowerCase()}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const bytes = stored.match(/.{2}/g)?.map((b) => parseInt(b, 16));
+      if (bytes && bytes.length === 32) return new Uint8Array(bytes);
+    }
+    const key = crypto.getRandomValues(new Uint8Array(32));
+    const hex = Array.from(key).map((b) => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem(storageKey, hex);
+    return key;
+  } catch {
+    return crypto.getRandomValues(new Uint8Array(32));
+  }
+}
 
 export function XMTPProvider({ children }: { children: React.ReactNode }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -72,6 +94,17 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
           identifierKind: IdentifierKind.Ethereum,
         }),
         signMessage: async (message: string): Promise<Uint8Array> => {
+          // Inside World App: use MiniKit.signMessage() — avoids triggering a
+          // full wallet re-auth popup that the viem/provider path causes.
+          if (MiniKit.isInstalled()) {
+            const result = await MiniKit.signMessage({ message });
+            if (result.executedWith === 'fallback') {
+              throw new Error('Message signing cancelled or unavailable');
+            }
+            const hex = (result.data.signature as string).slice(2);
+            return new Uint8Array(hex.match(/.{2}/g)?.map((b: string) => parseInt(b, 16)) || []);
+          }
+          // Standalone browser fallback: viem WalletClient
           const walletClient = getWalletClient();
           const signature = await walletClient.signMessage({
             message,
@@ -146,7 +179,8 @@ export function XMTPProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const xmtpClient = await Client.create(signer, { env: getXMTPEnv() } as any);
+      const dbEncryptionKey = getOrCreateDbKey(userAddress);
+      const xmtpClient = await Client.create(signer, { env: getXMTPEnv(), dbEncryptionKey } as any);
 
       if (!isMountedRef.current) {
         xmtpClient.close();
