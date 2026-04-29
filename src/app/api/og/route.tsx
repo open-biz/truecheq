@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
             overflow: 'hidden',
           }}
         >
+          {/* satori: string src with double-assert for ArrayBuffer */}
           {imageData ? (
-            {/* satori expects string src but accepts ArrayBuffer internally — double-assert is the documented pattern */}
             <img
               src={imageData as unknown as string}
               alt={itemName}

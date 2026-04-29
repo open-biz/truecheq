@@ -8,7 +8,7 @@ type Props = {
 };
 
 export async function generateMetadata(
-  { params, searchParams }: Props,
+  { searchParams }: Props,
 ): Promise<Metadata> {
   const { meta } = await searchParams;
   const metaUrl = meta ? decodeURIComponent(meta) : '';
@@ -77,7 +77,6 @@ export default async function DealPage({ params, searchParams }: Props) {
         {/* Product Image */}
         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-5 bg-card">
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt={itemName} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
