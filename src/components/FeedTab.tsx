@@ -17,10 +17,11 @@ import {
   Share2,
   User,
 } from 'lucide-react';
+// Note: User icon is used for the 'Unverified' badge on listings
 import { cn, getProxiedImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 import { MiniKit } from '@worldcoin/minikit-js';
-import { SEED_LISTINGS, type Listing } from '@/lib/seed-listings';
+import { SEED_LISTINGS, type Listing, getVerificationLevel } from '@/lib/seed-listings';
 import type { TruCheqUser } from '@/lib/trucheq-user';
 import { uploadImageToFilebase, uploadMetadataToFilebase, getIPFSGatewayUrl, type DealMetadata } from '@/lib/filebase';
 
@@ -51,11 +52,11 @@ function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; i
       transition={{ duration: 0.25, delay: index * 0.04 }}
     >
       <button
-        className="w-full text-left bg-[#16161A] rounded-2xl overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform cursor-pointer"
+        className="w-full text-left bg-card rounded-2xl overflow-hidden flex items-center gap-3 p-3 active:scale-[0.98] transition-transform cursor-pointer"
         onClick={() => onSelect?.()}
       >
         {/* Thumbnail */}
-        <div className="w-[72px] h-[72px] rounded-xl overflow-hidden shrink-0 bg-[#0f0f12]">
+        <div className="w-[72px] h-[72px] rounded-xl overflow-hidden shrink-0 bg-black/40">
           {listing.metadata?.images && listing.metadata.images.length > 0 ? (
             <img
               src={getProxiedImageUrl(listing.metadata.images[0])}
@@ -73,15 +74,22 @@ function ListingCard({ listing, index, onChat, onSelect }: { listing: Listing; i
         <div className="flex-1 min-w-0">
           {/* Verification badge */}
           <div className="flex items-center gap-1.5 mb-0.5">
-            {listing.isOrbVerified ? (
-              <span className="inline-flex items-center gap-0.5 text-primary text-[9px] font-black uppercase tracking-widest">
-                <ShieldCheck className="w-2.5 h-2.5" /> ORB
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-0.5 text-blue-400 text-[9px] font-black uppercase tracking-widest">
-                <Smartphone className="w-2.5 h-2.5" /> DEVICE
-              </span>
-            )}
+            {(() => {
+              const vl = getVerificationLevel(listing);
+              return vl === 'orb' ? (
+                <span className="inline-flex items-center gap-0.5 text-primary text-[9px] font-black uppercase tracking-widest">
+                  <ShieldCheck className="w-2.5 h-2.5" /> ORB
+                </span>
+              ) : vl === 'device' ? (
+                <span className="inline-flex items-center gap-0.5 text-blue-400 text-[9px] font-black uppercase tracking-widest">
+                  <Smartphone className="w-2.5 h-2.5" /> DEVICE
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 text-white/30 text-[9px] font-black uppercase tracking-widest">
+                  <User className="w-2.5 h-2.5" /> UNVERIFIED
+                </span>
+              );
+            })()}
           </div>
           <h3 className="text-sm font-black text-white truncate leading-snug">{listing.metadata?.itemName || 'Untitled'}</h3>
           {listing.metadata?.description && (
@@ -171,6 +179,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
         price,
         metadataUrl: getIPFSGatewayUrl(metaResult.cid),
         isOrbVerified: user.isOrbVerified,
+        verificationLevel: user.verificationLevel,
         metadata,
       };
 
@@ -197,7 +206,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] bg-[#070709]/95 backdrop-blur-sm flex items-end justify-center"
+        className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm flex items-end justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -205,7 +214,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-lg bg-[#16161A] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
+          className="w-full max-w-lg bg-card rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
@@ -231,7 +240,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.06] bg-[#0f0f12] hover:bg-[#131318] cursor-pointer transition-colors">
+              <label className="flex flex-col items-center justify-center gap-2 w-full h-32 rounded-xl border border-dashed border-white/[0.06] bg-black/40 hover:bg-black/30 cursor-pointer transition-colors">
                 <ImagePlus className="w-6 h-6 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Tap to upload photo</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -249,7 +258,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               placeholder="e.g. Vintage Camera"
-              className="w-full bg-[#0f0f12] border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full bg-black/40 border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
             />
           </div>
 
@@ -267,7 +276,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
                 placeholder="0.00"
                 min="0"
                 step="0.01"
-                className="w-full bg-[#0f0f12] border border-transparent rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                className="w-full bg-black/40 border border-transparent rounded-xl pl-7 pr-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-black uppercase">USDC</span>
             </div>
@@ -283,7 +292,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item..."
               rows={3}
-              className="w-full bg-[#0f0f12] border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none transition-all"
+              className="w-full bg-black/40 border border-transparent rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none transition-all"
             />
           </div>
 
@@ -291,7 +300,7 @@ function CreateListingSheet({ isOpen, onClose, user, onCreated }: { isOpen: bool
           <Button
             onClick={handleSubmit}
             disabled={isUploading || !itemName.trim() || !price.trim()}
-            className="w-full rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 disabled:opacity-40 disabled:cursor-not-allowed h-14 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
+            className="w-full rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed h-14 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-[0.98]"
           >
             {isUploading ? (
               <>
@@ -329,7 +338,7 @@ function ListingDetailSheet({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] bg-[#070709]/95 backdrop-blur-sm flex items-end justify-center"
+          className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm flex items-end justify-center"
           onClick={onClose}
         >
           <motion.div
@@ -337,7 +346,7 @@ function ListingDetailSheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="w-full max-w-lg bg-[#16161A] rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
+            className="w-full max-w-lg bg-card rounded-t-[2rem] p-6 max-h-[90vh] overflow-y-auto shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -364,7 +373,7 @@ function ListingDetailSheet({
               )}
               {/* Price badge */}
               <div className="absolute bottom-3 right-3">
-                <Badge className="bg-[#00D632] text-black text-sm font-black px-3 py-1 rounded-xl shadow-[0_0_12px_rgba(0,214,50,0.3)]">
+                <Badge className="bg-primary text-primary-foreground text-sm font-black px-3 py-1 rounded-xl shadow-[0_0_12px_rgba(0,214,50,0.3)]">
                   ${listing.metadata?.price || listing.price || '0'} USDC
                 </Badge>
               </div>
@@ -377,7 +386,7 @@ function ListingDetailSheet({
             )}
 
             {/* Seller Info */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0f0f12] mb-5">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-black/40 mb-5">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/15 to-white/5 flex items-center justify-center">
                 <User className="w-5 h-5 text-white/40" />
               </div>
@@ -385,22 +394,29 @@ function ListingDetailSheet({
                 <p className="text-xs text-white/30 font-mono truncate">
                   {listing.seller ? `${listing.seller.slice(0, 8)}...${listing.seller.slice(-6)}` : ''}
                 </p>
-                {listing.isOrbVerified ? (
-                  <div className="flex items-center gap-1 text-primary text-[10px] font-black uppercase">
-                    <ShieldCheck className="w-3 h-3" /> Orb Verified
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-blue-400 text-[10px] font-black uppercase">
-                    <Smartphone className="w-3 h-3" /> Device Verified
-                  </div>
-                )}
+            {(() => {
+              const vl = getVerificationLevel(listing);
+              return vl === 'orb' ? (
+                <div className="flex items-center gap-1 text-primary text-[10px] font-black uppercase">
+                  <ShieldCheck className="w-3 h-3" /> Orb Verified
+                </div>
+              ) : vl === 'device' ? (
+                <div className="flex items-center gap-1 text-blue-400 text-[10px] font-black uppercase">
+                  <Smartphone className="w-3 h-3" /> Device Verified
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-white/30 text-[10px] font-black uppercase">
+                  <User className="w-3 h-3" /> Unverified
+                </div>
+              );
+            })()}
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3">
               <Button
-                className="flex-1 rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 h-12 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95"
+                className="flex-1 rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/90 h-12 text-sm shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95"
                 onClick={onChat}
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
@@ -410,7 +426,8 @@ function ListingDetailSheet({
                 className="rounded-xl h-12 px-4 bg-white/[0.06] text-white/60 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
                 onClick={() => {
                   const title = `Check out ${listing.metadata?.itemName || 'this item'} on TruCheq`;
-                  const url = typeof window !== 'undefined' ? window.location.href : '';
+                  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://trucheq.com';
+                  const url = `${origin}/deal/${listing.cid}?meta=${encodeURIComponent(listing.metadataUrl)}`;
                   if (MiniKit.isInstalled()) {
                     MiniKit.share({ title, url });
                   } else if (navigator.share) {
@@ -513,7 +530,7 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {/* Search + Filters */}
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#16161A] rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+          <div className="flex items-center gap-3 px-4 py-3 bg-card rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] focus-within:ring-1 focus-within:ring-primary/30 transition-all">
             <Search className="w-4 h-4 text-white/30 shrink-0" />
             <input
               type="text"
@@ -533,8 +550,8 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
           className={cn(
             'rounded-2xl text-xs font-black shrink-0 h-11 px-3 transition-all active:scale-95',
             filterVerified
-              ? 'bg-[#00D632] text-black hover:bg-[#00D632]/90 shadow-[0_0_16px_rgba(0,214,50,0.25)]'
-              : 'bg-[#16161A] text-white/60 hover:text-white hover:bg-[#1c1c22]',
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_16px_rgba(0,214,50,0.25)]'
+              : 'bg-card text-white/60 hover:text-white hover:bg-white/[0.04]',
           )}
           onClick={() => setFilterVerified(!filterVerified)}
         >
@@ -561,8 +578,8 @@ export function FeedTab({ user, guestMode, onRequireAuth, onChatSeller }: FeedTa
       {user && !showCreate && (
         <button
           onClick={() => setShowCreate(true)}
-          className="fixed z-40 w-16 h-16 rounded-full bg-[#00D632] text-black flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6rem)', right: '1.25rem' }}
+          className="fixed z-40 w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-[0_4px_20px_rgba(0,214,50,0.4)] hover:scale-110 active:scale-95 transition-all animate-pulse-glow"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 7.5rem)', right: '1.25rem' }}
         >
           <Plus className="w-7 h-7" strokeWidth={2.5} />
         </button>

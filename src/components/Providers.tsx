@@ -3,14 +3,17 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { XMTPProvider } from '@/lib/xmtp-provider';
-import { AuthProvider } from '@/lib/auth-provider';
+import { AuthProvider, WagmiAuthSync } from '@/lib/auth-provider';
 import { WagmiProvider, createConfig, http } from 'wagmi';
+import { injected } from 'wagmi/connectors';
 import { worldChain } from '@/lib/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Standalone browser mode: Wagmi config for non-mini-app usage
+// Standalone browser mode: Wagmi with injected connector (MetaMask, Coinbase, etc.)
+// No WalletConnect Cloud dependency — just browser-extension wallets.
 const wagmiConfig = createConfig({
   chains: [worldChain],
+  connectors: [injected()],
   transports: {
     [worldChain.id]: http(),
   },
@@ -39,12 +42,13 @@ export default function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  // Standalone browser mode: Wagmi + AuthProvider + XMTP.
-  // AuthProvider doesn't auto-auth here; UI calls login() when needed.
+  // Standalone browser mode: Wagmi + injected connector + AuthProvider + XMTP.
+  // AuthProvider listens to wagmi account changes for wallet-based login.
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <WagmiAuthSync />
           <XMTPProvider>{children}</XMTPProvider>
         </AuthProvider>
       </QueryClientProvider>

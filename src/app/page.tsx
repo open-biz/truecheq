@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 // Without this, hydration mismatches occur when running inside World App.
 const HomeContent = dynamic(() => import('@/components/HomeContent'), {
   ssr: false,
-  loading: () => <div className="min-h-screen bg-[#0A0F14]" />,
+  loading: () => <div className="min-h-screen bg-background" />,
 });
 
 export default function Home() {

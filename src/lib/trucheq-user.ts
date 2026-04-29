@@ -12,14 +12,14 @@ import { STORAGE_KEYS } from './utils';
 // ============================================================================
 
 export interface TruCheqUser {
-  /** World ID nullifier hash — unique per user per action */
-  nullifierHash: string;
-  /** Whether verified via Orb (biometric) vs Device */
+  /** Connected wallet address — THIS IS THE LOGIN (SIWE / wagmi) */
+  walletAddress: string;
+  /** World ID nullifier hash — unique per user per action. Optional until World ID verified. */
+  nullifierHash?: string;
+  /** Whether verified via Orb (biometric) vs Device. false until World ID verification completed. */
   isOrbVerified: boolean;
-  /** Verification level string */
-  verificationLevel: 'orb' | 'device';
-  /** Connected wallet address (from wagmi/MiniKit) */
-  walletAddress?: string;
+  /** Verification level: 'none' = wallet-only, 'device' = Device verified, 'orb' = Orb verified */
+  verificationLevel: 'none' | 'device' | 'orb';
   /** Derived TruCheq code for finding seller's listings */
   truCheqCode: string;
   /** Session ID from World ID verification */
@@ -78,19 +78,25 @@ export function generateTruCheqCode(nullifier: string): string {
   return code;
 }
 
-/** Create a TruCheqUser from World ID verification result */
+/** Create a TruCheqUser from wallet connection (login) */
 export function createTruCheqUser(params: {
-  nullifierHash: string;
-  isOrbVerified: boolean;
+  walletAddress: string;
+  nullifierHash?: string;
+  isOrbVerified?: boolean;
   sessionId?: string;
-  walletAddress?: string;
 }): TruCheqUser {
+  const isVerified = params.isOrbVerified ?? false;
+  const verificationLevel: TruCheqUser['verificationLevel'] =
+    isVerified && params.nullifierHash
+      ? (params.isOrbVerified ? 'orb' : 'device')
+      : 'none';
+  const codeSource = params.nullifierHash || params.walletAddress;
   return {
-    nullifierHash: params.nullifierHash,
-    isOrbVerified: params.isOrbVerified,
-    verificationLevel: params.isOrbVerified ? 'orb' : 'device',
     walletAddress: params.walletAddress,
-    truCheqCode: generateTruCheqCode(params.nullifierHash),
+    nullifierHash: params.nullifierHash,
+    isOrbVerified: isVerified,
+    verificationLevel,
+    truCheqCode: generateTruCheqCode(codeSource),
     sessionId: params.sessionId,
     createdAt: Date.now(),
   };
@@ -107,14 +113,14 @@ export function migrateToUnifiedUser(): TruCheqUser | null {
   if (sellerStored) {
     try {
       const seller = JSON.parse(sellerStored);
+      if (!seller.walletAddress) return null; // need wallet for new schema
       const user = createTruCheqUser({
+        walletAddress: seller.walletAddress,
         nullifierHash: seller.nullifierHash,
         isOrbVerified: seller.isOrbVerified,
         sessionId: seller.sessionId,
-        walletAddress: seller.walletAddress,
       });
       saveTruCheqUser(user);
-      // Don't delete old keys yet — let them coexist during transition
       return user;
     } catch { /* ignore */ }
   }
@@ -124,10 +130,11 @@ export function migrateToUnifiedUser(): TruCheqUser | null {
   if (buyerStored) {
     try {
       const buyer = JSON.parse(buyerStored);
+      if (!buyer.walletAddress) return null; // need wallet for new schema
       const user = createTruCheqUser({
+        walletAddress: buyer.walletAddress,
         nullifierHash: buyer.nullifierHash,
         isOrbVerified: buyer.isOrbVerified,
-        walletAddress: buyer.walletAddress,
       });
       saveTruCheqUser(user);
       return user;

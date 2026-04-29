@@ -39,14 +39,14 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#070709] text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden font-sans">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:p-4 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:m-4">
         Skip to main content
       </a>
       <Spotlight />
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#070709]/80 backdrop-blur-2xl border-b border-white/[0.06]" role="navigation" aria-label="Main navigation">
+      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-2xl border-b border-white/[0.06]" role="navigation" aria-label="Main navigation">
         <div className="max-w-lg mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-[0_0_12px_rgba(0,214,50,0.1)]">
@@ -120,7 +120,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-2 gap-3 auto-rows-auto">
 
           {/* World ID — full width */}
-          <div className="col-span-2 bg-[#16161A] rounded-2xl border border-white/[0.06] overflow-hidden relative group p-5">
+          <div className="col-span-2 bg-card rounded-2xl border border-white/[0.06] overflow-hidden relative group p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
             <div className="relative z-10 flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -152,7 +152,7 @@ export default function LandingPage() {
           </div>
 
           {/* XMTP Chat — full width, fixed height */}
-          <div className="col-span-2 bg-[#16161A] rounded-2xl border border-white/[0.06] overflow-hidden relative flex flex-col" style={{ height: 220 }}>
+          <div className="col-span-2 bg-card rounded-2xl border border-white/[0.06] overflow-hidden relative flex flex-col" style={{ height: 220 }}>
             <div className="p-5 pb-3 relative z-10">
               <div className="flex items-center gap-3 mb-1">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
@@ -165,8 +165,8 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex-1 relative overflow-hidden">
-              <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#16161A] to-transparent z-10" />
-              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#16161A] to-transparent z-10" />
+              <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-card to-transparent z-10" />
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent z-10" />
               <Marquee vertical repeat={8} className="[--duration:20s] h-full">
                 {verifications.map((v) => (
                   <div key={v.id} className="flex items-center gap-3 py-2 px-5">
@@ -188,7 +188,7 @@ export default function LandingPage() {
           </div>
 
           {/* World Pay — half width */}
-          <div className="bg-[#16161A] rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
+          <div className="bg-card rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
             <div>
               <LucideLock className="w-5 h-5 text-primary mb-3" />
               <h3 className="text-sm font-black text-white uppercase tracking-tight mb-1">World Pay</h3>
@@ -206,7 +206,7 @@ export default function LandingPage() {
           </div>
 
           {/* Zero Fees — half width */}
-          <div className="bg-[#16161A] rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
+          <div className="bg-card rounded-2xl border border-white/[0.06] p-5 flex flex-col justify-between min-h-[160px]">
             <div>
               <LucideUsers className="w-5 h-5 text-primary mb-3" />
               <h3 className="text-sm font-black text-white uppercase tracking-tight mb-1">Zero Fees</h3>

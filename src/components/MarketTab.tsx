@@ -14,11 +14,12 @@ import {
   LucideX,
   LucideRefreshCw,
   LucideMessageCircle,
+  LucideUser,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, getProxiedImageUrl } from '@/lib/utils';
-import { SEED_LISTINGS, type Listing } from '@/lib/seed-listings';
+import { SEED_LISTINGS, type Listing, getVerificationLevel } from '@/lib/seed-listings';
 
 // ============================================================================
 // Component: Listing Card (mobile-optimized)
@@ -56,15 +57,22 @@ function MobileListingCard({ listing, index }: { listing: Listing; index: number
               <div>
                 {/* Verification badge */}
                 <div className='flex items-center gap-2 mb-1.5'>
-                  {listing.isOrbVerified ? (
-                    <Badge variant='outline' className='border-primary/30 text-primary bg-primary/10 text-[9px] font-black uppercase px-1.5 py-0'>
-                      <LucideShieldCheck className='w-2.5 h-2.5 mr-0.5' /> Orb
-                    </Badge>
-                  ) : (
-                    <Badge variant='outline' className='border-blue-500/30 text-blue-400 bg-blue-500/10 text-[9px] font-black uppercase px-1.5 py-0'>
-                      <LucideSmartphone className='w-2.5 h-2.5 mr-0.5' /> Device
-                    </Badge>
-                  )}
+                  {(() => {
+                    const vl = getVerificationLevel(listing);
+                    return vl === 'orb' ? (
+                      <Badge variant='outline' className='border-primary/30 text-primary bg-primary/10 text-[9px] font-black uppercase px-1.5 py-0'>
+                        <LucideShieldCheck className='w-2.5 h-2.5 mr-0.5' /> Orb
+                      </Badge>
+                    ) : vl === 'device' ? (
+                      <Badge variant='outline' className='border-blue-500/30 text-blue-400 bg-blue-500/10 text-[9px] font-black uppercase px-1.5 py-0'>
+                        <LucideSmartphone className='w-2.5 h-2.5 mr-0.5' /> Device
+                      </Badge>
+                    ) : (
+                      <Badge variant='outline' className='border-white/10 text-white/30 bg-white/[0.03] text-[9px] font-black uppercase px-1.5 py-0'>
+                        <LucideUser className='w-2.5 h-2.5 mr-0.5' /> Unverified
+                      </Badge>
+                    );
+                  })()}
                 </div>
 
                 {/* Title */}

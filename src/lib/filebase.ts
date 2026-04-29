@@ -21,6 +21,7 @@ export interface DealMetadata {
   seller: string;
   createdAt: number;
   isOrbVerified: boolean;
+  verificationLevel?: 'none' | 'device' | 'orb';
 }
 
 async function getCIDWithRetry(fileName: string, retries = 5): Promise<string> {

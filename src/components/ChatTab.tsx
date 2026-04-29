@@ -36,6 +36,7 @@ import {
   formatRelativeTime,
 } from '@/lib/xmtp-types';
 import { useXMTP } from '@/lib/xmtp-provider';
+import { ConnectButton } from '@/components/ConnectButton';
 
 // ============================================================================
 // Types
@@ -115,7 +116,7 @@ function ConversationItem({
           <User className='w-5 h-5 text-white/40' />
         </div>
         {preview.hasUnread && (
-          <div className='absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary border-2 border-[#070709] shadow-[0_0_8px_rgba(0,214,50,0.4)]' />
+          <div className='absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary border-2 border-background shadow-[0_0_8px_rgba(0,214,50,0.4)]' />
         )}
       </div>
 
@@ -176,7 +177,7 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
     const offer = msg.payload as { amount: string; currency: string; itemName: string };
     return (
       <div className='w-full my-2'>
-        <div className='bg-[#101820] border border-primary/30 rounded-2xl p-3 shadow-[0_4px_12px_rgba(0,214,50,0.1)]'>
+        <div className='bg-card border border-primary/30 rounded-2xl p-3 shadow-[0_4px_12px_rgba(0,214,50,0.1)]'>
           <p className='text-xs font-bold text-white mb-1'>{offer.itemName}</p>
           <p className='text-lg font-black italic tracking-tighter text-primary'>{offer.amount} {offer.currency}</p>
           <p className='text-[10px] text-muted-foreground mt-1'>Offer from buyer</p>
@@ -190,7 +191,7 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
     const req = msg.payload as { amount: string; currency: string; recipient: string };
     return (
       <div className='w-full my-2'>
-        <div className='bg-[#101820] border border-yellow-500/30 rounded-2xl p-3'>
+        <div className='bg-card border border-yellow-500/30 rounded-2xl p-3'>
           <p className='text-xs font-bold text-white mb-1'>Payment Request</p>
           <p className='text-lg font-black italic tracking-tighter text-yellow-400'>{req.amount} {req.currency}</p>
           {!msg.isSelf && onPay && (
@@ -212,7 +213,7 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
     const conf = msg.payload as { amount: string; currency: string; txHash: string };
     return (
       <div className='w-full my-2'>
-        <div className='bg-[#101820] border border-primary/30 rounded-2xl p-3'>
+        <div className='bg-card border border-primary/30 rounded-2xl p-3'>
           <p className='text-xs font-bold text-primary mb-1'>Payment Sent</p>
           <p className='text-sm font-black text-white'>{conf.amount} {conf.currency}</p>
           <p className='text-[10px] font-mono text-muted-foreground mt-1 truncate'>{conf.txHash}</p>
@@ -232,8 +233,8 @@ function ChatBubble({ msg, onPay }: { msg: ChatMessage; onPay?: () => void }) {
       <div className={cn(
         'max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
         msg.isSelf
-          ? 'bg-gradient-to-r from-[#00D632] to-[#00b82b] text-black font-medium rounded-br-md shadow-[0_4px_12px_rgba(0,214,50,0.15)]'
-          : 'bg-[#1e1e24] text-white rounded-bl-md shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
+          ? 'bg-gradient-to-r from-primary to-primary/85 text-primary-foreground font-medium rounded-br-md shadow-[0_4px_12px_rgba(0,214,50,0.15)]'
+          : 'bg-card text-white rounded-bl-md shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
       )}>
         <span className='whitespace-pre-wrap break-words'>{msg.content}</span>
       </div>
@@ -254,10 +255,9 @@ interface ChatTabProps {
   onUnreadChange?: (count: number) => void;
   startChatWith?: string | null;
   onChatStarted?: () => void;
-  onRequireAuth?: () => void;
 }
 
-export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequireAuth }: ChatTabProps) {
+export function ChatTab({ onUnreadChange, startChatWith, onChatStarted }: ChatTabProps) {
   const userAddress = getStoredWalletAddress();
   const isConnected = !!userAddress;
   const { client, isLoading, error, initClient, activateClient } = useXMTP();
@@ -831,12 +831,9 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
           <p className='text-sm text-white/40 mb-8 max-w-[240px] mx-auto'>
             Connect your wallet to start encrypted XMTP conversations
           </p>
-          <Button
-            onClick={() => onRequireAuth?.()}
-            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-10 h-12 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'
-          >
-            Connect Wallet
-          </Button>
+          <div className='max-w-xs mx-auto'>
+            <ConnectButton />
+          </div>
         </div>
       </div>
     );
@@ -850,7 +847,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
     return (
       <div className='flex flex-col h-[calc(100vh-8rem)]'>
         {/* Conversation Header */}
-        <div className='flex items-center gap-3 p-4 bg-[#16161A]/90 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.2)]'>
+        <div className='flex items-center gap-3 p-4 bg-card/90 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.2)]'>
           <Button
             variant='ghost'
             size='sm'
@@ -875,7 +872,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
         </div>
 
         {/* Messages */}
-        <div className='flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-[#070709]/60 to-transparent'>
+        <div className='flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-background/60 to-transparent'>
           {isLoadingMessages ? (
             <div className='flex items-center justify-center py-12'>
               <Loader2 className='w-6 h-6 animate-spin text-primary' />
@@ -906,7 +903,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
         </div>
 
         {/* Input */}
-        <div className='p-4 bg-[#16161A]/90 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.2)]'>
+        <div className='p-4 bg-card/90 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.2)]'>
           {offerMode ? (
             <div className='flex gap-2 items-center'>
               <Input
@@ -915,13 +912,13 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onChange={e => setOfferAmount(e.target.value)}
                 placeholder='Offer amount (USDC)...'
                 disabled={isSending}
-                className='bg-[#0f0f12] border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
+                className='bg-black/40 border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={sendOffer}
                 disabled={!offerAmount.trim() || isSending}
                 size='sm'
-                className='bg-[#00D632] text-black hover:bg-[#00D632]/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
+                className='bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
               >
                 {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Tag className='w-4 h-4' />}
               </Button>
@@ -943,7 +940,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onKeyDown={handleKeyPress}
                 placeholder='Type a message...'
                 disabled={isSending}
-                className='bg-[#0f0f12] border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
+                className='bg-black/40 border-transparent text-sm text-white placeholder:text-white/30 h-10 flex-1 rounded-xl focus:ring-1 focus:ring-primary/30'
               />
               <Button
                 onClick={() => setOfferMode(true)}
@@ -958,7 +955,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
                 onClick={sendMessage}
                 disabled={!inputValue.trim() || isSending}
                 size='sm'
-                className='bg-[#00D632] text-black hover:bg-[#00D632]/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
+                className='bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 rounded-xl font-black transition-all active:scale-95'
               >
                 {isSending ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
               </Button>
@@ -1031,7 +1028,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder='Search by address...'
-            className='bg-[#16161A] text-sm text-white placeholder:text-white/25 h-10 pl-12 pr-10 rounded-2xl focus:ring-1 focus:ring-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]'
+            className='bg-card text-sm text-white placeholder:text-white/25 h-10 pl-12 pr-10 rounded-2xl focus:ring-1 focus:ring-primary/30 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]'
           />
           {searchQuery && (
             <button
@@ -1078,7 +1075,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
             Start chatting with sellers when you view a listing
           </p>
           <Link href='/?tab=buy' className='inline-block'>
-            <Button className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-6 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'>
+            <Button className='rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/90 px-6 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'>
               Browse Listings
             </Button>
           </Link>
@@ -1097,7 +1094,7 @@ export function ChatTab({ onUnreadChange, startChatWith, onChatStarted, onRequir
           </p>
           <Button
             onClick={initClient}
-            className='rounded-xl bg-[#00D632] text-black font-black hover:bg-[#00D632]/90 px-8 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'
+            className='rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/90 px-8 h-11 shadow-[0_4px_16px_rgba(0,214,50,0.3)] transition-all active:scale-95'
           >
             <RefreshCw className='w-4 h-4 mr-2' /> Connect XMTP
           </Button>

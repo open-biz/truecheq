@@ -13,7 +13,22 @@ export interface Listing {
   price: string;
   metadataUrl: string;
   isOrbVerified: boolean;
+  /** Verification level — 'none' for unverified sellers, 'device' or 'orb' for World ID verified */
+  verificationLevel?: 'none' | 'device' | 'orb';
   metadata?: DealMetadata;
+}
+
+/**
+ * Derive verificationLevel from isOrbVerified when verificationLevel is missing.
+ * This handles listings loaded from IPFS or old localStorage that don't have
+ * verificationLevel set yet.
+ */
+export function getVerificationLevel(listing: Listing): 'none' | 'device' | 'orb' {
+  if (listing.verificationLevel) return listing.verificationLevel;
+  // Fallback: derive from isOrbVerified
+  // Old data: isOrbVerified=true → orb, isOrbVerified=false → device (was the only other option)
+  // New data should always have verificationLevel set
+  return listing.isOrbVerified ? 'orb' : 'device';
 }
 
 export const SEED_LISTINGS: Listing[] = [
@@ -23,6 +38,7 @@ export const SEED_LISTINGS: Listing[] = [
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmXCc58tWay4zcf6kMRo2vingZYwRWMm6r9XMZrzx45AqW',
     isOrbVerified: true,
+    verificationLevel: 'orb',
   },
   {
     cid: 'Qmcu7vPqyimqLrzjdeZbxKXj39D8LdyieLSkfU269LdtPp',
@@ -30,6 +46,7 @@ export const SEED_LISTINGS: Listing[] = [
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmRZKCR9WsxiwiktWxJph72xHAzjuU45KVM2TDr25XB7ip',
     isOrbVerified: true,
+    verificationLevel: 'orb',
   },
   {
     cid: 'QmdfjExyMR2WqosXr9Vr8YU8ZVTLP31Be8nhnnrZLQNrDR',
@@ -37,6 +54,7 @@ export const SEED_LISTINGS: Listing[] = [
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmYG7GWttxyJbCD6PN5t11p4EQiDQHwcjd21rVsfU5eAyw',
     isOrbVerified: true,
+    verificationLevel: 'orb',
   },
   {
     cid: 'QmNrwrBbkjFSui4EdUmTqdXNpdGuDeeV4p5HsRHWixfESN',
@@ -44,6 +62,7 @@ export const SEED_LISTINGS: Listing[] = [
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmcRmSitcNmNpcvjSKDdCAYPcMgvVMVrHk9zKMaAAtatjo',
     isOrbVerified: false,
+    verificationLevel: 'device',
   },
   {
     cid: 'QmSnWxkB82MdtbHcJxpmqWYHSefhy47Kxf9hQY7d1UGZaZ',
@@ -51,5 +70,6 @@ export const SEED_LISTINGS: Listing[] = [
     price: '1',
     metadataUrl: 'https://parallel-pink-stork.myfilebase.com/ipfs/QmYMieEdbq1MJ3AWMM1GLRmHjqjHrjfVe3mJNim1VoG4mp',
     isOrbVerified: false,
+    verificationLevel: 'device',
   },
 ];

@@ -151,33 +151,43 @@
 
 :root {
   --radius: 1rem;
-  --background: #0A0F14;
-  --foreground: #F8FAFC;
-  --card: #101820;
-  --card-foreground: #F8FAFC;
-  --popover: #101820;
+  /* ---- Semantic color tokens ---- */
+  /* Background surfaces */
+  --background: #070709;       /* Deepest background — app shell, page bg */
+  --foreground: #F8FAFC;       /* Primary text on dark backgrounds */
+  --card: #16161A;             /* Card/panel surface — elevated containers */
+  --card-foreground: #F8FAFC;  /* Text on card surfaces */
+  --popover: #16161A;          /* Popover/dropdown surface */
   --popover-foreground: #F8FAFC;
-  --primary: #00D632;
-  --primary-foreground: #0A0F14;
-  --secondary: #1E293B;
+  /* Brand */
+  --primary: #00D632;          /* TruCheq green — brand accent, CTAs, active states */
+  --primary-foreground: #070709; /* Text on primary (dark, for contrast) */
+  /* Neutral secondary */
+  --secondary: #1E293B;        /* Secondary surfaces, muted containers */
   --secondary-foreground: #F8FAFC;
+  /* Muted / subtle */
   --muted: #1E293B;
-  --muted-foreground: #94A3B8;
+  --muted-foreground: #94A3B8;  /* Secondary/placeholder text */
+  /* Accent */
   --accent: #1E293B;
   --accent-foreground: #F8FAFC;
+  /* Destructive */
   --destructive: #EF4444;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #00D632;
+  /* Borders & inputs */
+  --border: #1E293B;           /* Default border color */
+  --input: #1E293B;            /* Input border color */
+  --ring: #00D632;             /* Focus ring color */
+  /* Chart palette */
   --chart-1: #00D632;
   --chart-2: #10B981;
   --chart-3: #3B82F6;
   --chart-4: #F59E0B;
   --chart-5: #EF4444;
-  --sidebar: #0A0F14;
+  /* Sidebar (unused but required by shadcn) */
+  --sidebar: #070709;
   --sidebar-foreground: #F8FAFC;
   --sidebar-primary: #00D632;
-  --sidebar-primary-foreground: #0A0F14;
+  --sidebar-primary-foreground: #070709;
   --sidebar-accent: #1E293B;
   --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: #1E293B;

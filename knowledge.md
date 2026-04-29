@@ -9,7 +9,7 @@ TruCheq is a headless Web3 P2P commerce protocol for social platforms (Reddit, D
 - **Framework:** Next.js 16, React 19, TypeScript
 - **Package Manager:** bun
 - **Styling:** Tailwind CSS v4, shadcn/ui, Framer Motion
-- **Wallet:** RainbowKit + wagmi + viem
+- **Wallet:** wagmi + viem (injected connector — MetaMask, Coinbase Wallet, etc.)
 - **Identity:** World ID (IDKit) — `@worldcoin/idkit`
 - **Messaging:** XMTP — encrypted buyer↔seller chat
 - **Payments:** Coinbase x402 (`x402-next`, `@coinbase/x402`) on Base Sepolia
@@ -63,7 +63,8 @@ NEXT_PUBLIC_RP_ID            # World ID RP ID (from developer.worldcoin.org)
 WORLD_PRIVATE_KEY            # World ID 4.0 private key (RP signing)
 RP_SIGNING_KEY               # World ID 4.0 private key (same as WORLD_PRIVATE_KEY, used by rp-signature API)
 NEXT_PUBLIC_X402_PAY_TO      # Wallet address to receive x402 payments
-NEXT_PUBLIC_XMTP_ENV         # XMTP environment: 'dev' (default) or 'production'
+NEXT_PUBLIC_XMTP_ENV                 # XMTP environment: 'dev' (default) or 'production'
+NEXT_PUBLIC_SITE_URL                   # Public site URL for OG metadata (e.g. https://trucheq.com)
 FILEBASE_ACCESS_KEY          # Filebase IPFS access
 FILEBASE_SECRET_KEY          # Filebase IPFS secret
 NEXT_PUBLIC_FILEBASE_BUCKET  # Filebase bucket name

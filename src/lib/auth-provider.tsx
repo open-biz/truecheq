@@ -11,7 +11,9 @@
  *
  * Behaviour:
  *  - Inside World App: install MiniKit → walletAuth → save user. One Approve.
- *  - Standalone browser: no auto-auth. UI calls login() to trigger flow.
+ *  - Standalone browser: wagmi injected wallet connection = login.
+ *    WagmiAuthSync (rendered inside WagmiProvider) watches useAccount() and
+ *    syncs to AuthProvider context.
  */
 
 import React, {
@@ -24,12 +26,14 @@ import React, {
   type ReactNode,
 } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
+import { useAccount, useDisconnect } from 'wagmi';
 import {
   type TruCheqUser,
   loadTruCheqUser,
   saveTruCheqUser,
   clearTruCheqUser,
   migrateToUnifiedUser,
+  createTruCheqUser,
 } from './trucheq-user';
 
 interface AuthContextValue {
@@ -38,7 +42,7 @@ interface AuthContextValue {
   isAuthing: boolean;        // true while a walletAuth is in flight
   isMiniApp: boolean;        // MiniKit detected
   setUser: (u: TruCheqUser) => void;
-  login: () => Promise<void>; // re-runs walletAuth (e.g. for chat or retry)
+  login: () => Promise<void>; // re-runs walletAuth (Mini App only)
   logout: () => void;
 }
 
@@ -60,6 +64,49 @@ function newNonce(): string {
   ).slice(0, 16);
 }
 
+// ============================================================================
+// WagmiAuthSync — watches wagmi account changes and syncs to AuthProvider
+// MUST be rendered inside WagmiProvider (standalone browser only).
+// ============================================================================
+
+export function WagmiAuthSync() {
+  const { user, setUser, logout } = useAuth();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+
+  useEffect(() => {
+    if (isConnected && address) {
+      const existing = loadTruCheqUser();
+
+      if (existing && existing.walletAddress.toLowerCase() === address.toLowerCase()) {
+        // Same wallet — just ensure state is synced
+        if (!user || user.walletAddress.toLowerCase() !== address.toLowerCase()) {
+          setUser(existing);
+        }
+      } else {
+        // New wallet connection — create user from wallet address
+        const newUser = createTruCheqUser({
+          walletAddress: address,
+          nullifierHash: existing?.nullifierHash,
+          isOrbVerified: existing?.isOrbVerified,
+        });
+        setUser(newUser);
+      }
+    } else if (!isConnected && user) {
+      // Wallet disconnected — log out (logout() already calls clearTruCheqUser)
+      disconnect();
+      logout();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, isConnected]);
+
+  return null; // Renders nothing — just syncs state
+}
+
+// ============================================================================
+// AuthProvider — core auth context
+// ============================================================================
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<TruCheqUser | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -78,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearTruCheqUser();
   }, []);
 
-  // ----- INIT: install MiniKit + auto-walletAuth in the SAME effect -----
+  // ----- INIT: install MiniKit + auto-walletAuth (Mini App only) -----
   useEffect(() => {
     if (initRanRef.current) return;
     initRanRef.current = true;
@@ -92,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (restored) setUserState(restored);
 
     if (!insideWorldApp) {
-      // Standalone browser — no auto-auth
+      // Standalone browser — WagmiAuthSync handles login
       setIsReady(true);
       return;
     }
@@ -122,15 +169,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.executedWith === 'fallback') return;
 
         const address = result.data.address;
-        const merged: TruCheqUser = {
-          nullifierHash: restored?.nullifierHash || '',
-          isOrbVerified: restored?.isOrbVerified || false,
-          verificationLevel: restored?.verificationLevel || 'device',
+        const merged = createTruCheqUser({
           walletAddress: address,
-          truCheqCode: restored?.truCheqCode || deriveTruCheqCode(address),
+          nullifierHash: restored?.nullifierHash,
+          isOrbVerified: restored?.isOrbVerified,
           sessionId: restored?.sessionId,
-          createdAt: restored?.createdAt || Date.now(),
-        };
+        });
         setUserState(merged);
         saveTruCheqUser(merged);
       } catch (err) {
@@ -142,10 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // ----- LOGIN (manual retry / "connect wallet" CTA) -----
+  // ----- LOGIN (manual retry — Mini App only) -----
   const login = useCallback(async () => {
     if (!MiniKit.isInstalled()) {
-      console.warn('[Auth] login() called outside World App');
+      console.warn('[Auth] login() called outside World App — use injected wallet instead');
       return;
     }
     if (isAuthing) return;
@@ -158,15 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (result.executedWith === 'fallback') return;
 
       const address = result.data.address;
-      const next: TruCheqUser = {
-        nullifierHash: user?.nullifierHash || '',
-        isOrbVerified: user?.isOrbVerified || false,
-        verificationLevel: user?.verificationLevel || 'device',
+      const next = createTruCheqUser({
         walletAddress: address,
-        truCheqCode: user?.truCheqCode || deriveTruCheqCode(address),
+        nullifierHash: user?.nullifierHash,
+        isOrbVerified: user?.isOrbVerified,
         sessionId: user?.sessionId,
-        createdAt: user?.createdAt || Date.now(),
-      };
+      });
       setUserState(next);
       saveTruCheqUser(next);
     } catch (err) {

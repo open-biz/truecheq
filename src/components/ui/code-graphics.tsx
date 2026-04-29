@@ -25,7 +25,7 @@ export const RetroGrid = ({ className }: { className?: string }) => {
       </div>
 
       {/* Gradient Fade */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F14] to-transparent to-90%" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent to-90%" />
     </div>
   );
 };
@@ -36,8 +36,8 @@ export const BorderBeam = ({
   duration = 15,
   anchor = 90,
   borderWidth = 1.5,
-  colorFrom = "#00D632",
-  colorTo = "#00D632",
+  colorFrom = "var(--primary)",
+  colorTo = "var(--primary)",
   delay = 0,
   className,
 }: {
@@ -161,7 +161,7 @@ export const TruCheqCoin = ({ active }: { active: boolean }) => {
     <div className="relative flex items-center justify-center">
       <div
         className={cn(
-          "w-16 h-16 rounded-full border-4 transition-all duration-700 ease-in-out z-10 bg-[#0A0F14]",
+          "w-16 h-16 rounded-full border-4 transition-all duration-700 ease-in-out z-10 bg-background",
           active
             ? "border-primary shadow-[0_0_30px_rgba(0,214,50,0.6)]"
             : "border-muted/30"
