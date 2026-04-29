@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ import {
   useHaptics,
 } from '@worldcoin/mini-apps-ui-kit-react';
 
+import { MiniKit } from '@worldcoin/minikit-js';
 import {
   type TruCheqUser,
   saveTruCheqUser,
@@ -257,6 +258,27 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
     clearTruCheqUser();
   };
 
+  // Called from ChatTab when wallet address is missing — just re-run walletAuth
+  // silently without showing the full World ID re-verification flow.
+  const handleRequireWallet = useCallback(async () => {
+    if (!user) return;
+    if (!MiniKit.isInstalled()) {
+      setShowWalletAuth(true);
+      return;
+    }
+    try {
+      const nonce = Date.now().toString(36).padStart(12, '0');
+      const result = await MiniKit.walletAuth({ nonce, statement: 'Connect wallet to TruCheq chat' });
+      if (result.executedWith !== 'fallback') {
+        const updated = { ...user, walletAddress: result.data.address };
+        setUser(updated);
+        saveTruCheqUser(updated);
+      }
+    } catch {
+      setShowWalletAuth(true);
+    }
+  }, [user]);
+
   if (!mounted) return null;
 
   // ---- Not authenticated — Guest mode: show feed, auth overlay for actions ----
@@ -338,7 +360,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
               onUnreadChange={setChatUnreadCount}
               startChatWith={startChatWith}
               onChatStarted={() => setStartChatWith(null)}
-              onRequireAuth={() => setShowWalletAuth(true)}
+              onRequireAuth={handleRequireWallet}
             />
           </motion.div>
         </div>
@@ -366,7 +388,7 @@ export function AppShell({ initialTab = 'feed' }: AppShellProps) {
 
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} isMiniApp={isMiniApp} chatUnreadCount={chatUnreadCount} />
 
-      {/* Wallet auth overlay — triggered from ChatTab when wallet not connected */}
+      {/* Wallet auth overlay — only shown as fallback in standalone (non-mini-app) mode */}
       {showWalletAuth && (
         <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="max-w-md w-full">
